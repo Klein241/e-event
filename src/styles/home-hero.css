@@ -1,0 +1,373 @@
+/**
+ * COMPAGNON DE CÉRÉMONIE - Style de la Page d'Accueil & des 3 Grands Hubs 3D
+ * Effet grand dîner de gala, cartes néomorphiques profondes et workflows par étapes
+ */
+
+#home-tab {
+  max-width: 440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero-welcome-section {
+  text-align: center;
+  padding: 0.75rem 0.25rem 2rem;
+  position: relative;
+}
+
+.hero-edition-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(230, 122, 83, 0.12);
+  border: 1px solid rgba(230, 122, 83, 0.35);
+  color: var(--terracotta-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  margin-bottom: 1rem;
+  box-shadow: 2px 3px 8px rgba(195, 175, 155, 0.25);
+}
+
+body.dark-mode .hero-edition-badge {
+  background: rgba(245, 197, 66, 0.12);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  color: var(--gold-primary);
+  box-shadow: 0 0 15px rgba(245, 197, 66, 0.15);
+}
+
+.hero-welcome-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+  color: #2D231E;
+}
+
+body.dark-mode .hero-welcome-title {
+  background: linear-gradient(135deg, #ffffff 0%, #fef3c7 40%, #f59e0b 80%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 20px rgba(245, 158, 11, 0.2);
+}
+
+@media (min-width: 640px) {
+  .hero-welcome-title {
+    font-size: 2.35rem;
+  }
+}
+
+.hero-welcome-subtitle {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  max-width: 580px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   LES 3 GRANDES CARTES EN BULLE DE DIALOGUE (EXACT DESIGN DU MODÈLE)
+   Bannière 1 (Teal): Prière & Foi
+   Bannière 2 (Purple): Réseautage & Business
+   Bannière 3 (Orange): Compétition & Quiz Live
+   ============================================================ */
+
+.gala-speech-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 440px;
+  margin: 1.25rem auto 2rem;
+  padding: 0 4px;
+}
+
+.speech-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 34px;
+  padding: 20px 22px 20px 18px;
+  cursor: pointer;
+  filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.48));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.speech-card:hover, .speech-card:active {
+  transform: translateY(-4px) scale(1.018);
+  filter: drop-shadow(0 22px 38px rgba(0, 0, 0, 0.65));
+}
+
+/* Queue triangulaire en bas à gauche façon bulle de dialogue */
+.speech-card::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 48px;
+  width: 26px;
+  height: 18px;
+  background: var(--card-tail-color);
+  clip-path: polygon(0 0, 100% 0, 15% 100%);
+  transform: rotate(-8deg);
+  z-index: 3;
+}
+
+/* Badge circulaire gauche avec ombre projetée à 45° */
+.speech-card-badge {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--card-badge-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  box-shadow: 6px 0 16px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* Ombre portée diagonale longue (Long-shadow 45° Material Design) */
+.speech-card-icon {
+  width: 52px;
+  height: 52px;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.2))
+          drop-shadow(4px 4px 0 rgba(0, 0, 0, 0.18))
+          drop-shadow(6px 6px 0 rgba(0, 0, 0, 0.16))
+          drop-shadow(8px 8px 0 rgba(0, 0, 0, 0.14))
+          drop-shadow(10px 10px 0 rgba(0, 0, 0, 0.12))
+          drop-shadow(14px 14px 0 rgba(0, 0, 0, 0.1))
+          drop-shadow(18px 18px 0 rgba(0, 0, 0, 0.08))
+          drop-shadow(22px 22px 0 rgba(0, 0, 0, 0.05));
+}
+
+/* Corps texte à droite */
+.speech-card-body {
+  flex: 1;
+  padding-left: 18px;
+  text-align: left;
+}
+
+.speech-card-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.speech-card-line {
+  width: 65px;
+  height: 3px;
+  border-radius: 2px;
+  margin: 8px 0 10px 0;
+  background: var(--card-accent-line);
+}
+
+.speech-card-text {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Thème 1 : Sauge / Menthe Douce (Prière & Foi - Style Songs Played du modèle) */
+.card-teal {
+  background: linear-gradient(145deg, #E2EEEA 0%, #D2E4DF 100%);
+  --card-badge-bg: linear-gradient(145deg, #88B7AC 0%, #6EA094 100%);
+  --card-tail-color: #D2E4DF;
+  --card-accent-line: #7EAFA3;
+  color: #23423B;
+  box-shadow: 6px 8px 18px rgba(195, 175, 155, 0.35), -4px -4px 10px rgba(255, 255, 255, 0.9);
+}
+
+.card-teal .speech-card-title {
+  color: #1F3B35 !important;
+}
+
+.card-teal .speech-card-text {
+  color: #38554E !important;
+}
+
+body.dark-mode .card-teal {
+  background: linear-gradient(135deg, #134e4a 0%, #0f3d3a 50%, #042f2e 100%);
+  --card-badge-bg: linear-gradient(145deg, #2dd4bf 0%, #14b8a6 50%, #0d9488 100%);
+  --card-tail-color: #0d9488;
+  --card-accent-line: #2dd4bf;
+  box-shadow: none;
+}
+
+body.dark-mode .card-teal .speech-card-title { color: #f8fafc !important; }
+body.dark-mode .card-teal .speech-card-text { color: rgba(255, 255, 255, 0.85) !important; }
+
+/* Thème 2 : Pêche / Corail Doux (Réseautage & Business - Style Favorites du modèle) */
+.card-purple {
+  background: linear-gradient(145deg, #FDE6D8 0%, #F9D0BC 100%);
+  --card-badge-bg: linear-gradient(145deg, #EB805B 0%, #DF6A43 100%);
+  --card-tail-color: #F9D0BC;
+  --card-accent-line: #E67A53;
+  color: #4A2214;
+  box-shadow: 6px 8px 18px rgba(215, 175, 155, 0.35), -4px -4px 10px rgba(255, 255, 255, 0.9);
+}
+
+.card-purple .speech-card-title {
+  color: #4A2214 !important;
+}
+
+.card-purple .speech-card-text {
+  color: #6D3D2C !important;
+}
+
+body.dark-mode .card-purple {
+  background: linear-gradient(135deg, #581c87 0%, #3b0764 50%, #2e1065 100%);
+  --card-badge-bg: linear-gradient(145deg, #c084fc 0%, #a855f7 50%, #7e22ce 100%);
+  --card-tail-color: #7e22ce;
+  --card-accent-line: #c084fc;
+  box-shadow: none;
+}
+
+body.dark-mode .card-purple .speech-card-title { color: #f8fafc !important; }
+body.dark-mode .card-purple .speech-card-text { color: rgba(255, 255, 255, 0.85) !important; }
+
+/* Thème 3 : Miel / Jaune Beurre (Compétition & Quiz Live - Style Hours Listened du modèle) */
+.card-orange {
+  background: linear-gradient(145deg, #FDEEC5 0%, #F9DE9E 100%);
+  --card-badge-bg: linear-gradient(145deg, #F8CB6F 0%, #F5BE52 100%);
+  --card-tail-color: #F9DE9E;
+  --card-accent-line: #F7C665;
+  color: #46330E;
+  box-shadow: 6px 8px 18px rgba(215, 185, 145, 0.35), -4px -4px 10px rgba(255, 255, 255, 0.9);
+}
+
+.card-orange .speech-card-title {
+  color: #46330E !important;
+}
+
+.card-orange .speech-card-text {
+  color: #684E1A !important;
+}
+
+body.dark-mode .card-orange {
+  background: linear-gradient(135deg, #9a3412 0%, #7c2d12 50%, #431407 100%);
+  --card-badge-bg: linear-gradient(145deg, #fb923c 0%, #f97316 50%, #c2410c 100%);
+  --card-tail-color: #c2410c;
+  --card-accent-line: #fb923c;
+  box-shadow: none;
+}
+
+body.dark-mode .card-orange .speech-card-title { color: #f8fafc !important; }
+body.dark-mode .card-orange .speech-card-text { color: rgba(255, 255, 255, 0.85) !important; }
+
+
+/* ==========================================
+   WIZARDS ET MODALES PAR ÉTAPES (CARTE 1, 2, 3...)
+   ========================================== */
+.wizard-step-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wizard-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.wizard-progress-pill {
+  flex: 1;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: all 0.3s ease;
+}
+
+.wizard-progress-pill.active {
+  background: linear-gradient(90deg, #ff7a45, #f59e0b);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+/* Boutons de sélection rapide de sujet de prière (Pills) */
+.prayer-topics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .prayer-topics-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.prayer-topic-btn {
+  background: #FAF4ED;
+  border: 1px solid rgba(215, 195, 180, 0.6);
+  border-radius: 9999px;
+  padding: 10px 14px;
+  color: #2D231E;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 3px 4px 10px rgba(195, 175, 155, 0.35), -2px -2px 6px rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+body.dark-mode .prayer-topic-btn {
+  background: linear-gradient(180deg, #23201d 0%, #161412 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.prayer-topic-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--terracotta-accent);
+}
+
+body.dark-mode .prayer-topic-btn:hover {
+  border-color: rgba(245, 197, 66, 0.3);
+}
+
+.prayer-topic-btn.selected {
+  background: var(--terracotta-gradient);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(220, 105, 65, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+/* Note de réassurance et confidentialité */
+.privacy-reassurance-box {
+  background: rgba(202, 220, 214, 0.35);
+  border: 1px solid rgba(36, 64, 56, 0.2);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: #23423B;
+  line-height: 1.4;
+}
+
+body.dark-mode .privacy-reassurance-box {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #a7f3d0;
+}

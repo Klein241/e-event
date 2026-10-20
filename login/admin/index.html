@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Régie & Backoffice Administrateur | Compagnon de Cérémonie</title>
+  <meta name="description" content="Tableau de bord régie temps réel, modération du chat, pilotage du quiz et gestion push.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+
+  <!-- TOASTS DE NOTIFICATION TEMPS RÉEL -->
+  <div id="admin-toast-container" class="admin-toast-container"></div>
+
+  <!-- EN-TÊTE PRINCIPAL RÉGIE -->
+  <header class="admin-header">
+    <div class="admin-brand">
+      <div class="admin-brand-icon">👑</div>
+      <div class="admin-brand-text">
+        <h1 id="admin-event-name">Régie Soirée Royale</h1>
+        <p>Console Backoffice Officielle</p>
+      </div>
+    </div>
+
+    <div class="admin-header-actions">
+      <div class="live-badge-glow">
+        <span class="live-dot-pulse"></span>
+        <span>RÉGIE LIVE</span>
+      </div>
+
+      <!-- Bascule Thème Neumorphique Clair/Sombre -->
+      <button class="btn-icon-3d" id="btn-theme-toggle" onclick="window.toggleAdminTheme()" title="Changer le thème">
+        <span id="theme-toggle-icon">🌙</span>
+      </button>
+
+      <!-- Bouton Déconnexion (affiché uniquement une fois authentifié) -->
+      <button class="btn-icon-3d" id="btn-logout" onclick="window.adminLogout()" title="Verrouiller la régie" style="display: none; color: #dc2626;">
+        🔒
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       1. ÉCRAN DE DÉVERROUILLAGE SÉCURISÉ (LOGIN GATE CLAYMORPHIC)
+       ============================================================ -->
+  <main id="admin-login-screen">
+    <div class="clay-login-card">
+      <div class="clay-shield-icon">🛡️</div>
+      <h2>Accès Régie Sécurisé</h2>
+      <p>Veuillez composer le code PIN régie pour déverrouiller la console de pilotage de l'événement.</p>
+
+      <div class="pin-display-wrapper">
+        <input 
+          type="password" 
+          id="admin-pin-input" 
+          class="pin-input-field" 
+          placeholder="••••" 
+          maxlength="8" 
+          autocomplete="off" 
+          inputmode="numeric"
+          autofocus
+        >
+      </div>
+
+      <!-- Pavé numérique tactile 3D Claymorphic -->
+      <div class="numpad-grid">
+        <button type="button" class="numpad-btn" data-val="1">1</button>
+        <button type="button" class="numpad-btn" data-val="2">2</button>
+        <button type="button" class="numpad-btn" data-val="3">3</button>
+        <button type="button" class="numpad-btn" data-val="4">4</button>
+        <button type="button" class="numpad-btn" data-val="5">5</button>
+        <button type="button" class="numpad-btn" data-val="6">6</button>
+        <button type="button" class="numpad-btn" data-val="7">7</button>
+        <button type="button" class="numpad-btn" data-val="8">8</button>
+        <button type="button" class="numpad-btn" data-val="9">9</button>
+        <button type="button" class="numpad-btn btn-action" data-val="clear" title="Effacer">⌫</button>
+        <button type="button" class="numpad-btn" data-val="0">0</button>
+        <button type="button" class="numpad-btn btn-action" data-val="enter" style="background: var(--terracotta-soft); color: var(--terracotta-accent);" title="Valider">↵</button>
+      </div>
+
+      <button type="button" id="btn-unlock-gate" class="btn-unlock" onclick="handleLoginSubmit()">
+        Déverrouiller l'Espace Régie 🔓
+      </button>
+
+      <p style="font-size: 0.72rem; color: var(--text-dim); margin-top: 1.25rem; margin-bottom: 0;">
+        Code par défaut : <strong>7777</strong> | Protection anti-intrusion active
+      </p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       2. ESPACE PRINCIPAL DASHBOARD (AFFICHÉ APRÈS PIN VALIDE)
+       ============================================================ -->
+  <main id="admin-dashboard-screen" style="display: none;">
+
+    <!-- Barre d'onglets de navigation Claymorphic -->
+    <nav class="admin-nav-bar" aria-label="Navigation régie">
+      <button type="button" class="admin-tab-btn active" data-tab="overview">
+        📊 Vue d'Ensemble
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="push">
+        📢 Régie Push
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="quiz">
+        🧠 Quiz Live
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="chat">
+        💬 Modération Chat
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="prayers">
+        🙏 Prières & WhatsApp
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="networking">
+        🤝 Réseautage VIP
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="guests">
+        👥 Invités
+      </button>
+    </nav>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 1 : VUE D'ENSEMBLE (OVERVIEW)
+         ------------------------------------------------------------- -->
+    <section id="tab-overview" class="admin-tab-content active">
+      
+      <!-- Grille des indicateurs clés (KPIs) -->
+      <div class="kpi-grid">
+        <div class="kpi-card terracotta">
+          <div class="kpi-header">
+            <span class="kpi-label">Invités</span>
+            <div class="kpi-icon-box">👥</div>
+          </div>
+          <div class="kpi-value" id="kpi-guests-count">0</div>
+        </div>
+
+        <div class="kpi-card sage">
+          <div class="kpi-header">
+            <span class="kpi-label">Tables</span>
+            <div class="kpi-icon-box">🍽️</div>
+          </div>
+          <div class="kpi-value" id="kpi-tables-count">0</div>
+        </div>
+
+        <div class="kpi-card blue">
+          <div class="kpi-header">
+            <span class="kpi-label">Chat Live</span>
+            <div class="kpi-icon-box">💬</div>
+          </div>
+          <div class="kpi-value" id="kpi-chat-count">0</div>
+        </div>
+
+        <div class="kpi-card honey">
+          <div class="kpi-header">
+            <span class="kpi-label">Prières</span>
+            <div class="kpi-icon-box">🙏</div>
+          </div>
+          <div class="kpi-value" id="kpi-prayers-count">0</div>
+        </div>
+
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <span class="kpi-label">VIP Réseau</span>
+            <div class="kpi-icon-box">🤝</div>
+          </div>
+          <div class="kpi-value" id="kpi-networking-count">0</div>
+        </div>
+
+        <div class="kpi-card terracotta">
+          <div class="kpi-header">
+            <span class="kpi-label">Abonnés Push</span>
+            <div class="kpi-icon-box">📢</div>
+          </div>
+          <div class="kpi-value" id="kpi-push-count">0</div>
+        </div>
+      </div>
+
+      <!-- Question en direct & Télécommande Vidéoprojecteur -->
+      <div class="form-grid-2">
+        
+        <!-- Boîte du Quiz en direct -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>⚡ Statut Quiz Téléphones</h3>
+            <span class="status-pill status-active">Direct</span>
+          </div>
+          <div id="overview-active-quiz-box" style="display: flex; flex-direction: column; gap: 8px;">
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">Chargement du quiz...</p>
+          </div>
+        </div>
+
+        <!-- Télécommande Vidéoprojecteur Grand Écran -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>📽️ Télécommande Vidéoprojecteur</h3>
+            <p>Bascule instantanée de la vue grand écran</p>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+            <button type="button" class="btn-table-action" style="padding: 10px; justify-content: center; font-weight: 800;" onclick="setProjectorDisplayMode('welcome')">
+              👑 Écran d'Accueil
+            </button>
+            <button type="button" class="btn-table-action" style="padding: 10px; justify-content: center; font-weight: 800;" onclick="setProjectorDisplayMode('quiz')">
+              🧠 Quiz Grand Écran
+            </button>
+            <button type="button" class="btn-table-action" style="padding: 10px; justify-content: center; font-weight: 800;" onclick="setProjectorDisplayMode('chat')">
+              💬 Mur Social Chat
+            </button>
+            <button type="button" class="btn-table-action" style="padding: 10px; justify-content: center; font-weight: 800;" onclick="setProjectorDisplayMode('leaderboard')">
+              🏆 Podium des Tables
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Informations de la Soirée & Zone de Maintenance -->
+      <div class="form-grid-2">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>⚙️ Paramètres de la Cérémonie</h3>
+            <p>Modifier l'intitulé et le lieu de l'événement</p>
+          </div>
+          <form onsubmit="saveEventDetails(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label class="admin-label" for="edit-event-name">Nom de l'événement</label>
+              <input type="text" id="edit-event-name" class="admin-input" required placeholder="Gala & Cérémonie Royale">
+            </div>
+            <div>
+              <label class="admin-label" for="edit-event-subtitle">Sous-titre / Thème</label>
+              <input type="text" id="edit-event-subtitle" class="admin-input" placeholder="Édition Prestige & Célébration">
+            </div>
+            <div>
+              <label class="admin-label" for="edit-event-venue">Lieu de réception</label>
+              <input type="text" id="edit-event-venue" class="admin-input" placeholder="Grand Salon d'Honneur">
+            </div>
+            <button type="submit" class="btn-unlock" style="padding: 0.75rem 1.25rem;">
+              Enregistrer les modifications
+            </button>
+          </form>
+        </div>
+
+        <div class="admin-card" style="border-color: rgba(239, 68, 68, 0.3);">
+          <div class="admin-card-header">
+            <h3 style="color: #dc2626;">🧹 Maintenance & Purge</h3>
+            <p>Nettoyage des essais avant le lancement officiel</p>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.45;">
+            Cette action supprime les messages de test du chat, les soumissions d'essais de quiz et les requêtes fictives, tout en conservant la structure et la configuration.
+          </p>
+          <button type="button" class="btn-table-action danger" style="padding: 12px; justify-content: center; font-weight: 800; border-radius: var(--radius-md);" onclick="purgeTestData()">
+            🗑️ Purger toutes les données de test
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 2 : RÉGIE PUSH (WEB PUSH BROADCAST)
+         ------------------------------------------------------------- -->
+    <section id="tab-push" class="admin-tab-content">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>📢 Diffuseur de Notifications Web Push</h3>
+          <p>Envoie une alerte sonore et visuelle instantanée sur l'écran des invités abonnés</p>
+        </div>
+
+        <form id="broadcast-admin-form" onsubmit="sendCustomBroadcast(event)" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="push-title">Titre de la notification</label>
+              <input type="text" id="push-title" class="admin-input" required placeholder="Ex : 🍽️ Le buffet royal est ouvert !">
+            </div>
+            <div>
+              <label class="admin-label" for="push-tag">Catégorie / Canal</label>
+              <select id="push-tag" class="admin-select">
+                <option value="gala-alert">Alerte Cérémonie</option>
+                <option value="quiz-start">Lancement du Quiz</option>
+                <option value="prayer-call">Moment de Prière</option>
+                <option value="photo-call">Séance Photo</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="admin-label" for="push-body">Message détaillé</label>
+            <textarea id="push-body" class="admin-textarea" rows="3" required placeholder="Invités de marque, vous êtes conviés à rejoindre la salle principale..."></textarea>
+          </div>
+
+          <div>
+            <label class="admin-label" for="push-url">Lien de redirection au clic (optionnel)</label>
+            <input type="text" id="push-url" class="admin-input" placeholder="/" value="/">
+          </div>
+
+          <button type="submit" id="btn-send-push" class="btn-unlock" style="background: var(--terracotta-gradient);">
+            🚀 Diffuser la notification push maintenant
+          </button>
+        </form>
+      </div>
+
+      <!-- Modèles d'annonces prédéfinies -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>⚡ Modèles d'Annonces Rapides (1-Clic)</h3>
+          <p>Cliquez pour pré-remplir instantanément le diffuseur</p>
+        </div>
+
+        <div class="presets-grid">
+          <button type="button" class="preset-btn" onclick="sendPushPreset('🍽️ Passage à Table', 'Le service du dîner royal commence. Veuillez regagner vos places.', '/')">
+            <strong>🍽️ Passage à Table</strong>
+            <span>Invitation générale à regagner les tables pour le service.</span>
+          </button>
+
+          <button type="button" class="preset-btn" onclick="sendPushPreset('🧠 Le Quiz Royal Démarre !', 'Sortez vos téléphones, la première question est en direct !', '/')">
+            <strong>🧠 Lancement Quiz</strong>
+            <span>Alerte instantanée pour mobiliser tous les invités.</span>
+          </button>
+
+          <button type="button" class="preset-btn" onclick="sendPushPreset('📸 Séance Photo d\'Honneur', 'Les tables 1 à 4 sont invitées auprès du photocall officiel.', '/')">
+            <strong>📸 Séance Photo</strong>
+            <span>Appel des tables pour la séance souvenir.</span>
+          </button>
+
+          <button type="button" class="preset-btn" onclick="sendPushPreset('🙏 Moment Solennel de Prière', 'Un temps d\'intercession s\'ouvre. Déposez vos requêtes dans l\'application.', '/')">
+            <strong>🙏 Prière Solennelle</strong>
+            <span>Ouverture de l'intercession et des bénédictions.</span>
+          </button>
+
+          <button type="button" class="preset-btn" onclick="sendPushPreset('🎂 La Pièce Montée Arrive !', 'Rassemblez-vous autour de la piste pour la découpe du gâteau royal !', '/')">
+            <strong>🎂 Pièce Montée</strong>
+            <span>Moment culminant de la célébration.</span>
+          </button>
+
+          <button type="button" class="preset-btn" onclick="sendPushPreset('🏆 Remise des Trophées', 'Découvrez la table gagnante du grand jeu royal sur le projecteur !', '/')">
+            <strong>🏆 Remise des Prix</strong>
+            <span>Annonce de la fin des votes et révélation du podium.</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Historique des diffusions -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>📜 Historique Récent des Diffusions</h3>
+          <p>Dernières notifications envoyées aux appareils</p>
+        </div>
+        <div id="push-history-list" style="display: flex; flex-direction: column; gap: 8px;">
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Chargement...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 3 : QUIZ & JEUX EN DIRECT
+         ------------------------------------------------------------- -->
+    <section id="tab-quiz" class="admin-tab-content">
+      
+      <!-- Créateur de Questions -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>➕ Créer ou Propulser une Question de Quiz</h3>
+          <p>Diffusable instantanément sur les téléphones des invités</p>
+        </div>
+
+        <form id="new-quiz-form" onsubmit="createQuizQuestion(event)" style="display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <label class="admin-label" for="new-q-text">Intitulé de la question</label>
+            <input type="text" id="new-q-text" class="admin-input" required placeholder="Ex : En quelle année les mariés se sont-ils rencontrés pour la première fois ?">
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="new-q-a">Option A</label>
+              <input type="text" id="new-q-a" class="admin-input" required placeholder="Ex : En 2018 à Abidjan">
+            </div>
+            <div>
+              <label class="admin-label" for="new-q-b">Option B</label>
+              <input type="text" id="new-q-b" class="admin-input" required placeholder="Ex : En 2020 à Paris">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="new-q-c">Option C (optionnel)</label>
+              <input type="text" id="new-q-c" class="admin-input" placeholder="Ex : En 2019 à Douala">
+            </div>
+            <div>
+              <label class="admin-label" for="new-q-d">Option D (optionnel)</label>
+              <input type="text" id="new-q-d" class="admin-input" placeholder="Ex : Lors d'un congrès en 2021">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="new-q-correct">Bonne réponse</label>
+              <select id="new-q-correct" class="admin-select" required>
+                <option value="A">Option A</option>
+                <option value="B">Option B</option>
+                <option value="C">Option C</option>
+                <option value="D">Option D</option>
+              </select>
+            </div>
+            <div>
+              <label class="admin-label" for="new-q-duration">Compte à rebours (secondes)</label>
+              <input type="number" id="new-q-duration" class="admin-input" value="20" min="5" max="120">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="new-q-points">Points attribués</label>
+              <input type="number" id="new-q-points" class="admin-input" value="100" step="10">
+            </div>
+            <div>
+              <label class="admin-label" for="new-q-expl">Explication affichée après le vote</label>
+              <input type="text" id="new-q-expl" class="admin-input" placeholder="Ex : C'était lors du concert de louange à Cocody !">
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
+            <input type="checkbox" id="new-q-launch-now" style="width: 18px; height: 18px; accent-color: var(--terracotta-accent);">
+            <label for="new-q-launch-now" style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); cursor: pointer;">
+              🚀 Propulser immédiatement en direct sur tous les téléphones
+            </label>
+          </div>
+
+          <button type="submit" class="btn-unlock">
+            Sauvegarder dans la banque de questions
+          </button>
+        </form>
+      </div>
+
+      <!-- Banque de questions existantes -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>📚 Banque de Questions de la Soirée</h3>
+          <p>Gérez et activez les questions au moment opportun</p>
+        </div>
+
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Réponse</th>
+                <th>Durée</th>
+                <th>Points</th>
+                <th>Statut</th>
+                <th>Action Régie</th>
+              </tr>
+            </thead>
+            <tbody id="quiz-questions-tbody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted);">Chargement des questions...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Attribution de points bonus & Podium en direct -->
+      <div class="form-grid-2">
+        
+        <!-- Attribution de points par table -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>🎁 Points Bonus Régie</h3>
+            <p>Récompensez une table en direct (danse, élégance, chant)</p>
+          </div>
+          <form id="bonus-points-form" onsubmit="addBonusPoints(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label class="admin-label" for="bonus-table-num">Numéro de la table</label>
+              <input type="text" id="bonus-table-num" class="admin-input" required placeholder="Ex : 5">
+            </div>
+            <div>
+              <label class="admin-label" for="bonus-points-val">Points à attribuer</label>
+              <input type="number" id="bonus-points-val" class="admin-input" value="50" step="10">
+            </div>
+            <div>
+              <label class="admin-label" for="bonus-reason">Motif de la récompense</label>
+              <input type="text" id="bonus-reason" class="admin-input" placeholder="Ex : Meilleure chorégraphie royale">
+            </div>
+            <button type="submit" class="btn-unlock" style="background: var(--sage-gradient); color: var(--sage-dark);">
+              ✨ Attribuer les points bonus
+            </button>
+          </form>
+        </div>
+
+        <!-- Classement provisoire -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3>🏆 Podium des Tables en Direct</h3>
+            <button class="btn-table-action danger" onclick="resetQuizScores()" title="Remise à zéro">
+              ⚠️ Réinitialiser scores
+            </button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <h4 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Top Tables</h4>
+            <div id="leaderboard-tables-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+
+            <h4 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; margin-top: 10px;">Top Invités</h4>
+            <div id="leaderboard-guests-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 4 : MODÉRATION DU CHAT EN DIRECT
+         ------------------------------------------------------------- -->
+    <section id="tab-chat" class="admin-tab-content">
+      
+      <!-- Annonce officielle régie -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>👑 Publier une Annonce Officielle dans le Chat</h3>
+          <p>Diffusée avec un badge d'autorité royale doré</p>
+        </div>
+        <form onsubmit="postOfficialAnnouncement(event)" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="announcement-author">Signature Régie</label>
+              <input type="text" id="announcement-author" class="admin-input" value="👑 Régie Soirée Royale">
+            </div>
+          </div>
+          <div>
+            <label class="admin-label" for="announcement-text">Message de l'annonce</label>
+            <textarea id="announcement-text" class="admin-textarea" rows="2" required placeholder="Veuillez accueillir les nouveaux mariés sous vos applaudissements !"></textarea>
+          </div>
+          <button type="submit" class="btn-unlock" style="background: var(--gold-gradient); color: #0b0f19;">
+            📢 Épingler et publier l'annonce officielle
+          </button>
+        </form>
+      </div>
+
+      <!-- Flux des messages en direct -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>💬 Flux des Messages en Direct (Modération 1-Clic)</h3>
+          <p>Épinglez les plus beaux vœux ou supprimez les messages inappropriés</p>
+        </div>
+
+        <div id="admin-chat-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 600px; overflow-y: auto;">
+          <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Chargement des messages...</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 5 : ESPACE PRIÈRES & SUIVI PASTORAL (WHATSAPP DIRECT)
+         ------------------------------------------------------------- -->
+    <section id="tab-prayers" class="admin-tab-content">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>🙏 Requêtes de Prières & Témoignages</h3>
+          <p>Accompagnement pastoral avec contact WhatsApp direct en un clic</p>
+        </div>
+
+        <div id="admin-prayers-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Chargement des prières...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 6 : RÉSEAUTAGE VIP & EXPORT CSV
+         ------------------------------------------------------------- -->
+    <section id="tab-networking" class="admin-tab-content">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>🤝 Répertoire Professionnel & Fiches VIP</h3>
+            <p>Profils des participants avec photo 3D, entreprise, besoins et contact</p>
+          </div>
+          <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 10px 16px; border-radius: var(--radius-full);" onclick="exportNetworkingCSV()">
+            📥 Exporter les Contacts (CSV)
+          </button>
+        </div>
+
+        <div id="admin-networking-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px;">
+          <p style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">Chargement des fiches...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 7 : LISTE DES INVITÉS & GESTION DES TABLES
+         ------------------------------------------------------------- -->
+    <section id="tab-guests" class="admin-tab-content">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>👥 Registre des Invités Connectés</h3>
+          <p>Liste complète des participants, répartition aux tables et points cumulés</p>
+        </div>
+
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Invité</th>
+                <th>Table</th>
+                <th>Score</th>
+                <th>Heure d'arrivée</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-guests-tbody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted);">Chargement des invités...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SCRIPT DU BACKOFFICE RÉGIE -->
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>

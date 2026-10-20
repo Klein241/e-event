@@ -1,0 +1,928 @@
+/**
+ * ============================================================
+ * COMPAGNON DE CÉRÉMONIE - BACKOFFICE RÉGIE & ADMINISTRATION
+ * Style Claymorphism UI & Realistic Neumorphism 3D Tactile
+ * ============================================================
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Palette Claymorphism Clair Réaliste */
+  --bg-primary: #F5EEE6;
+  --bg-secondary: #EFE5DA;
+  --bg-card: #FAF4ED;
+  --bg-card-hover: #FFFFFF;
+  --bg-glass: rgba(245, 238, 230, 0.94);
+
+  /* Couleurs de relief & d'accent */
+  --terracotta-accent: #E67A53;
+  --terracotta-gradient: linear-gradient(180deg, #ED845E 0%, #DC6941 100%);
+  --terracotta-soft: #FDE6D8;
+
+  --sage-accent: #CADCD6;
+  --sage-dark: #244038;
+  --sage-gradient: linear-gradient(145deg, #E2EEEA 0%, #CADCD6 100%);
+
+  --honey-yellow: #F7C665;
+  --honey-dark: #46330E;
+  --honey-soft: #FDEEC5;
+  --honey-gradient: linear-gradient(145deg, #FDE6A6 0%, #F5BE52 100%);
+
+  --blue-powder: #CDE2F1;
+  --blue-dark: #1E3A52;
+
+  --gold-primary: #D49B28;
+  --gold-gradient: linear-gradient(135deg, #FDE6A6 0%, #D49B28 100%);
+  --gold-glow: rgba(212, 155, 40, 0.3);
+
+  /* Typographie Espresso */
+  --text-main: #2D231E;
+  --text-muted: #6B5D54;
+  --text-dim: #94857B;
+
+  /* Ombres 3D Tactiles */
+  --border-subtle: rgba(215, 195, 180, 0.55);
+  --shadow-sm: 4px 6px 14px rgba(195, 175, 155, 0.38), -4px -4px 10px rgba(255, 255, 255, 0.95);
+  --shadow-md: 6px 10px 22px rgba(195, 175, 155, 0.42), -5px -5px 14px rgba(255, 255, 255, 0.95);
+  --shadow-lg: 10px 16px 32px rgba(195, 175, 155, 0.45), -7px -7px 18px rgba(255, 255, 255, 0.95);
+  --shadow-inset: inset 2.5px 3px 6px rgba(185, 165, 145, 0.4), inset -2.5px -2.5px 6px rgba(255, 255, 255, 0.9);
+
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-full: 9999px;
+}
+
+body.dark-mode {
+  --bg-primary: #07090e;
+  --bg-secondary: #0e1320;
+  --bg-card: rgba(24, 20, 19, 0.92);
+  --bg-card-hover: rgba(36, 28, 26, 0.95);
+  --bg-glass: rgba(12, 14, 20, 0.92);
+
+  --terracotta-accent: #E67A53;
+  --terracotta-soft: rgba(230, 122, 83, 0.18);
+
+  --sage-accent: #2A433D;
+  --sage-dark: #CADCD6;
+  --sage-gradient: linear-gradient(135deg, #1C2E2A 0%, #15221F 100%);
+
+  --honey-yellow: #f5c542;
+  --honey-dark: #f8fafc;
+  --honey-soft: rgba(245, 197, 66, 0.15);
+
+  --blue-powder: #1e3a5f;
+  --blue-dark: #bae6fd;
+
+  --gold-primary: #f5c542;
+  --gold-gradient: linear-gradient(135deg, #fff3b0 0%, #f5c542 50%, #b8860b 100%);
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 12px 24px rgba(0, 0, 0, 0.65);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.85);
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  background-image: 
+    radial-gradient(circle at 12% 15%, rgba(202, 220, 214, 0.3) 0%, transparent 40%),
+    radial-gradient(circle at 88% 25%, rgba(246, 174, 139, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 50% 85%, rgba(247, 198, 101, 0.18) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+body.dark-mode {
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(245, 197, 66, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+}
+
+h1, h2, h3, h4, h5, .font-heading {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ============================================================
+   EN-TÊTE RÉGIE ADMIN
+   ============================================================ */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 68px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  box-shadow: 0 4px 16px rgba(195, 175, 155, 0.15);
+}
+
+body.dark-mode .admin-header {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.admin-brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--terracotta-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 3px 4px 10px rgba(220, 105, 65, 0.35), inset 0 1.5px 2px rgba(255, 255, 255, 0.7);
+}
+
+body.dark-mode .admin-brand-icon {
+  background: var(--gold-gradient);
+  color: #0b0f19;
+}
+
+.admin-brand-text h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+
+.admin-brand-text p {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.live-badge-glow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sage-gradient);
+  color: var(--sage-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  box-shadow: 2px 3px 8px rgba(180, 160, 140, 0.25);
+}
+
+.live-dot-pulse {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+}
+
+/* Boutons icônes 3D */
+.btn-icon-3d {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 3px 4px 9px rgba(195, 175, 155, 0.35), -2px -2px 6px rgba(255, 255, 255, 0.9);
+  user-select: none;
+  font-size: 1.05rem;
+}
+
+body.dark-mode .btn-icon-3d {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.btn-icon-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 4px 6px 12px rgba(195, 175, 155, 0.45);
+}
+
+.btn-icon-3d:active {
+  transform: translateY(1px);
+  box-shadow: inset 2px 2px 4px rgba(185, 165, 145, 0.4);
+}
+
+/* ============================================================
+   PORTE D'ACCÈS DU CODE PIN (LOGIN GATE CLAYMORPHIC)
+   ============================================================ */
+#admin-login-screen {
+  min-height: calc(100vh - 68px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+}
+
+.clay-login-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 36px;
+  padding: 2.25rem 1.75rem;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.clay-shield-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+  background: var(--terracotta-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  color: #fff;
+  margin-bottom: 1.25rem;
+  box-shadow: 
+    0 10px 24px rgba(220, 105, 65, 0.4),
+    inset 0 2px 3px rgba(255, 255, 255, 0.7);
+}
+
+body.dark-mode .clay-shield-icon {
+  background: var(--gold-gradient);
+  color: #0b0f19;
+  box-shadow: 0 0 24px var(--gold-glow);
+}
+
+.clay-login-card h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.02em;
+}
+
+.clay-login-card p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.45;
+}
+
+.pin-display-wrapper {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.pin-input-field {
+  width: 100%;
+  text-align: center;
+  font-size: 2rem;
+  letter-spacing: 0.5em;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  outline: none;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  box-shadow: var(--shadow-inset);
+  transition: all 0.2s ease;
+}
+
+.pin-input-field:focus {
+  border-color: var(--terracotta-accent);
+  box-shadow: 0 0 0 3px rgba(230, 122, 83, 0.25), var(--shadow-inset);
+}
+
+/* Pavé numérique tactile 3D */
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.numpad-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  box-shadow: 4px 6px 12px rgba(195, 175, 155, 0.35), -3px -3px 8px rgba(255, 255, 255, 0.9);
+}
+
+body.dark-mode .numpad-btn {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.numpad-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 8px 16px rgba(195, 175, 155, 0.45);
+}
+
+.numpad-btn:active {
+  transform: translateY(2px) scale(0.97);
+  box-shadow: inset 2px 2px 5px rgba(185, 165, 145, 0.4);
+}
+
+.numpad-btn.btn-action {
+  background: var(--bg-secondary);
+  font-size: 1.1rem;
+}
+
+/* Bouton Déverrouiller Capsule 3D */
+.btn-unlock {
+  width: 100%;
+  background: var(--terracotta-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.95rem 1.5rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 
+    0 8px 20px rgba(220, 105, 65, 0.45),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.75),
+    inset 0 -2.5px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-unlock:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(220, 105, 65, 0.55);
+}
+
+.btn-unlock:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 10px rgba(220, 105, 65, 0.35);
+}
+
+/* ============================================================
+   ESPACE PRINCIPAL DU BACKOFFICE (APRÈS AUTHENTIFICATION)
+   ============================================================ */
+#admin-dashboard-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+  gap: 1.5rem;
+}
+
+/* Barre de navigation des onglets administratifs */
+.admin-nav-bar {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem 0.75rem;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-nav-bar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.admin-nav-bar::-webkit-scrollbar-thumb {
+  background: rgba(195, 175, 155, 0.4);
+  border-radius: 999px;
+}
+
+.admin-tab-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 0.65rem 1.2rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 3px 4px 10px rgba(195, 175, 155, 0.3), -2px -2px 6px rgba(255, 255, 255, 0.9);
+}
+
+body.dark-mode .admin-tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+.admin-tab-btn:hover {
+  transform: translateY(-2px);
+  color: var(--text-main);
+  box-shadow: 4px 6px 14px rgba(195, 175, 155, 0.4);
+}
+
+.admin-tab-btn.active {
+  background: var(--terracotta-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 
+    0 6px 16px rgba(220, 105, 65, 0.42),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+body.dark-mode .admin-tab-btn.active {
+  background: var(--gold-gradient);
+  color: #0b0f19;
+  box-shadow: 0 0 16px var(--gold-glow);
+}
+
+/* Conteneur des Vues d'onglets */
+.admin-tab-content {
+  display: none;
+  animation: fadeInAdmin 0.25s ease-out;
+}
+
+.admin-tab-content.active {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@keyframes fadeInAdmin {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   GRILLE DES KPIS / STATS DU TABLEAU DE BORD (CLAYMORPHIC CARDS)
+   ============================================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .kpi-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.kpi-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 26px;
+  padding: 1.2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
+.kpi-card.sage .kpi-icon-box { background: var(--sage-gradient); }
+.kpi-card.terracotta .kpi-icon-box { background: var(--terracotta-soft); color: var(--terracotta-accent); }
+.kpi-card.honey .kpi-icon-box { background: var(--honey-soft); color: var(--honey-dark); }
+.kpi-card.blue .kpi-icon-box { background: var(--blue-powder); color: var(--blue-dark); }
+.kpi-card.gold .kpi-icon-box { background: rgba(212, 155, 40, 0.2); color: var(--gold-primary); }
+
+.kpi-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text-main);
+  margin-top: 0.25rem;
+}
+
+.kpi-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   CARTES D'ACTIONS & SECTIONS ADMINISTRATIVES (CLAYMORPHIC)
+   ============================================================ */
+.admin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 30px;
+  padding: 1.5rem 1.4rem;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.85rem;
+}
+
+.admin-card-header h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-card-header p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* Ligne d'actions rapides (Presets) */
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .presets-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.preset-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 12px 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  box-shadow: 2px 3px 8px rgba(195, 175, 155, 0.25);
+}
+
+body.dark-mode .preset-btn {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+.preset-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--terracotta-accent);
+  box-shadow: 4px 6px 12px rgba(195, 175, 155, 0.35);
+}
+
+.preset-btn strong {
+  font-size: 0.86rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preset-btn span {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* ============================================================
+   TABLEAUX DE DONNÉES CLAYMORPHIC & LISTES
+   ============================================================ */
+.admin-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-inset);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.admin-table th {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: rgba(230, 122, 83, 0.05);
+}
+
+/* Pastilles de statuts */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-active {
+  background: #E2EEEA;
+  color: #1F3B35;
+  border: 1px solid #CADCD6;
+}
+
+.status-ended {
+  background: #F1ECE6;
+  color: #786C64;
+  border: 1px solid #D8CBBF;
+}
+
+.status-pending {
+  background: #FDEEC5;
+  color: #46330E;
+  border: 1px solid #F7C665;
+}
+
+/* Actions rapides dans tableau */
+.table-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-table-action {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 2px 2px 5px rgba(195, 175, 155, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-table-action:hover {
+  transform: translateY(-1px);
+  border-color: var(--terracotta-accent);
+}
+
+.btn-table-action.danger {
+  color: #dc2626;
+}
+
+.btn-table-action.danger:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.btn-table-action.whatsapp {
+  background: #25D366;
+  color: #ffffff;
+  border: none;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(37, 211, 102, 0.35);
+}
+
+.btn-table-action.whatsapp:hover {
+  background: #1eb857;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   CHAMPS DE FORMULAIRE ADMINISTRATIFS
+   ============================================================ */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.admin-input, .admin-textarea, .admin-select {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.1rem;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  box-shadow: var(--shadow-inset);
+  transition: all 0.2s ease;
+}
+
+.admin-input:focus, .admin-textarea:focus, .admin-select:focus {
+  border-color: var(--terracotta-accent);
+  box-shadow: 0 0 0 3px rgba(230, 122, 83, 0.22), var(--shadow-inset);
+}
+
+.admin-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+/* ============================================================
+   TOASTS & MODALES ADMIN
+   ============================================================ */
+.admin-toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  left: 1rem;
+  max-width: 420px;
+  margin: 0 auto;
+  z-index: 9999999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.admin-toast {
+  pointer-events: auto;
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  animation: slideToast 0.3s ease;
+}
+
+.admin-toast.success { border-color: #10b981; }
+.admin-toast.error { border-color: #ef4444; }
+
+@keyframes slideToast {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(45, 35, 30, 0.65);
+  backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+body.dark-mode .admin-modal-overlay {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.admin-modal-overlay.active {
+  display: flex !important;
+}
+
+.admin-modal-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 32px;
+  padding: 1.75rem 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}

@@ -1,0 +1,233 @@
+/* Styles des Demandes de Prière & Vœux / Bénédictions */
+.prayer-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.prayer-hero {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.85rem;
+  box-shadow: var(--shadow-sm);
+}
+
+body.dark-mode .prayer-hero {
+  background: radial-gradient(circle at top right, rgba(245, 197, 66, 0.15) 0%, rgba(15, 23, 42, 0.8) 70%);
+  border: 1px solid var(--gold-border);
+  box-shadow: 0 4px 20px rgba(245, 197, 66, 0.08);
+}
+
+.prayer-hero-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-full);
+  background: var(--terracotta-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  box-shadow: 0 4px 12px rgba(220, 105, 65, 0.35);
+}
+
+body.dark-mode .prayer-hero-icon {
+  background: var(--gold-gradient);
+  box-shadow: 0 0 16px var(--gold-glow);
+}
+
+.prayer-hero h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+body.dark-mode .prayer-hero h2 {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.prayer-hero p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 480px;
+  line-height: 1.45;
+}
+
+/* Filtres de catégorie */
+.prayer-filters {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.filter-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  box-shadow: 2px 2px 6px rgba(195, 175, 155, 0.25);
+}
+
+body.dark-mode .filter-pill {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+.filter-pill.active, .filter-pill:hover {
+  background: var(--terracotta-gradient);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(220, 105, 65, 0.35);
+}
+
+body.dark-mode .filter-pill.active, body.dark-mode .filter-pill:hover {
+  background: rgba(245, 197, 66, 0.15);
+  border-color: var(--gold-primary);
+  color: var(--gold-primary);
+  box-shadow: none;
+}
+
+/* Liste des cartes de prières */
+.prayers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prayer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.prayer-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-border);
+}
+
+.prayer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.prayer-author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prayer-author-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.prayer-category-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tag-priere {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #c4b5fd;
+}
+
+.tag-benediction {
+  background: rgba(245, 197, 66, 0.15);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  color: var(--gold-primary);
+}
+
+.tag-grace {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.prayer-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.prayer-card-content {
+  font-size: 0.88rem;
+  color: #4A3E38;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+body.dark-mode .prayer-card-content {
+  color: #cbd5e1;
+}
+
+/* Bouton de soutien "Amen / Je prie" */
+.prayer-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.25rem;
+}
+
+.prayer-date {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.btn-support-prayer {
+  background: rgba(245, 197, 66, 0.12);
+  border: 1px solid var(--gold-border);
+  color: var(--gold-primary);
+  border-radius: var(--radius-full);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.btn-support-prayer:hover {
+  background: var(--gold-gradient);
+  color: #0b0f19;
+  box-shadow: 0 0 14px var(--gold-glow);
+  transform: scale(1.05);
+}
+
+.btn-support-prayer.supported {
+  background: var(--gold-primary);
+  color: #0b0f19;
+}

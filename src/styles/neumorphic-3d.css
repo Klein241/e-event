@@ -1,0 +1,280 @@
+/**
+ * ============================================================
+ * COMPAGNON DE CÉRÉMONIE - SYSTÈME NÉOMORPHIQUE 3D MODERNE
+ * Boutons en relief tactile, surfaces douces, ombres élégantes,
+ * lueurs futuristes cyan et micro-interactions physiques.
+ * ============================================================
+ */
+
+:root {
+  /* Éclairage 3D & Couleurs tactiles */
+  --slab-bg: linear-gradient(145deg, #23201d 0%, #171513 100%);
+  --slab-border: rgba(255, 255, 255, 0.08);
+  --slab-shadow: 18px 24px 45px rgba(0, 0, 0, 0.6), -8px -8px 25px rgba(255, 255, 255, 0.03);
+
+  /* Directional 3D Cast Shadow (Source lumineuse en haut à gauche) */
+  --btn-3d-shadow-base: 
+    0 10px 20px -3px rgba(0, 0, 0, 0.45),
+    0 4px 8px -2px rgba(0, 0, 0, 0.3),
+    6px 12px 18px -2px rgba(0, 0, 0, 0.35);
+
+  --btn-3d-shadow-hover: 
+    0 14px 26px -3px rgba(0, 0, 0, 0.55),
+    0 6px 12px -2px rgba(0, 0, 0, 0.35),
+    8px 16px 24px -2px rgba(0, 0, 0, 0.42);
+
+  --btn-3d-shadow-pressed: 
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================
+   1. DALLE / SLAB NÉOMORPHIQUE 3D (SUPPORT)
+   ========================================== */
+.slab-3d {
+  background: var(--slab-bg);
+  border-radius: 36px;
+  padding: 24px 20px;
+  border: 1px solid var(--slab-border);
+  box-shadow: var(--slab-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Flèche connectrice 3D entre boutons */
+.flow-arrow-3d {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 18px;
+  margin: -4px 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  user-select: none;
+}
+
+/* ==========================================
+   2. BOUTON 3D CAPSULE / PILL - BASE TACTILE
+   ========================================== */
+.btn-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 28px;
+  border-radius: 9999px; /* Forme capsule parfaite */
+  border: none;
+  outline: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: var(--btn-3d-shadow-base);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Biseau supérieur lumineux (Top-Light Highlight) */
+.btn-3d::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 12%;
+  right: 12%;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* Micro-interaction au survol : légère surélévation */
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--btn-3d-shadow-hover);
+}
+
+/* Micro-interaction physique à l'appui : enfoncement réaliste */
+.btn-3d:active,
+.btn-3d.pressed {
+  transform: translateY(3px) scale(0.985);
+  box-shadow: var(--btn-3d-shadow-pressed);
+  transition-duration: 0.08s;
+}
+
+/* ==========================================
+   3. LES 5 VARIANTES DU DESIGN NÉOMORPHIQUE
+   ========================================== */
+
+/* Variante 1 : "Deslant" (Porcelaine / Crème douce avec biseau 3D) */
+.btn-3d-porcelain {
+  background: linear-gradient(180deg, #ede5da 0%, #d8cdbe 100%);
+  color: #2b241e;
+  box-shadow: 
+    var(--btn-3d-shadow-base),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+.btn-3d-porcelain:hover {
+  background: linear-gradient(180deg, #f3ede4 0%, #dfd5c7 100%);
+}
+
+/* Variante 2 : "Hoter" (Taupe / Argile minérale neutre avec icône) */
+.btn-3d-clay {
+  background: linear-gradient(180deg, #a3968c 0%, #877a70 100%);
+  color: #ffffff;
+  box-shadow: 
+    var(--btn-3d-shadow-base),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.25);
+}
+
+.btn-3d-clay:hover {
+  background: linear-gradient(180deg, #b0a49a 0%, #94877e 100%);
+}
+
+/* Variante 3 : "Focus" (Corail Énergique / Orange chaud) */
+.btn-3d-coral {
+  background: linear-gradient(180deg, #ff7a45 0%, #e0531c 100%);
+  color: #ffffff;
+  box-shadow: 
+    var(--btn-3d-shadow-base),
+    0 8px 24px rgba(224, 83, 28, 0.4),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.btn-3d-coral:hover {
+  background: linear-gradient(180deg, #ff8957 0%, #eb5e26 100%);
+  box-shadow: 
+    var(--btn-3d-shadow-hover),
+    0 10px 28px rgba(224, 83, 28, 0.5);
+}
+
+/* Variante 4 : "Loating" (Capsule Futuriste Sombre avec Lueur Néon Cyan) */
+.btn-3d-glow-cyan {
+  background: linear-gradient(180deg, #10262b 0%, #091a1e 100%);
+  color: #38bdf8;
+  border: 1.5px solid #2dd4bf;
+  box-shadow: 
+    var(--btn-3d-shadow-base),
+    0 0 18px rgba(45, 212, 191, 0.55),
+    0 0 35px rgba(56, 189, 248, 0.25),
+    inset 0 0 14px rgba(45, 212, 191, 0.35);
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+  animation: pulse-cyan-glow 3s infinite ease-in-out;
+}
+
+.btn-3d-glow-cyan:hover {
+  background: linear-gradient(180deg, #142f36 0%, #0b2126 100%);
+  box-shadow: 
+    var(--btn-3d-shadow-hover),
+    0 0 26px rgba(45, 212, 191, 0.75),
+    0 0 45px rgba(56, 189, 248, 0.35),
+    inset 0 0 18px rgba(45, 212, 191, 0.45);
+}
+
+/* Variante 5 : "Success" (Orange Ambré Radieux) */
+.btn-3d-amber {
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  color: #ffffff;
+  box-shadow: 
+    var(--btn-3d-shadow-base),
+    0 8px 22px rgba(234, 88, 12, 0.38),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.btn-3d-amber:hover {
+  background: linear-gradient(180deg, #fca153 0%, #f1661c 100%);
+  box-shadow: 
+    var(--btn-3d-shadow-hover),
+    0 10px 26px rgba(234, 88, 12, 0.48);
+}
+
+/* Variante Spéciale Gala : "Royal Gold 3D" (Or Impérial Extrudé) */
+.btn-3d-gold {
+  background: linear-gradient(180deg, #fbe285 0%, #d4a017 60%, #996c00 100%);
+  color: #1a1202;
+  font-weight: 800;
+  box-shadow: 
+    var(--btn-3d-shadow-base),
+    0 8px 24px rgba(212, 160, 23, 0.4),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.85),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-3d-gold:hover {
+  background: linear-gradient(180deg, #fff0a6 0%, #dfaa20 60%, #a87700 100%);
+  box-shadow: 
+    var(--btn-3d-shadow-hover),
+    0 10px 30px rgba(212, 160, 23, 0.55);
+}
+
+/* ==========================================
+   4. SPINNER & ICONES DE STATUT 3D
+   ========================================== */
+.spinner-sunburst {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  border-radius: 50%;
+  position: relative;
+  animation: rotate-sunburst 1.4s linear infinite;
+}
+
+.spinner-sunburst svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@keyframes rotate-sunburst {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-cyan-glow {
+  0%, 100% {
+    box-shadow: 
+      var(--btn-3d-shadow-base),
+      0 0 16px rgba(45, 212, 191, 0.5),
+      0 0 30px rgba(56, 189, 248, 0.2),
+      inset 0 0 12px rgba(45, 212, 191, 0.3);
+  }
+  50% {
+    box-shadow: 
+      var(--btn-3d-shadow-base),
+      0 0 24px rgba(45, 212, 191, 0.75),
+      0 0 45px rgba(56, 189, 248, 0.4),
+      inset 0 0 18px rgba(45, 212, 191, 0.5);
+  }
+}
+
+/* ==========================================
+   5. NAVIGATION BASSE & CARTES TACTILES 3D
+   ========================================== */
+.bottom-nav-3d {
+  background: rgba(23, 21, 19, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.nav-item.active .nav-icon {
+  background: linear-gradient(180deg, #ff7a45 0%, #e0531c 100%);
+  color: #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(224, 83, 28, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transform: translateY(-3px);
+}

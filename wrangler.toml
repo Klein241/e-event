@@ -1,0 +1,24 @@
+name = "compagnon-de-ceremonie"
+main = "worker/index.js"
+compatibility_date = "2024-09-23"
+
+# Hébergement du Frontend SPA / PWA
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# Base de données D1 (SQLite serverless)
+[[d1_databases]]
+binding = "DB"
+database_name = "compagnon-db"
+database_id = "54c253b3-14e8-4296-9ff9-2ea7efda06bf"
+
+
+[vars]
+ENVIRONMENT = "production"
+ADMIN_PIN = "7777"
+EVENT_NAME = "Compagnon de Cérémonie"
+VAPID_PUBLIC_KEY = "BI6U4cqL1-3wq833Iwp3yxquterJX2oXG9p-HbwbDJxO2lUICLoEaRurWGABYKSNzbc02EWTpuBNIGm1PE-ngEo"
+VAPID_SUBJECT = "mailto:contact@compagnon-ceremonie.com"
+

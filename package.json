@@ -1,0 +1,23 @@
+{
+  "name": "compagnon-de-ceremonie",
+  "version": "1.0.0",
+  "description": "Application interactive PWA d'animation, chat en direct, jeux live, réseautage et prières pour mariages et galas - 100% Cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "npm run build && wrangler deploy",
+    "d1:create": "wrangler d1 create compagnon-db",
+    "d1:init": "wrangler d1 execute compagnon-db --remote --file=./d1/schema.sql -y",
+    "d1:seed": "wrangler d1 execute compagnon-db --remote --file=./d1/seed.sql -y",
+    "d1:local:init": "wrangler d1 execute compagnon-db --local --file=./d1/schema.sql -y",
+    "d1:local:seed": "wrangler d1 execute compagnon-db --local --file=./d1/seed.sql -y"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0",
+    "wrangler": "^4.68.1"
+  }
+}

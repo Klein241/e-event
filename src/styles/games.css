@@ -1,0 +1,1055 @@
+/* Styles des Jeux en direct & Sondages */
+.games-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* En-tête des jeux */
+.games-header {
+  background: linear-gradient(135deg, rgba(245, 197, 66, 0.12), rgba(139, 92, 246, 0.15));
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.games-header-info h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: blink 1.2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Carte du Quiz en direct */
+.quiz-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg), var(--shadow-gold);
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-timer-bar-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.quiz-timer-bar {
+  height: 100%;
+  background: var(--gold-gradient);
+  width: 100%;
+  transition: width 1s linear;
+}
+
+.quiz-top-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.quiz-points-badge {
+  background: rgba(245, 197, 66, 0.2);
+  color: var(--gold-primary);
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+.quiz-question-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+}
+
+/* Grille des réponses du quiz (A, B, C, D) */
+.quiz-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 600px) {
+  .quiz-options-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.quiz-option-btn {
+  position: relative;
+  background: linear-gradient(180deg, #262422 0%, #1a1816 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px; /* Forme capsule 3D */
+  padding: 0.85rem 1.4rem;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 
+    0 8px 16px -2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.option-letter {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--gold-primary);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.quiz-option-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #322f2c 0%, #22201d 100%);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 22px -3px rgba(0, 0, 0, 0.5);
+}
+
+.quiz-option-btn:active:not(:disabled) {
+  transform: translateY(3px) scale(0.985);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* État Focus / Sélectionné (Exactement comme le bouton orange "Focus" de l'image) */
+.quiz-option-btn.selected {
+  background: linear-gradient(180deg, #ff7a45 0%, #e0531c 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 
+    0 8px 24px rgba(224, 83, 28, 0.45),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.quiz-option-btn.selected .option-letter {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* État Chargement / En attente (Capsule lueur cyan "Loating" de l'image) */
+.quiz-option-btn.submitting {
+  background: linear-gradient(180deg, #10262b 0%, #091a1e 100%) !important;
+  color: #38bdf8 !important;
+  border: 1.5px solid #2dd4bf !important;
+  box-shadow: 
+    0 0 18px rgba(45, 212, 191, 0.55),
+    inset 0 0 14px rgba(45, 212, 191, 0.35) !important;
+}
+
+.quiz-option-btn.correct {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 
+    0 8px 24px rgba(16, 185, 129, 0.45),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.6) !important;
+}
+
+
+.quiz-option-btn.wrong {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+/* Feedback résultat quiz */
+.quiz-result-banner {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.quiz-result-banner.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+
+.quiz-result-banner.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+/* Sondage en direct (Live Poll) */
+/* ============================================================
+   ANIMATEUR IA (M.C. CÉLESTE IA)
+   ============================================================ */
+.ai-mc-avatar-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-mc-avatar {
+  font-size: 2.8rem;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.25) 0%, rgba(13, 20, 36, 0.8) 100%);
+  border: 2px solid var(--gold-primary);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.35);
+  animation: pulseAi 2.5s infinite;
+}
+
+@keyframes pulseAi {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(212, 175, 55, 0.35); }
+  50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(255, 122, 69, 0.5); }
+}
+
+.ai-mc-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+}
+
+.ai-mc-speech {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.1rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-main);
+  line-height: 1.45;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.ai-mc-live-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.ai-mc-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   ARÈNE DE DUEL TABLE VS TABLE (FACE-À-FACE)
+   ============================================================ */
+.duel-setup-card, .duel-arena-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--coral-primary);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(255, 122, 69, 0.15), var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.duel-badge-top {
+  display: inline-block;
+  background: rgba(255, 122, 69, 0.2);
+  border: 1px solid rgba(255, 122, 69, 0.4);
+  color: #ff7a45;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+}
+
+/* Face-à-face graphique */
+.duel-clash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin: 1rem 0;
+  gap: 0.5rem;
+}
+
+.duel-fighter-side {
+  flex: 1;
+  text-align: center;
+}
+
+.fighter-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.fighter-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0.2rem 0;
+}
+
+.challenger .fighter-name {
+  color: #10b981;
+}
+
+.opponent .fighter-name {
+  color: #ff7a45;
+}
+
+.fighter-emoji {
+  font-size: 1.8rem;
+}
+
+.duel-vs-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+  flex-shrink: 0;
+}
+
+.duel-table-selector-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.duel-table-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.duel-table-btn:hover {
+  border-color: var(--coral-primary);
+  color: var(--coral-primary);
+}
+
+.duel-table-btn.selected {
+  background: rgba(255, 122, 69, 0.25);
+  border-color: var(--coral-primary);
+  color: #ff7a45;
+  font-weight: 800;
+}
+
+/* Tableau des scores en direct pendant le Duel */
+.duel-live-scoreboard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+}
+
+.duel-team-box {
+  flex: 1;
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.my-team .team-name { color: #10b981; }
+.my-team .team-score { color: #10b981; font-weight: 800; }
+.opp-team .team-name { color: #ff7a45; }
+.opp-team .team-score { color: #ff7a45; font-weight: 800; }
+
+.duel-progress-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.duel-progress-fill {
+  height: 100%;
+  transition: width 0.4s ease-out;
+  border-radius: 999px;
+}
+
+.duel-progress-fill.my-fill {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.duel-progress-fill.opp-fill {
+  background: linear-gradient(90deg, #ef4444, #ff7a45);
+}
+
+.duel-round-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--gold-primary);
+  flex-shrink: 0;
+  padding: 0 0.25rem;
+}
+
+/* Classement des Tables (Leaderboard) */
+.leaderboard-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.leaderboard-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.table-rank-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.88rem;
+}
+
+.table-rank-item:nth-child(1) {
+  border-color: var(--gold-primary);
+  background: rgba(245, 197, 66, 0.08);
+}
+
+.rank-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rank-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.table-rank-item:nth-child(1) .rank-badge {
+  background: var(--gold-gradient);
+  color: #0b0f19;
+}
+
+.rank-points {
+  font-weight: 700;
+  color: var(--gold-primary);
+}
+
+/* ============================================================
+   JEUX BIBLIQUES INTERACTIFS (HOLOGRAPHIC-RING ADAPTATION)
+   ============================================================ */
+
+.bible-games-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.bible-games-header {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(79, 70, 229, 0.1));
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  text-align: center;
+}
+
+.bible-games-header h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--gold-primary);
+}
+
+.bible-game-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bible-mode-btn {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.bible-blocks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+.bible-block-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.bible-block-btn:hover, .bible-block-btn:active {
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.1);
+  transform: translateY(-2px);
+}
+
+.bible-block-btn .block-icon {
+  font-size: 1.2rem;
+}
+
+/* Quiz Card */
+.bible-quiz-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-lg), var(--shadow-gold);
+  position: relative;
+  overflow: hidden;
+}
+
+.bible-quiz-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.bible-quiz-progress {
+  color: var(--text-dim);
+}
+
+.bible-quiz-score {
+  color: var(--gold-primary);
+}
+
+.bible-quiz-timer {
+  background: rgba(245, 197, 66, 0.15);
+  color: var(--gold-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.bible-timer-bar-wrap {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 1.1rem;
+}
+
+.bible-timer-bar {
+  height: 100%;
+  background: var(--gold-gradient);
+  transition: width 1s linear;
+}
+
+.bible-question-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text-main);
+  margin-bottom: 1.1rem;
+}
+
+.bible-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.bible-option-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.bible-option-btn:hover:not(:disabled) {
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.bible-opt-letter {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.bible-option-btn.correct {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border-color: #22c55e !important;
+  color: #86efac !important;
+}
+
+.bible-option-btn.wrong {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+.bible-reference {
+  font-size: 0.78rem;
+  color: var(--gold-primary);
+  margin-top: 0.75rem;
+  font-style: italic;
+}
+
+.bible-feedback-box {
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-top: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.bible-feedback-box.correct {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #86efac;
+}
+
+.bible-feedback-box.wrong, .bible-feedback-box.timeout {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.bible-quiz-results {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.bible-final-score {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--gold-primary);
+  margin: 0.5rem 0;
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+/* Who Am I Cards */
+.whoami-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 122, 69, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.whoami-topbar {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.whoami-question {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--coral-primary, #ff7a45);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.whoami-clues {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.whoami-clue {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.whoami-clue.new {
+  border-color: rgba(255, 122, 69, 0.5);
+  background: rgba(255, 122, 69, 0.08);
+  animation: fadeIn 0.4s ease;
+}
+
+.clue-num {
+  background: var(--coral-gradient, linear-gradient(135deg, #ff7a45, #d4380d));
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.whoami-names-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.whoami-choice-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.whoami-choice-btn:hover:not(:disabled) {
+  border-color: var(--coral-primary, #ff7a45);
+  background: rgba(255, 122, 69, 0.1);
+}
+
+.whoami-choice-btn.correct {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border-color: #22c55e !important;
+  color: #86efac !important;
+}
+
+.whoami-choice-btn.wrong {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+/* ============================================================
+   CHRONO-FRISE DES ÉVÉNEMENTS BIBLIQUES
+   ============================================================ */
+
+.chrono-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.chrono-row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.25s ease;
+}
+
+.chrono-row.correct {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-color: #22c55e !important;
+}
+
+.chrono-row.wrong {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: #ef4444 !important;
+}
+
+.chrono-idx {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gold-gradient);
+  color: #0b0f19;
+  font-weight: 800;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chrono-content {
+  flex: 1;
+}
+
+.chrono-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.chrono-year {
+  font-size: 0.75rem;
+  color: var(--gold-primary);
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+.chrono-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chrono-arrow-btn {
+  width: 28px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.chrono-arrow-btn:hover:not(:disabled) {
+  background: var(--gold-primary);
+  color: #0b0f19;
+  border-color: var(--gold-primary);
+}
+
+.chrono-arrow-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   RECONSTITUER LE VERSET (MEMORY DE LA PAROLE)
+   ============================================================ */
+
+.verse-assembled-box {
+  min-height: 85px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px dashed rgba(212, 175, 55, 0.4);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-content: flex-start;
+  margin-bottom: 1rem;
+}
+
+.verse-word-chip {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.verse-word-chip.placed {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15));
+  border: 1px solid var(--gold-primary);
+  color: var(--gold-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.verse-word-chip.placed:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.verse-pool-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.verse-word-chip.pool {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.verse-word-chip.pool:hover:not(:disabled) {
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.15);
+  transform: translateY(-2px);
+}
+
+.verse-word-chip.pool.used {
+  opacity: 0.2;
+  cursor: not-allowed;
+  transform: none;
+  border-color: transparent;
+}
+
+

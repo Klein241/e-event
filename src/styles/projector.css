@@ -1,0 +1,137 @@
+/* Styles du Mode Écran Géant / Vidéoprojecteur */
+.projector-view-container {
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #0e1628 0%, #050811 100%);
+  color: var(--text-main);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.projector-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--gold-border);
+  padding-bottom: 1rem;
+}
+
+.projector-event-title h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.projector-event-title p {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.projector-stats-row {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.stat-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1.25rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--gold-primary);
+  font-family: 'Outfit', sans-serif;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Grille principale du grand écran */
+.projector-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  flex: 1;
+}
+
+.projector-main-card {
+  background: var(--bg-card);
+  border: 2px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(245, 197, 66, 0.15);
+  backdrop-filter: blur(16px);
+}
+
+.projector-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.side-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+}
+
+.side-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* QR Code de Connexion en Direct */
+.qr-join-box {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(245, 197, 66, 0.05);
+  border: 1px dashed var(--gold-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.qr-code-placeholder {
+  width: 150px;
+  height: 150px;
+  background: white;
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.qr-code-placeholder svg {
+  width: 100%;
+  height: 100%;
+}
+
+.qr-text-instruction {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}

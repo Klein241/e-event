@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Compagnon de Cérémonie | Application Interactive</title>
+  <meta name="description" content="Application interactive d'animation, chat en direct, quiz et jeux live, réseautage et mur de prières pour mariages et soirées de gala.">
+  <meta name="theme-color" content="#D4AF37">
+  
+  <!-- PWA & Apple Touch Icons -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cérémonie">
+
+  <!-- Feuilles de Styles -->
+  <link rel="stylesheet" href="/src/styles/main.css">
+  <link rel="stylesheet" href="/src/styles/chat.css">
+  <link rel="stylesheet" href="/src/styles/games.css">
+  <link rel="stylesheet" href="/src/styles/networking.css">
+  <link rel="stylesheet" href="/src/styles/prayer.css">
+  <link rel="stylesheet" href="/src/styles/projector.css">
+
+  <!-- Styles critiques Anti-FOUC (Mode Clair Neumorphique par défaut) -->
+  <style>
+    html, body {
+      background-color: #F5EEE6 !important;
+      color: #2D231E !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    html.dark-mode, body.dark-mode {
+      background-color: #07090e !important;
+      color: #f8fafc !important;
+    }
+    #main-app-layout {
+      background-color: #F5EEE6;
+      min-height: 100vh;
+    }
+    body.dark-mode #main-app-layout {
+      background-color: #07090e;
+    }
+    .brand-icon {
+      width: 36px !important;
+      height: 36px !important;
+      min-width: 36px !important;
+      max-width: 36px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: linear-gradient(180deg, #ED845E 0%, #DC6941 100%) !important;
+      border-radius: 12px !important;
+      overflow: hidden !important;
+    }
+    body.dark-mode .brand-icon {
+      background: linear-gradient(135deg, #d4af37, #aa771c) !important;
+    }
+    .brand-icon svg {
+      width: 20px !important;
+      height: 20px !important;
+      max-width: 20px !important;
+      max-height: 20px !important;
+      fill: #ffffff !important;
+    }
+    body.dark-mode .brand-icon svg {
+      fill: #0b0f19 !important;
+    }
+    /* Splash Screen Immédiat Neumorphique */
+    #app-splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #F5EEE6;
+      z-index: 9999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    body.dark-mode #app-splash-screen {
+      background: #07090e;
+    }
+    #app-splash-screen.splash-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .splash-badge {
+      width: 68px;
+      height: 68px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, #ED845E 0%, #DC6941 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(220, 105, 65, 0.4), inset 0 2px 3px rgba(255, 255, 255, 0.7);
+      animation: splashPulse 1.8s ease-in-out infinite;
+    }
+    body.dark-mode .splash-badge {
+      background: linear-gradient(135deg, #D4AF37 0%, #AA771C 100%);
+      box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+    }
+    .splash-badge svg {
+      width: 34px;
+      height: 34px;
+      fill: #ffffff;
+    }
+    body.dark-mode .splash-badge svg {
+      fill: #07090e;
+    }
+    .splash-title {
+      margin-top: 1.25rem;
+      margin-bottom: 0.25rem;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #2D231E;
+    }
+    body.dark-mode .splash-title {
+      background: linear-gradient(135deg, #FFF9D2 0%, #D4AF37 50%, #AA771C 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .splash-sub {
+      margin: 0;
+      font-size: 0.75rem;
+      color: #6B5D54;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+    }
+    body.dark-mode .splash-sub {
+      color: #94a3b8;
+    }
+    .splash-loader {
+      margin-top: 1.75rem;
+      width: 32px;
+      height: 32px;
+      border: 2.5px solid rgba(230, 122, 83, 0.2);
+      border-top-color: #E67A53;
+      border-radius: 50%;
+      animation: splashSpin 0.8s linear infinite;
+    }
+    body.dark-mode .splash-loader {
+      border-color: rgba(212, 175, 55, 0.2);
+      border-top-color: #D4AF37;
+    }
+    @keyframes splashPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes splashSpin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Détection immédiate du thème sauvegardé (Anti-FOUC Sombre si activé) -->
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('compagnon_theme');
+        if (savedTheme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- ========================================================
+       SPLASH SCREEN ANTI-FLASH (S'affiche instantanément à 0ms)
+       ======================================================== -->
+  <div id="app-splash-screen">
+    <div class="splash-content">
+      <div class="splash-badge">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="#ffffff"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+      </div>
+      <h2 class="splash-title">Soirée Royale</h2>
+      <p class="splash-sub">Compagnon Interactif</p>
+      <div class="splash-loader"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       DISPOSITION PRINCIPALE MOBILE & TABLETTE
+       ======================================================== -->
+  <div id="main-app-layout">
+    
+    <!-- En-tête de l'application -->
+    <header class="app-header">
+      <div class="brand" onclick="window.location.reload()">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style="width:20px;height:20px;max-width:20px;max-height:20px;"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1 id="header-event-title">Soirée Royale</h1>
+          <p>Compagnon Interactif</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Badge Invité / Table -->
+        <div class="guest-pill" id="guest-status-pill" onclick="window.openOnboarding()">
+          <span>👋</span>
+          <span>Invité</span>
+          <span class="guest-table-badge">Table 1</span>
+        </div>
+
+        <!-- Bouton Bascule Thème Neumorphique Clair / Sombre -->
+        <button class="btn-icon" id="btn-toggle-theme" title="Basculer Mode Clair / Sombre" onclick="window.toggleAppTheme()">
+          <span id="theme-toggle-icon">🌙</span>
+        </button>
+
+        <!-- Bouton Mode Grand Écran / Vidéoprojecteur -->
+        <button class="btn-icon" id="btn-toggle-projector" title="Mode Grand Écran Vidéoprojecteur">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </button>
+
+        <!-- Bouton Régie Diffusion Notification Push -->
+        <button class="btn-icon" id="btn-open-broadcast" title="Diffuser une alerte push (MC / Régie)" style="color: var(--terracotta-accent);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Conteneur principal -->
+    <main class="app-container">
+
+      <!-- Bannière interactive de notifications Web Push Gala -->
+      <div id="push-prompt-container"></div>
+
+
+      <!-- Bannière d'installation PWA (Visible si installable) -->
+      <div class="pwa-install-banner" id="pwa-install-banner" style="display: none;">
+        <div class="pwa-text">
+          <h4>📱 Installer l'application</h4>
+          <p>Ajoutez l'app sur votre écran d'accueil pour une expérience plein écran sans latence.</p>
+        </div>
+        <button class="btn-primary" id="btn-pwa-install" style="font-size: 0.78rem; padding: 0.4rem 0.8rem;">
+          Installer
+        </button>
+      </div>
+
+      <!-- ==========================================
+           ONGLET 0 : ACCUEIL GALA (LES 3 GRANDS HUBS 3D)
+           ========================================== -->
+      <section class="tab-view active" id="home-tab">
+        <div class="hero-welcome-section animate-fade-in">
+          <div class="hero-edition-badge">✨ 2ÈME ÉDITION • DÎNER DE GALA</div>
+          <h1 class="hero-welcome-title" id="hero-welcome-title">Bienvenue à cette 2ème édition de dîner de gala</h1>
+          <p class="hero-welcome-subtitle" id="hero-welcome-subtitle">
+            Une soirée d'excellence, d'opportunités et de communion. Choisissez votre espace pour participer en direct.
+          </p>
+
+          <!-- LES 3 GRANDES CARTES EN BULLE DE DIALOGUE (EXACT DESIGN DU MODÈLE) -->
+          <div class="gala-speech-cards-container">
+
+            <!-- 1. BANNIÈRE 1 (TEAL) : PRIÈRE & FOI -->
+            <div class="speech-card card-teal" id="btn-hero-prayer" onclick="window.PrayerWizard?.open()">
+              <div class="speech-card-badge">
+                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
+                  <!-- Mains de prière / Foi stylisées -->
+                  <path d="M32 8C30.2 8 28.5 9.2 27.8 11L24 24H16C13.8 24 12 25.8 12 28C12 29 12.4 30 13.1 30.7L24 41.6L20.4 53.8C19.7 56 21 58.4 23.2 59.1C24.4 59.5 25.7 59.2 26.6 58.4L32 53.6L37.4 58.4C39.1 59.9 41.7 59.7 43.2 58C43.9 57.2 44.2 56.1 43.6 53.8L40 41.6L50.9 30.7C52.4 29.2 52.4 26.8 50.9 25.3C50.2 24.6 49.2 24 48 24H40L36.2 11C35.5 9.2 33.8 8 32 8Z" fill="#ffffff"/>
+                </svg>
+              </div>
+              <div class="speech-card-body">
+                <h2 class="speech-card-title">Prière & Foi</h2>
+                <div class="speech-card-line"></div>
+                <p class="speech-card-text">
+                  Confiez vos intentions en toute discrétion. Une équipe dédiée prie pour vous, vos familles et vos projets tout au long du gala.
+                </p>
+              </div>
+            </div>
+
+            <!-- 2. BANNIÈRE 2 (PURPLE) : RÉSEAUTAGE & BUSINESS -->
+            <div class="speech-card card-purple" id="btn-hero-networking" onclick="window.NetworkingWizard?.open()">
+              <div class="speech-card-badge">
+                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
+                  <!-- Alliances & Poignée de main professionnelle -->
+                  <path d="M48 18L38 8L24 22L28 26L18 36L10 28L2 36L16 50L28 38L34 44L52 26L58 32L60 30L48 18ZM34 24L42 16L46 20L38 28L34 24ZM24 30L30 36L22 44L16 38L24 30Z" fill="#ffffff"/>
+                </svg>
+              </div>
+              <div class="speech-card-body">
+                <h2 class="speech-card-title">Réseautage</h2>
+                <div class="speech-card-line"></div>
+                <p class="speech-card-text">
+                  Vos futurs partenaires et clients partagent votre table. Échangez votre profil digital en 1 clic et tissez des alliances stratégiques.
+                </p>
+              </div>
+            </div>
+
+            <!-- 3. BANNIÈRE 3 (ORANGE) : DÉFIS & QUIZ LIVE -->
+            <div class="speech-card card-orange" id="btn-hero-games" onclick="window.switchTab('games')">
+              <div class="speech-card-badge">
+                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
+                  <!-- Fusée identique au modèle visuel -->
+                  <path d="M32 6C32 6 22 18 22 34C22 39 23.5 44 26 48L32 46L38 48C40.5 44 42 39 42 34C42 18 32 6 32 6Z" fill="#ffffff"/>
+                  <circle cx="32" cy="24" r="4.5" fill="#c2410c"/>
+                  <path d="M22 32C17 35 12 43 12 46C15 46 21 44 23 41L22 32Z" fill="#ffffff"/>
+                  <path d="M42 32C47 35 52 43 52 46C49 46 43 44 41 41L42 32Z" fill="#ffffff"/>
+                  <path d="M27 49L32 59L37 49L34 52L32 50L30 52L27 49Z" fill="#ffffff"/>
+                </svg>
+              </div>
+              <div class="speech-card-body">
+                <h2 class="speech-card-title">Défis & Quiz</h2>
+                <div class="speech-card-line"></div>
+                <p class="speech-card-text">
+                  Hissez votre table au sommet ! Défiez vos voisins en duel express, jouez avec l'Animateur IA et remportez le grand trophée du gala.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 1 : CHAT EN DIRECT
+           ========================================== -->
+      <section class="tab-view" id="chat-tab">
+
+        <div class="chat-container">
+          
+          <!-- Bannière Message Épinglé (Régie / MC) -->
+          <div class="pinned-banner" id="pinned-banner" style="display: none;">
+            <div class="pinned-icon">📢</div>
+            <div class="pinned-content">
+              <div class="pinned-tag">Annonce du Maître de Cérémonie</div>
+              <div class="pinned-text">Bienvenue à tous !</div>
+            </div>
+          </div>
+
+          <!-- Liste des messages défilants -->
+          <div class="chat-messages-list" id="chat-messages-list">
+            <!-- Injecté dynamiquement par chat.js -->
+          </div>
+
+          <!-- Zone de composition du message -->
+          <div class="chat-composer">
+            <div class="emoji-quick-bar">
+              <button class="quick-emoji-btn" data-emoji="🥂">🥂</button>
+              <button class="quick-emoji-btn" data-emoji="🎉">🎉</button>
+              <button class="quick-emoji-btn" data-emoji="👏">👏</button>
+              <button class="quick-emoji-btn" data-emoji="❤️">❤️</button>
+              <button class="quick-emoji-btn" data-emoji="🔥">🔥</button>
+              <button class="quick-emoji-btn" data-emoji="🙏">🙏</button>
+              <button class="quick-emoji-btn" data-emoji="👑">👑</button>
+              <button class="quick-emoji-btn" data-emoji="✨">✨</button>
+            </div>
+            <div class="composer-row">
+              <input type="text" class="chat-input" id="chat-input" placeholder="Écrire un mot chaleureux à la salle..." maxlength="280">
+              <button class="btn-send" id="btn-send-chat" title="Envoyer le message">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 2 : JEUX EN DIRECT (QUIZ & SONDAGES)
+           ========================================== -->
+      <section class="tab-view" id="games-tab">
+        <div class="games-hub">
+          
+          <div class="games-header">
+            <div class="games-header-info">
+              <h2>
+                <span>🎮 Jeux & Défis Bibliques</span>
+                <span class="live-indicator"><span class="live-dot"></span> EN DIRECT</span>
+              </h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Testez vos connaissances bibliques, défendez les couleurs de votre table et remportez la couronne !
+              </p>
+            </div>
+          </div>
+
+          <!-- Sélecteur de mode de jeu -->
+          <div class="game-mode-tabs" style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+            <button type="button" id="btn-mode-bible-games" class="btn-3d btn-3d-gold active" style="flex: 1; min-width: 110px; padding: 0.6rem 0.4rem; font-size: 0.8rem;" onclick="window.switchGameSubTab('bible')">
+              <span>📖 Jeux Bibliques</span>
+            </button>
+            <button type="button" id="btn-mode-duel-games" class="btn-3d btn-3d-coral" style="flex: 1.2; min-width: 125px; padding: 0.6rem 0.4rem; font-size: 0.8rem;" onclick="window.switchGameSubTab('duel')">
+              <span>⚔️ Duel Tables</span>
+            </button>
+            <button type="button" id="btn-mode-live-quiz" class="btn-3d btn-3d-porcelain" style="flex: 1.1; min-width: 120px; padding: 0.6rem 0.4rem; font-size: 0.8rem;" onclick="window.switchGameSubTab('live')">
+              <span>🤖 Quiz IA en Live</span>
+            </button>
+          </div>
+
+          <!-- Conteneur Jeux Bibliques (Solo & Table) -->
+          <div id="bible-games-container">
+            <!-- Injecté dynamiquement par bible-games.js -->
+          </div>
+
+          <!-- Zone Quiz IA en Live & Duels (Masquée par défaut si subtab != live) -->
+          <div id="live-games-container" style="display: none;">
+            <!-- Carte Quiz en direct / Duel (dynamique) -->
+            <div id="quiz-card-container">
+              <!-- Injecté par games.js -->
+            </div>
+
+            <!-- Classement des Tables en direct -->
+            <div id="leaderboard-container">
+              <!-- Injecté par games.js -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 3 : RÉSEAUTAGE & MISE EN RELATION
+           ========================================== -->
+      <section class="tab-view" id="networking-tab">
+        <div class="networking-hub">
+          
+          <div class="networking-hero">
+            <h2>🤝 Réseautage & Connexions</h2>
+            <p>
+              Découvrez les personnalités, professionnels et talents assis autour de vous. Échangez des opportunités et tissez des liens durables.
+            </p>
+            <div style="display: flex; gap: 0.6rem; margin-top: 0.25rem;">
+              <button class="btn-primary" id="btn-edit-my-networking" style="font-size: 0.82rem; padding: 0.5rem 1rem;">
+                ✨ Ma fiche de contact
+              </button>
+            </div>
+          </div>
+
+          <!-- Barre de recherche -->
+          <div class="search-filter-box">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="networking-search" placeholder="Rechercher par métier, passion ou compétence (ex: Tech, Santé, Art)...">
+            </div>
+          </div>
+
+          <!-- Grille des profils -->
+          <div class="profiles-grid" id="networking-profiles-list">
+            <!-- Injecté par networking.js -->
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 4 : DEMANDES DE PRIÈRE & BÉNÉDICTIONS
+           ========================================== -->
+      <section class="tab-view" id="prayer-tab">
+        <div class="prayer-hub">
+          
+          <div class="prayer-hero">
+            <div class="prayer-hero-icon">🙏</div>
+            <h2>Mur de Prières & Bénédictions</h2>
+            <p>
+              Portons les fardeaux les uns des autres et proclamons des paroles de paix, de grâce et d'élévation sur les hôtes et nos familles.
+            </p>
+            <button class="btn-3d btn-3d-amber" id="btn-new-prayer" style="margin-top: 0.5rem;" onclick="window.PrayerWizard?.open()">
+              <span>🙏 Déposer une prière / vœu</span>
+            </button>
+          </div>
+
+          <!-- Filtres de Catégories -->
+          <div class="prayer-filters">
+            <button class="filter-pill active" data-filter="all">Tous</button>
+            <button class="filter-pill" data-filter="priere">🙏 Prières</button>
+            <button class="filter-pill" data-filter="benediction">✨ Bénédictions</button>
+            <button class="filter-pill" data-filter="grace">🙌 Actions de grâce</button>
+            <button class="filter-pill" data-filter="my" id="filter-my-prayers" style="border-color: rgba(212,175,55,0.4);">🔒 Mes Requêtes</button>
+          </div>
+
+          <!-- Liste des requêtes -->
+          <div class="prayers-list" id="prayers-list">
+            <!-- Injecté par prayer.js -->
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==========================================
+         BARRE DE NAVIGATION DU BAS (MOBILE-FIRST)
+         ========================================== -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Accueil</span>
+      </button>
+
+      <button class="nav-item" data-tab="chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Direct</span>
+      </button>
+
+      <button class="nav-item" data-tab="games">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span>Jeux Live</span>
+      </button>
+
+      <button class="nav-item" data-tab="networking">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Réseautage</span>
+      </button>
+
+      <button class="nav-item" data-tab="prayer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Prières</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ========================================================
+       VUE GRAND ÉCRAN / VIDÉOPROJECTEUR (PLEIN ÉCRAN)
+       ======================================================== -->
+  <div id="projector-view" class="projector-view-container" style="display: none;">
+    <div class="projector-topbar">
+      <div class="projector-event-title">
+        <h1 id="projector-event-name">Célébration & Soirée Royale</h1>
+        <p>Direct Interactif & Brise-Glace</p>
+      </div>
+
+      <div class="projector-stats-row">
+        <div class="stat-box">
+          <div class="stat-value" id="projector-guests-count">48</div>
+          <div class="stat-label">Invités connectés</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="projector-prayers-count">24</div>
+          <div class="stat-label">Prières & Soutiens</div>
+        </div>
+        <button class="btn-icon" id="btn-close-projector" title="Quitter le plein écran">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="projector-grid">
+      <!-- Zone d'animation centrale -->
+      <div class="projector-main-card" id="projector-main-content">
+        <!-- Rendu dynamique par projector.js -->
+      </div>
+
+      <!-- Colonne latérale : Podium des tables & QR Code -->
+      <div class="projector-side-column">
+        <div class="side-card">
+          <h3>🏆 Classement des Tables</h3>
+          <div id="projector-side-leaderboard">
+            <!-- Injecté par projector.js -->
+          </div>
+        </div>
+
+        <div class="qr-join-box">
+          <div class="qr-code-placeholder">
+            <svg viewBox="0 0 100 100" fill="#0b0f19">
+              <rect x="10" y="10" width="30" height="30" fill="#0b0f19"/>
+              <rect x="15" y="15" width="20" height="20" fill="white"/>
+              <rect x="20" y="20" width="10" height="10" fill="#0b0f19"/>
+              <rect x="60" y="10" width="30" height="30" fill="#0b0f19"/>
+              <rect x="65" y="15" width="20" height="20" fill="white"/>
+              <rect x="70" y="20" width="10" height="10" fill="#0b0f19"/>
+              <rect x="10" y="60" width="30" height="30" fill="#0b0f19"/>
+              <rect x="15" y="65" width="20" height="20" fill="white"/>
+              <rect x="20" y="70" width="10" height="10" fill="#0b0f19"/>
+              <rect x="50" y="50" width="12" height="12" fill="#0b0f19"/>
+              <rect x="70" y="70" width="15" height="15" fill="#0b0f19"/>
+            </svg>
+          </div>
+          <div class="qr-text-instruction">Flashez pour participer en direct !</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODALES D'INTERACTION & FORMULAIRES
+       ======================================================== -->
+
+  <!-- 1. Modale Onboarding Express (15 secondes) -->
+  <div class="modal-overlay" id="onboarding-modal" style="display: none;" onclick="if(event.target === this) window.closeOnboarding()">
+    <div class="modal-card" style="position: relative;">
+      <button type="button" class="btn-icon" style="position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px;" onclick="window.closeOnboarding()" title="Fermer">✕</button>
+      <div class="modal-header">
+        <h2>Bienvenue à la Fête ! 🥂</h2>
+        <p>Indiquez votre prénom et votre table pour participer en 1 clic.</p>
+      </div>
+
+      <form id="onboarding-form" onsubmit="event.preventDefault(); window.saveOnboarding();">
+        <div class="form-group">
+          <label class="form-label" for="input-guest-name">Votre Prénom ou Surnom</label>
+          <input type="text" id="input-guest-name" class="form-input" placeholder="Ex: Marc, Estelle..." required autocomplete="given-name">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-guest-table">Votre Numéro de Table</label>
+          <input type="text" id="input-guest-table" class="form-input" placeholder="Ex: Table 4, Table d'Honneur..." value="Table 1">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Choisissez votre Avatar</label>
+          <div class="emoji-picker-row">
+            <button type="button" class="emoji-btn selected" data-emoji="🎉" onclick="selectEmojiBtn(this)">🎉</button>
+            <button type="button" class="emoji-btn" data-emoji="👑" onclick="selectEmojiBtn(this)">👑</button>
+            <button type="button" class="emoji-btn" data-emoji="💍" onclick="selectEmojiBtn(this)">💍</button>
+            <button type="button" class="emoji-btn" data-emoji="✨" onclick="selectEmojiBtn(this)">✨</button>
+            <button type="button" class="emoji-btn" data-emoji="💼" onclick="selectEmojiBtn(this)">💼</button>
+            <button type="button" class="emoji-btn" data-emoji="🌟" onclick="selectEmojiBtn(this)">🌟</button>
+            <button type="button" class="emoji-btn" data-emoji="🥂" onclick="selectEmojiBtn(this)">🥂</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn-primary" style="flex: 1;">
+            C'est parti ! 🚀
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Modale Assistant de Prière par Étapes (Carte 1 & Carte 2) -->
+  <div class="modal-overlay" id="prayer-wizard-modal" style="display: none;">
+    <div class="modal-card" style="border: 1px solid rgba(245, 197, 66, 0.4); max-width: 520px;">
+      
+      <!-- Barre de progression -->
+      <div class="wizard-progress-bar">
+        <div class="wizard-progress-pill active" id="prayer-wizard-pill-1"></div>
+        <div class="wizard-progress-pill" id="prayer-wizard-pill-2"></div>
+      </div>
+
+      <div class="modal-header">
+        <h2>🙏 Demande de Prière & Intercession</h2>
+        <p>Notre équipe d'intercession est à votre écoute en toute discrétion.</p>
+      </div>
+
+      <!-- CARTE 1 : Sélection rapide du thème -->
+      <div id="prayer-wizard-card-1" class="wizard-step-container">
+        <label class="form-label">Étape 1/2 : Choisissez le sujet de votre requête</label>
+        <div class="prayer-topics-grid" id="prayer-wizard-topics-grid">
+          <!-- Injecté dynamiquement par prayer-wizard.js -->
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
+          Cliquez sur un sujet pour passer directement à la description.
+        </p>
+        <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+          <button type="button" class="btn-icon" id="btn-close-prayer-wizard" style="width: auto; padding: 0 1.25rem;">Fermer</button>
+        </div>
+      </div>
+
+      <!-- CARTE 2 : Description, Contact WhatsApp & Confidentialité -->
+      <div id="prayer-wizard-card-2" class="wizard-step-container" style="display: none;">
+        <form id="prayer-wizard-form">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+            <label class="form-label" style="margin: 0;">Sujet sélectionné :</label>
+            <span class="hub-card-badge" id="prayer-wizard-title-preview">Famille</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prayer-wizard-content">Décrivez votre requête</label>
+            <textarea id="prayer-wizard-content" class="form-textarea" rows="3" placeholder="Partagez librement ce que vous traversez ou vos besoins spirituels..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prayer-wizard-whatsapp">Numéro WhatsApp (avec indicatif)</label>
+            <input type="tel" id="prayer-wizard-whatsapp" class="form-input" placeholder="Ex: +225 0700000000 (Optionnel)">
+            <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
+              Permet à l'équipe pastorale d'échanger avec vous plus tard en privé.
+            </p>
+          </div>
+
+          <!-- Note de réassurance & confidentialité -->
+          <div class="privacy-reassurance-box">
+            <span style="font-size: 1.2rem; flex-shrink: 0;">🔒</span>
+            <div>
+              <strong>Rassurez-vous :</strong> ce que vous décrivez reste <u>strictement privé et confidentiel</u> avec l'équipe d'intercession.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="btn-icon" id="btn-back-prayer-step1" style="width: auto; padding: 0 1rem;">← Précédent</button>
+            <button type="submit" id="btn-submit-prayer-wizard" class="btn-3d btn-3d-amber" style="flex: 1;">
+              <span>Envoyer ma requête 🙏</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. Modale Assistant Réseautage en 4 Cartes -->
+  <div class="modal-overlay" id="networking-wizard-modal" style="display: none;">
+    <div class="modal-card" style="border: 1px solid rgba(255, 122, 69, 0.4); max-width: 520px;">
+      
+      <!-- Barre de progression 4 étapes -->
+      <div class="wizard-progress-bar">
+        <div class="wizard-progress-pill active" id="net-progress-pill-1"></div>
+        <div class="wizard-progress-pill" id="net-progress-pill-2"></div>
+        <div class="wizard-progress-pill" id="net-progress-pill-3"></div>
+        <div class="wizard-progress-pill" id="net-progress-pill-4"></div>
+      </div>
+
+      <div class="modal-header">
+        <h2 id="net-wizard-modal-title">🤝 Fiche Réseautage VIP</h2>
+        <p id="net-wizard-modal-subtitle">Remplissez chaque champ pour publier votre fiche de contact (Modifiable à tout moment).</p>
+      </div>
+
+      <form id="networking-wizard-form">
+        <!-- CARTE 1 : Identité, Métier & Photo de Profil Réelle -->
+        <div id="net-step-card-1" class="wizard-step-container">
+          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 1/4 : Identité & Photo Réelle</div>
+          
+          <!-- Zone d'Upload de Photo Réelle (Obligatoire, sans avatars prédéfinis) -->
+          <div class="form-group">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Votre Photo Réelle (Effet 3D Pop-Out) *</span>
+              <span style="font-size: 0.72rem; color: #ea580c; font-weight: 700;">Obligatoire</span>
+            </label>
+            
+            <div id="net-photo-upload-dropzone" class="photo-upload-clay-zone" onclick="document.getElementById('net-step-photo-file').click()">
+              <div id="net-photo-preview-container" style="display: none; position: relative;">
+                <div class="clay-photo-frame" style="width: 86px; height: 102px; margin: 0 auto; box-shadow: 0 10px 20px rgba(0,0,0,0.6);">
+                  <img id="net-photo-preview-img" src="" alt="Aperçu photo" class="clay-photo-img">
+                </div>
+                <p style="font-size: 0.76rem; color: #fb923c; margin-top: 0.5rem; text-decoration: underline; font-weight: 700;">
+                  Appuyez pour changer de photo 🔄
+                </p>
+              </div>
+
+              <div id="net-photo-placeholder-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.25rem 0.5rem;">
+                <div style="width: 54px; height: 54px; border-radius: 18px; background: rgba(234, 88, 12, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1.5px dashed #ea580c;">
+                  📸
+                </div>
+                <span style="font-size: 0.86rem; font-weight: 700; color: #fffaf0;">
+                  Appuyez pour choisir votre photo
+                </span>
+                <span style="font-size: 0.72rem; color: #94a3b8;">
+                  Prenez un selfie ou sélectionnez une photo depuis votre galerie
+                </span>
+              </div>
+            </div>
+
+            <input type="file" id="net-step-photo-file" accept="image/*" style="display: none;" onchange="window.handleNetPhotoUpload(event)">
+            <input type="hidden" id="net-step-photo-url" value="" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="net-step-fullname">Nom et Prénom *</label>
+            <input type="text" id="net-step-fullname" class="form-input" placeholder="Ex: Dr. Marc Koffi" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="net-step-profession">Métier / Fonction actuelle *</label>
+            <input type="text" id="net-step-profession" class="form-input" placeholder="Ex: Directeur Médical, Avocat, Designer..." required>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="btn-icon" id="btn-close-net-wizard" style="width: auto; padding: 0 1rem;">Annuler</button>
+            <button type="button" id="btn-net-to-step2" class="btn-3d btn-3d-coral" style="flex: 1;">
+              <span>Suivant (Étape 2) →</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARTE 2 : Entreprise, Bio & Centres d'intérêt -->
+        <div id="net-step-card-2" class="wizard-step-container" style="display: none;">
+          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 2/4 : Parcours & Intérêts</div>
+          
+          <div class="form-group">
+            <label class="form-label" for="net-step-company">Entreprise / Organisation *</label>
+            <input type="text" id="net-step-company" class="form-input" placeholder="Nom de votre société ou structure" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="net-step-bio">Mini Biographie *</label>
+            <textarea id="net-step-bio" class="form-textarea" rows="2" placeholder="En une phrase : qui êtes-vous et quelle est votre passion ?" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="net-step-interests">Centres d'intérêt / Tags * (séparés par des virgules)</label>
+            <input type="text" id="net-step-interests" class="form-input" placeholder="Ex: Tech, Entrepreneuriat, Musique, Foi" required>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="btn-icon" id="btn-net-back-step1" style="width: auto; padding: 0 1rem;">← Retour</button>
+            <button type="button" id="btn-net-to-step3" class="btn-3d btn-3d-coral" style="flex: 1;">
+              <span>Suivant (Étape 3) →</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARTE 3 : Synergies (Ce que vous cherchez & offrez) -->
+        <div id="net-step-card-3" class="wizard-step-container" style="display: none;">
+          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 3/4 : Opportunités & Synergies</div>
+          
+          <div class="form-group">
+            <label class="form-label" for="net-step-looking-for">Ce que vous recherchez ce soir *</label>
+            <input type="text" id="net-step-looking-for" class="form-input" placeholder="Ex: Partenaires stratégiques, investisseurs, conseils..." required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="net-step-offering">Ce que vous offrez / Vos compétences *</label>
+            <input type="text" id="net-step-offering" class="form-input" placeholder="Ex: Conseil juridique, mentorat, dev web, scénographie..." required>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="btn-icon" id="btn-net-back-step2" style="width: auto; padding: 0 1rem;">← Retour</button>
+            <button type="button" id="btn-net-to-step4" class="btn-3d btn-3d-coral" style="flex: 1;">
+              <span>Dernière étape (Contact) →</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARTE 4 : Contact WhatsApp & Finalisation -->
+        <div id="net-step-card-4" class="wizard-step-container" style="display: none;">
+          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 4/4 : Contact Direct</div>
+          
+          <div class="form-group">
+            <label class="form-label" for="net-step-whatsapp">Numéro WhatsApp (avec indicatif pays) *</label>
+            <input type="tel" id="net-step-whatsapp" class="form-input" placeholder="Ex: +225 0700000000" required>
+            <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
+              Permettra aux autres invités de vous contacter en 1 clic après votre salutation.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+            <button type="button" class="btn-icon" id="btn-net-back-step3" style="width: auto; padding: 0 1rem;">← Retour</button>
+            <button type="submit" id="btn-submit-net-wizard" class="btn-3d btn-3d-coral" style="flex: 1;">
+              <span id="btn-submit-net-text">Enregistrer ma fiche de réseautage 🚀</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- 4. Modale Régie / MC : Diffusion Notification Push Directe -->
+  <div class="modal-overlay" id="broadcast-modal" style="display: none;">
+    <div class="modal-card" style="border: 1px solid rgba(212, 175, 55, 0.5); box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);">
+      <div class="modal-header">
+        <h2>📢 Diffuser une Alerte Push</h2>
+        <p>Envoyez une vibration et notification instantanée sur le téléphone de tous les invités.</p>
+      </div>
+
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem;">
+        <button type="button" class="btn-icon quick-broadcast-preset" data-title="🔥 Le Grand Quiz commence !" data-body="Rejoignez vite l'onglet Jeux, la question 1 vient de s'afficher !" data-url="#games" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">🔥 Quiz Live</button>
+        <button type="button" class="btn-icon quick-broadcast-preset" data-title="🥂 Toast & Prise de Parole" data-body="Attention s'il vous plaît, les mariés / hôtes prennent la parole !" data-url="#chat" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">🥂 Toast VIP</button>
+        <button type="button" class="btn-icon quick-broadcast-preset" data-title="📸 Photo Souvenir de Table !" data-body="Le photographe passe à votre table dans 2 minutes !" data-url="#chat" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">📸 Photo Table</button>
+        <button type="button" class="btn-icon quick-broadcast-preset" data-title="🙏 Moment de Bénédiction" data-body="Partagez vos vœux et prières pour marquer cet instant." data-url="#prayer" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">🙏 Bénédiction</button>
+      </div>
+
+      <form id="broadcast-form" onsubmit="window.submitBroadcastForm(event)">
+        <div class="form-group">
+          <label class="form-label">Titre de l'alerte</label>
+          <input type="text" id="broadcast-title" class="form-input" placeholder="Ex: 🔥 Le Grand Quiz commence !" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Message / Consigne aux invités</label>
+          <textarea id="broadcast-body" class="form-textarea" rows="3" placeholder="Ex: Tous à vos téléphones pour marquer des points pour votre table !" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Lien de redirection au clic</label>
+          <select id="broadcast-url" class="form-input">
+            <option value="#games">Onglet Jeux & Quiz</option>
+            <option value="#chat">Onglet Chat en Direct</option>
+            <option value="#networking">Onglet Réseautage</option>
+            <option value="#prayer">Onglet Prières & Vœux</option>
+            <option value="/">Page d'accueil</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Code PIN Régie / MC (Sécurité)</label>
+          <input type="password" id="broadcast-pin" class="form-input" placeholder="Code PIN Régie (défaut : 7777)" required style="letter-spacing: 2px;">
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+          <button type="button" class="btn-icon" style="width: auto; padding: 0 1rem;" onclick="window.closeBroadcastModal()">Fermer</button>
+          <button type="submit" id="btn-submit-broadcast" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #d4af37, #b45309);">
+            🚀 Diffuser à tous les invités
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Conteneur pour les Toasts / Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+
+  <!-- Script d'aide pour sélection d'émojis dans la modale & Splash Screen -->
+  <script>
+    function selectEmojiBtn(btn) {
+      document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function dismissSplash() {
+      var splash = document.getElementById('app-splash-screen');
+      if (splash && !splash.classList.contains('splash-hidden')) {
+        splash.classList.add('splash-hidden');
+        setTimeout(function() {
+          if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+        }, 360);
+      }
+    }
+    window.dismissSplash = dismissSplash;
+    window.addEventListener('load', function() {
+      setTimeout(dismissSplash, 120);
+    });
+    setTimeout(dismissSplash, 2200);
+  </script>
+
+  <!-- Point d'entrée Javascript -->
+  <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>
