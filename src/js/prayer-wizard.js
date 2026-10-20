@@ -70,11 +70,34 @@ export const PrayerWizard = {
     if (stepNumber === 3) document.getElementById('prayer-wizard-target-person')?.focus();
   },
 
+  autoFillFromGuest() {
+    const g = AppState.guest;
+    if (!g) return;
+    const nameEl = document.getElementById('prayer-wizard-full-name');
+    const waEl = document.getElementById('prayer-wizard-whatsapp');
+    const resEl = document.getElementById('prayer-wizard-residence');
+    const churchSelect = document.getElementById('prayer-wizard-has-church');
+    const churchNameEl = document.getElementById('prayer-wizard-church-name');
+    const churchDurEl = document.getElementById('prayer-wizard-church-duration');
+
+    if (nameEl && !nameEl.value && (g.name || g.full_name)) nameEl.value = g.name || g.full_name;
+    if (waEl && !waEl.value && (g.phone || g.whatsapp)) waEl.value = g.phone || g.whatsapp;
+    if (resEl && !resEl.value && (g.residence_location || g.residence)) resEl.value = g.residence_location || g.residence;
+    if (churchSelect && g.has_church !== undefined) {
+      churchSelect.value = (g.has_church === 1 || g.has_church === 'oui' || g.has_church === true) ? 'oui' : 'non';
+      const churchDetails = document.getElementById('prayer-wizard-church-details');
+      if (churchDetails) churchDetails.style.display = churchSelect.value === 'oui' ? 'block' : 'none';
+    }
+    if (churchNameEl && !churchNameEl.value && g.church_name) churchNameEl.value = g.church_name;
+    if (churchDurEl && !churchDurEl.value && g.church_duration) churchDurEl.value = g.church_duration;
+  },
+
   open(presetTopic = null) {
     const modal = document.getElementById('prayer-wizard-modal');
     if (!modal) return;
     if (presetTopic) this.selectedTopic = presetTopic;
     this.renderTopicButtons();
+    this.autoFillFromGuest();
     this.goToStep(1);
     modal.style.display = 'flex';
     requestAnimationFrame(() => modal.classList.add('active'));
@@ -154,6 +177,18 @@ export const PrayerWizard = {
         title: this.selectedTopic, content, whatsapp, target_person: targetPerson,
         created_at: new Date().toISOString()
       });
+
+      // Synchronisation intelligente des coordonnées de l'invité
+      if (AppState.guest) {
+        if (fullName) AppState.guest.name = fullName;
+        if (whatsapp) AppState.guest.phone = whatsapp;
+        if (residenceLocation) AppState.guest.residence_location = residenceLocation;
+        AppState.guest.has_church = hasChurch;
+        if (churchName) AppState.guest.church_name = churchName;
+        if (churchDuration) AppState.guest.church_duration = churchDuration;
+        localStorage.setItem('compagnon_guest', JSON.stringify(AppState.guest));
+        if (typeof window.updateGuestHeader === 'function') window.updateGuestHeader();
+      }
 
       this.close();
       document.getElementById('prayer-wizard-form')?.reset();

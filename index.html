@@ -24,6 +24,9 @@
   <link rel="stylesheet" href="/src/styles/projector.css">
   <link rel="stylesheet" href="/src/styles/program.css">
   <link rel="stylesheet" href="/src/styles/ads.css">
+  
+  <!-- Moteur Web 3D interactif Google model-viewer (Apple & Amazon WebGL Standard) -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
 
   <!-- Styles critiques Anti-FOUC (Mode Clair Neumorphique par défaut) -->
@@ -212,18 +215,18 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style="width:20px;height:20px;max-width:20px;max-height:20px;"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
         </div>
         <div class="brand-text">
-          <h1 id="header-event-title">Soirée Royale</h1>
+          <h1 id="header-event-title">E-event</h1>
           <p>Compagnon Interactif</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- Badge Invité / Table -->
-        <div class="guest-pill" id="guest-status-pill" onclick="window.openOnboarding()">
-          <span>👋</span>
-          <span>Invité</span>
-          <span class="guest-table-badge">Table 1</span>
-        </div>
+        <!-- Bouton Espace Profil Invité (Remplaçant l'ancien badge Rejoindre QR) -->
+        <button type="button" class="guest-pill" id="guest-status-pill" onclick="window.openProfileModal()" title="Consulter et modifier votre profil, prières, réseau et points" style="cursor: pointer; border: none; font-family: inherit;">
+          <span>👤</span>
+          <span id="header-profile-label">Votre Profil</span>
+          <span class="guest-table-badge" id="header-profile-table">Table 1</span>
+        </button>
 
         <!-- Bouton Bascule Thème Neumorphique Clair / Sombre -->
         <button class="btn-icon" id="btn-toggle-theme" title="Basculer Mode Clair / Sombre" onclick="window.toggleAppTheme()">
@@ -344,7 +347,127 @@
               </div>
             </div>
 
+            <!-- 4. BANNIÈRE 4 (GOLD) : NOTRE VITRINE & PRESTATIONS 3D -->
+            <div class="speech-card card-gold" id="btn-hero-vitrine" onclick="window.switchTab('vitrine')">
+              <div class="speech-card-badge">
+                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
+                  <!-- Automobile & Couronne Prestige -->
+                  <path d="M12 20L20 44H44L52 20L38 32L32 14L26 32L12 20ZM18 48H46V52H18V48Z" fill="#ffffff"/>
+                </svg>
+              </div>
+              <div class="speech-card-body">
+                <h2 class="speech-card-title">Notre Vitrine</h2>
+                <div class="speech-card-line"></div>
+                <p class="speech-card-text">
+                  Prestations VIP d'exception, partenaires d'honneur et showroom 3D interactif du véhicule de gala.
+                </p>
+                <div class="speech-card-metric" style="margin-top: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #b45309; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>✨</span>
+                  <span>Showroom 3D WebGL • Véhicule VIP & Catalogue</span>
+                </div>
+              </div>
+            </div>
+
           </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 0BIS : NOTRE VITRINE & SHOWROOM 3D
+           ========================================== -->
+      <section class="tab-view" id="vitrine-tab">
+        <div class="vitrine-container animate-fade-in">
+          
+          <!-- Barre de retour rapide -->
+          <div class="vitrine-topbar">
+            <button type="button" class="vitrine-back-btn" onclick="window.switchTab('home')">
+              <span>←</span>
+              <span>Retour à l'accueil</span>
+            </button>
+            <span class="hub-card-badge" style="background: rgba(212, 175, 55, 0.15); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.3);">
+              ✨ Prestige & Services
+            </span>
+          </div>
+
+          <!-- CARTE VÉHICULE 3D INTERACTIVE (Apple & Amazon WebGL Standard) -->
+          <div class="vitrine-hero-card">
+            <div class="vitrine-hero-header">
+              <div class="vitrine-hero-badge">🚗 Showroom 3D Exclusif • Véhicule Officiel</div>
+              <h2 class="vitrine-hero-title">Hyundai i30 Berline Prestige</h2>
+              <p class="vitrine-hero-subtitle">
+                Service de cortège d'honneur, transport VIP et escortes d'exception pour vos mariages et réceptions de gala.
+              </p>
+            </div>
+
+            <!-- Scène 3D WebGL Google model-viewer -->
+            <div class="vitrine-3d-stage">
+              <model-viewer
+                id="vitrine-model-viewer"
+                src="/models/hyundai_i30.glb"
+                alt="Hyundai i30 Berline Prestige 3D"
+                auto-rotate
+                camera-controls
+                touch-action="pan-y"
+                shadow-intensity="1.4"
+                exposure="1.0"
+                environment-image="neutral"
+                interaction-prompt="auto"
+                style="width: 100%; height: 100%;"
+              >
+                <div slot="poster" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d4af37; font-weight: 700; font-size: 0.9rem;">
+                  🚗 Chargement du modèle 3D WebGL...
+                </div>
+              </model-viewer>
+            </div>
+
+            <div class="vitrine-3d-hint">
+              <span>🔄</span>
+              <span>Modèle 3D WebGL Réel : Faites glisser pour tourner à 360°, zoomez pour examiner le véhicule sous tous les angles.</span>
+            </div>
+
+            <!-- Fiche technique & points forts -->
+            <div class="vitrine-specs-grid">
+              <div class="vitrine-spec-chip">
+                <span class="vitrine-spec-label">Prestation</span>
+                <span class="vitrine-spec-value">Chauffeur VIP</span>
+              </div>
+              <div class="vitrine-spec-chip">
+                <span class="vitrine-spec-label">Confort</span>
+                <span class="vitrine-spec-value">Finition Luxe</span>
+              </div>
+              <div class="vitrine-spec-chip">
+                <span class="vitrine-spec-label">Disponibilité</span>
+                <span class="vitrine-spec-value" style="color: #10b981;">Sur Réservation</span>
+              </div>
+            </div>
+
+            <!-- Bouton de réservation directe WhatsApp -->
+            <a href="https://wa.me/?text=Bonjour%20je%20souhaite%20r%C3%A9server%20le%20v%C3%A9hicule%20VIP%20Hyundai%20i30%20pour%20une%20c%C3%A9r%C3%A9monie" target="_blank" rel="noopener noreferrer" class="vitrine-cta-btn">
+              <span>🚗 Réserver cette prestation avec chauffeur</span>
+              <span>➔</span>
+            </a>
+          </div>
+
+          <!-- CATALOGUE COMPLET DES PRESTATIONS & SPONSORS -->
+          <div class="admin-card" style="margin-top: 1.5rem; background: var(--bg-card); border-radius: 24px; padding: 18px; border: 1px solid rgba(212, 175, 55, 0.25);">
+            <div style="margin-bottom: 14px;">
+              <span class="hub-card-badge" style="background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.3);">
+                🛍️ Partenaires & Prestations
+              </span>
+              <h3 style="font-size: 1.2rem; font-weight: 800; margin: 6px 0 4px; color: var(--text-main);">
+                Vitrine Privilège & Partenaires Officiels
+              </h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+                Retrouvez l'ensemble des ouvrages, parures, réceptions et créations d'honneur du dîner de gala.
+              </p>
+            </div>
+
+            <!-- Grille dynamique peuplée par AdsModule.renderVitrinePage() -->
+            <div class="vitrine-gallery-grid" id="vitrine-full-gallery">
+              <!-- Injecté dynamiquement par ads.js -->
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -648,6 +771,142 @@
        MODALES D'INTERACTION & FORMULAIRES
        ======================================================== -->
 
+  <!-- 0. Modale Espace Profil Invité (CRM & Coordonnées Personnelles) -->
+  <div class="modal-overlay" id="modal-guest-profile" style="display: none;" onclick="if(event.target === this) window.closeProfileModal()">
+    <div class="modal-card profile-modal-card animate-scale-up" style="position: relative;">
+      <button type="button" class="btn-icon" style="position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px;" onclick="window.closeProfileModal()" title="Fermer">✕</button>
+
+      <div class="modal-header" style="margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 1.5rem;">👤</span>
+          <h2 style="margin: 0; font-size: 1.25rem;">Espace Profil & Parcours Invité</h2>
+        </div>
+        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
+          Gérez vos coordonnées, consultez vos requêtes de prières, votre fiche de réseautage et vos points.
+        </p>
+      </div>
+
+      <!-- Sous-onglets internes du profil -->
+      <div class="profile-section-tab-nav">
+        <button type="button" class="profile-subtab-btn active" id="btn-profile-subtab-info" onclick="window.switchProfileSubtab('info')">
+          <span>📝</span>
+          <span>Coordonnées</span>
+        </button>
+        <button type="button" class="profile-subtab-btn" id="btn-profile-subtab-prayers" onclick="window.switchProfileSubtab('prayers')">
+          <span>🕊️</span>
+          <span>Prières</span>
+        </button>
+        <button type="button" class="profile-subtab-btn" id="btn-profile-subtab-networking" onclick="window.switchProfileSubtab('networking')">
+          <span>🤝</span>
+          <span>Réseautage</span>
+        </button>
+        <button type="button" class="profile-subtab-btn" id="btn-profile-subtab-points" onclick="window.switchProfileSubtab('points')">
+          <span>⭐</span>
+          <span>Points</span>
+        </button>
+      </div>
+
+      <!-- SOUS-ONGLET 1 : COORDONNÉES & INFORMATIONS PERSONNELLES -->
+      <div id="profile-subtab-content-info" class="profile-subtab-content">
+        <form id="profile-coordinates-form" onsubmit="event.preventDefault(); window.saveProfileCoordinates();">
+          
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-input-name">Nom complet / Prénom *</label>
+            <input type="text" id="profile-input-name" class="form-input" placeholder="Votre nom complet" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-input-table">Numéro de table *</label>
+            <input type="text" id="profile-input-table" class="form-input" placeholder="Ex: Table 1, Table VIP..." required>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-input-phone">Numéro WhatsApp / Téléphone</label>
+            <input type="tel" id="profile-input-phone" class="form-input" placeholder="Ex: +241 07000000">
+            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+              Utilisé pour l'assistance pastorale et le contact réseautage 1-clic.
+            </p>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-input-profession">Profession / Fonction</label>
+            <input type="text" id="profile-input-profession" class="form-input" placeholder="Ex: Avocat, Médecin, Directeur, Entrepreneur...">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-input-company">Entreprise / Lieu de travail</label>
+            <input type="text" id="profile-input-company" class="form-input" placeholder="Ex: Société Générale, Clinique, Indépendant...">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-input-residence">Lieu de résidence</label>
+            <input type="text" id="profile-input-residence" class="form-input" placeholder="Ex: Libreville - Louis / Akanda / Owendo">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label class="form-label" for="profile-select-has-church">Avez-vous une église où vous priez actuellement ?</label>
+            <select id="profile-select-has-church" class="form-input" onchange="document.getElementById('profile-church-details-box').style.display = (this.value === '1' ? 'block' : 'none')">
+              <option value="0">Non, pas pour le moment</option>
+              <option value="1">Oui, je fréquente une église / assemblée</option>
+            </select>
+          </div>
+
+          <div id="profile-church-details-box" style="display: none; padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; margin-bottom: 12px; border: 1px dashed rgba(245, 197, 66, 0.3);">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="profile-input-church-name">Nom de votre église / communauté</label>
+              <input type="text" id="profile-input-church-name" class="form-input" placeholder="Ex: Église Céleste, Centre Évangélique...">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="btn-icon" style="width: auto; padding: 0 1rem;" onclick="window.closeProfileModal()">Annuler</button>
+            <button type="submit" id="btn-save-profile-coords" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #d4af37, #b45309);">
+              💾 Enregistrer mes coordonnées
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- SOUS-ONGLET 2 : MES PRIÈRES ENVOYÉES -->
+      <div id="profile-subtab-content-prayers" class="profile-subtab-content" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700;">🕊️ Vos Requêtes de Prière Déposées</h4>
+          <button type="button" class="btn-primary" style="font-size: 0.74rem; padding: 4px 10px;" onclick="window.closeProfileModal(); window.PrayerWizard?.open();">
+            + Nouvelle Requête
+          </button>
+        </div>
+        <div id="profile-prayers-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto;">
+          <p style="text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 1.5rem 0;">
+            Chargement de vos prières...
+          </p>
+        </div>
+      </div>
+
+      <!-- SOUS-ONGLET 3 : MA FICHE RÉSEAUTAGE -->
+      <div id="profile-subtab-content-networking" class="profile-subtab-content" style="display: none;">
+        <div id="profile-net-summary-box" style="text-align: center; padding: 1rem 0;">
+          <!-- Injecté dynamiquement par app.js -->
+        </div>
+      </div>
+
+      <!-- SOUS-ONGLET 4 : MES POINTS & DUELS -->
+      <div id="profile-subtab-content-points" class="profile-subtab-content" style="display: none;">
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 18px; padding: 16px; text-align: center; margin-bottom: 12px;">
+          <div style="font-size: 2.2rem; font-weight: 800; color: #f59e0b;" id="profile-stat-points">0</div>
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">Points Gala Récoltés</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Quiz live, défis bibliques & brise-glaces</div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-primary" style="flex: 1; font-size: 0.82rem;" onclick="window.closeProfileModal(); window.switchTab('games');">
+            🎮 Rejoindre les Jeux & Duels
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- 1. Modale Onboarding Express (15 secondes) -->
   <div class="modal-overlay" id="onboarding-modal" style="display: none;" onclick="if(event.target === this) window.closeOnboarding()">
     <div class="modal-card" style="position: relative;">
@@ -668,18 +927,6 @@
           <input type="text" id="input-guest-table" class="form-input" placeholder="Ex: Table 4, Table d'Honneur..." value="Table 1">
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Choisissez votre Avatar</label>
-          <div class="emoji-picker-row">
-            <button type="button" class="emoji-btn selected" data-emoji="🎉" onclick="selectEmojiBtn(this)">🎉</button>
-            <button type="button" class="emoji-btn" data-emoji="👑" onclick="selectEmojiBtn(this)">👑</button>
-            <button type="button" class="emoji-btn" data-emoji="💍" onclick="selectEmojiBtn(this)">💍</button>
-            <button type="button" class="emoji-btn" data-emoji="✨" onclick="selectEmojiBtn(this)">✨</button>
-            <button type="button" class="emoji-btn" data-emoji="💼" onclick="selectEmojiBtn(this)">💼</button>
-            <button type="button" class="emoji-btn" data-emoji="🌟" onclick="selectEmojiBtn(this)">🌟</button>
-            <button type="button" class="emoji-btn" data-emoji="🥂" onclick="selectEmojiBtn(this)">🥂</button>
-          </div>
-        </div>
 
         <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
           <button type="submit" class="btn-primary" style="flex: 1;">

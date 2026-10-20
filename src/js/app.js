@@ -129,7 +129,7 @@ async function loadEventInfo() {
   if (ev) {
     AppState.event = ev;
     const titleEl = document.getElementById('header-event-title');
-    if (titleEl) titleEl.textContent = ev.name;
+    if (titleEl) titleEl.textContent = 'E-event';
 
     if (ev.direct_feature_enabled !== undefined) {
       AppState.direct_feature_enabled = Number(ev.direct_feature_enabled);
@@ -175,17 +175,18 @@ function setupNavigation() {
     });
   });
 
-  // Gestion du hash d'URL (ex: #home, #chat, #program, #games, #networking, #prayer)
+  // Gestion du hash d'URL (ex: #home, #vitrine, #chat, #program, #games, #networking, #prayer)
+  const validTabs = ['home', 'vitrine', 'chat', 'program', 'games', 'networking', 'prayer'];
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.replace('#', '');
-    if (['home', 'chat', 'program', 'games', 'networking', 'prayer'].includes(hash)) {
+    if (validTabs.includes(hash)) {
       window.switchTab(hash);
     }
   });
 
   if (window.location.hash) {
     const hash = window.location.hash.replace('#', '');
-    if (['home', 'chat', 'program', 'games', 'networking', 'prayer'].includes(hash)) {
+    if (validTabs.includes(hash)) {
       window.switchTab(hash);
     }
   } else {
@@ -248,11 +249,24 @@ function setupHeroButtons() {
       window.switchTab('games');
     });
   }
+
+  const btnVitrine = document.getElementById('btn-hero-vitrine');
+  if (btnVitrine) {
+    btnVitrine.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.switchTab('vitrine');
+    });
+  }
 }
 
 function refreshCurrentView() {
   switch (AppState.activeTab) {
     case 'home':
+      break;
+    case 'vitrine':
+      if (AdsModule && typeof AdsModule.renderVitrinePage === 'function') {
+        AdsModule.renderVitrinePage();
+      }
       break;
     case 'chat':
       ChatModule.refresh();
@@ -280,21 +294,29 @@ function refreshCurrentView() {
 function updateGuestHeader() {
   const pill = document.getElementById('guest-status-pill');
   if (!pill) return;
+  const labelEl = document.getElementById('header-profile-label');
+  const tableEl = document.getElementById('header-profile-table');
 
   if (AppState.guest) {
     const points = AppState.guest.points || 0;
-    pill.innerHTML = `
-      <span style="font-size: 1.1rem;">${AppState.guest.avatar_emoji || '🎉'}</span>
-      <span style="font-weight: 600;">${escapeHtml(AppState.guest.name)}</span>
-      <span class="guest-table-badge">Table ${escapeHtml(AppState.guest.table_number || '1')}</span>
-      <span class="guest-points-badge" style="background: rgba(245,158,11,0.2); color: #f59e0b; padding: 2px 7px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; border: 1px solid rgba(245,158,11,0.4);">⭐ ${points} pts</span>
-    `;
+    if (labelEl) labelEl.textContent = AppState.guest.name || 'Votre Profil';
+    if (tableEl) {
+      const cleanTable = String(AppState.guest.table_number || '1').replace(/^table\s*/i, '');
+      tableEl.textContent = `Table ${cleanTable}`;
+    }
+    let pointsBadge = pill.querySelector('.guest-points-badge');
+    if (!pointsBadge) {
+      pointsBadge = document.createElement('span');
+      pointsBadge.className = 'guest-points-badge';
+      pointsBadge.style.cssText = 'background: rgba(245,158,11,0.2); color: #f59e0b; padding: 2px 7px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; border: 1px solid rgba(245,158,11,0.4);';
+      pill.appendChild(pointsBadge);
+    }
+    pointsBadge.textContent = `⭐ ${points} pts`;
   } else {
-    pill.innerHTML = `
-      <span>👋</span>
-      <span>Rejoindre</span>
-      <span class="guest-table-badge">QR</span>
-    `;
+    if (labelEl) labelEl.textContent = 'Votre Profil';
+    if (tableEl) tableEl.textContent = 'Invité';
+    const pointsBadge = pill.querySelector('.guest-points-badge');
+    if (pointsBadge) pointsBadge.remove();
   }
 }
 
@@ -422,6 +444,225 @@ window.saveOnboarding = async () => {
     }
   } catch (err) {
     console.warn("Synchronisation invité enregistrée localement :", err);
+  }
+};
+
+// ==========================================
+// Espace Profil & Parcours Invité (Modale CRM)
+// ==========================================
+window.openProfileModal = async () => {
+  const modal = document.getElementById('modal-guest-profile');
+  if (!modal) return;
+
+  const g = AppState.guest || {};
+  const nameEl = document.getElementById('profile-input-name');
+  const tableEl = document.getElementById('profile-input-table');
+  const phoneEl = document.getElementById('profile-input-phone');
+  const profEl = document.getElementById('profile-input-profession');
+  const compEl = document.getElementById('profile-input-company');
+  const resEl = document.getElementById('profile-input-residence');
+  const churchSelect = document.getElementById('profile-select-has-church');
+  const churchNameEl = document.getElementById('profile-input-church-name');
+  const churchBox = document.getElementById('profile-church-details-box');
+  const pointsEl = document.getElementById('profile-stat-points');
+
+  if (nameEl) nameEl.value = g.name || g.full_name || '';
+  if (tableEl) tableEl.value = g.table_number || 'Table 1';
+  if (phoneEl) phoneEl.value = g.phone || g.whatsapp || '';
+  if (profEl) profEl.value = g.profession || '';
+  if (compEl) compEl.value = g.company || '';
+  if (resEl) resEl.value = g.residence_location || g.residence || '';
+
+  const hasChurch = g.has_church === 1 || g.has_church === '1' || g.has_church === true || g.has_church === 'oui';
+  if (churchSelect) churchSelect.value = hasChurch ? '1' : '0';
+  if (churchBox) churchBox.style.display = hasChurch ? 'block' : 'none';
+  if (churchNameEl) churchNameEl.value = g.church_name || '';
+
+  if (pointsEl) pointsEl.textContent = g.points || 0;
+
+  // Par défaut sur le premier sous-onglet "info"
+  window.switchProfileSubtab('info');
+
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => modal.classList.add('active'));
+
+  // Charger les données enrichies (prières + réseautage) en arrière-plan
+  window.loadGuestProfileData();
+};
+
+window.closeProfileModal = () => {
+  const modal = document.getElementById('modal-guest-profile');
+  if (modal) {
+    modal.classList.remove('active');
+    setTimeout(() => {
+      if (!modal.classList.contains('active')) modal.style.display = 'none';
+    }, 200);
+  }
+};
+
+window.switchProfileSubtab = (subTab) => {
+  const subTabs = ['info', 'prayers', 'networking', 'points'];
+  subTabs.forEach(t => {
+    const btn = document.getElementById(`btn-profile-subtab-${t}`);
+    const content = document.getElementById(`profile-subtab-content-${t}`);
+    if (btn) btn.classList.toggle('active', t === subTab);
+    if (content) content.style.display = (t === subTab) ? 'block' : 'none';
+  });
+};
+
+window.saveProfileCoordinates = async () => {
+  const name = document.getElementById('profile-input-name')?.value.trim();
+  const table = document.getElementById('profile-input-table')?.value.trim() || 'Table 1';
+  const phone = document.getElementById('profile-input-phone')?.value.trim() || '';
+  const profession = document.getElementById('profile-input-profession')?.value.trim() || '';
+  const company = document.getElementById('profile-input-company')?.value.trim() || '';
+  const residenceLocation = document.getElementById('profile-input-residence')?.value.trim() || '';
+  const hasChurchVal = document.getElementById('profile-select-has-church')?.value;
+  const hasChurch = hasChurchVal === '1' ? 1 : 0;
+  const churchName = document.getElementById('profile-input-church-name')?.value.trim() || '';
+  const submitBtn = document.getElementById('btn-save-profile-coords');
+
+  if (!name) {
+    alert("Veuillez renseigner votre nom complet.");
+    return;
+  }
+
+  const guestId = AppState.guest ? AppState.guest.id : `guest-${Date.now()}`;
+  const updatedGuest = {
+    ...(AppState.guest || {}),
+    id: guestId,
+    name,
+    table_number: table,
+    phone,
+    whatsapp: phone,
+    profession,
+    company,
+    residence_location: residenceLocation,
+    has_church: hasChurch,
+    church_name: hasChurch ? churchName : '',
+  };
+
+  AppState.setGuest(updatedGuest);
+  localStorage.setItem('compagnon_guest', JSON.stringify(updatedGuest));
+  updateGuestHeader();
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enregistrement...";
+  }
+
+  try {
+    await Api.request('/guests/profile', {
+      method: 'POST',
+      body: JSON.stringify(updatedGuest)
+    });
+    window.showToast("✅ Vos coordonnées ont été enregistrées avec succès !", "success");
+    window.closeProfileModal();
+  } catch (err) {
+    window.showToast("Coordonnées sauvegardées localement.", "info");
+    window.closeProfileModal();
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "💾 Enregistrer mes coordonnées";
+    }
+  }
+};
+
+window.loadGuestProfileData = async () => {
+  const guestId = AppState.guest?.id;
+  const prayersContainer = document.getElementById('profile-prayers-list');
+  const netContainer = document.getElementById('profile-net-summary-box');
+
+  // 1. Prières locales & distantes
+  let localPrayers = [];
+  try {
+    localPrayers = JSON.parse(localStorage.getItem('compagnon_my_prayers') || '[]');
+  } catch (_) {}
+
+  // 2. Fiche réseautage locale
+  let myNet = null;
+  try {
+    myNet = JSON.parse(localStorage.getItem('compagnon_my_net_profile') || 'null');
+  } catch (_) {}
+
+  if (guestId) {
+    try {
+      const res = await Api.request(`/guests/detail?id=${guestId}`);
+      if (res) {
+        if (Array.isArray(res.prayers) && res.prayers.length > 0) {
+          localPrayers = res.prayers;
+        }
+        if (res.networking) {
+          myNet = res.networking;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Rendu de la liste des prières
+  if (prayersContainer) {
+    if (localPrayers.length === 0) {
+      prayersContainer.innerHTML = `
+        <div style="text-align: center; padding: 1.5rem 0; color: var(--text-muted); font-size: 0.85rem;">
+          <span style="font-size: 1.6rem; display: block; margin-bottom: 4px;">🕊️</span>
+          Vous n'avez pas encore envoyé de requête de prière.<br>
+          <button type="button" class="btn-primary" style="margin-top: 8px; font-size: 0.78rem;" onclick="window.closeProfileModal(); window.PrayerWizard?.open();">
+            Déposer une intention pastorale
+          </button>
+        </div>
+      `;
+    } else {
+      prayersContainer.innerHTML = localPrayers.map(p => `
+        <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(212,175,55,0.25); border-radius: 12px; padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 700; color: #d4af37; font-size: 0.84rem;">${escapeHtml(p.title || 'Sujet de prière')}</span>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">${p.created_at ? new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ce soir'}</span>
+          </div>
+          <p style="margin: 0; font-size: 0.78rem; color: var(--text-main); line-height: 1.35;">
+            ${escapeHtml(p.content || '')}
+          </p>
+          <div style="font-size: 0.7rem; color: #10b981; font-weight: 700; margin-top: 6px;">
+            ✓ Transmis à l'équipe pastorale (Confidentiel)
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Rendu du résumé de réseautage
+  if (netContainer) {
+    if (myNet) {
+      netContainer.innerHTML = `
+        <div style="background: rgba(255, 122, 69, 0.08); border: 1px solid rgba(255, 122, 69, 0.3); border-radius: 16px; padding: 16px; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            ${myNet.photo_url ? `<img src="${myNet.photo_url}" style="width: 50px; height: 50px; border-radius: 14px; object-fit: cover; border: 2px solid #ff7a45;">` : '<span style="font-size: 2rem;">👤</span>'}
+            <div>
+              <div style="font-weight: 800; font-size: 1rem; color: var(--text-main);">${escapeHtml(myNet.full_name || AppState.guest?.name || '')}</div>
+              <div style="font-size: 0.8rem; color: #ff7a45; font-weight: 700;">${escapeHtml(myNet.profession || '')}</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">${escapeHtml(myNet.company || '')}</div>
+            </div>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">
+            ${escapeHtml(myNet.bio || '')}
+          </div>
+          <button type="button" class="btn-primary" style="width: 100%; font-size: 0.82rem;" onclick="window.closeProfileModal(); window.NetworkingWizard?.open();">
+            ✏️ Modifier ma fiche de réseautage
+          </button>
+        </div>
+      `;
+    } else {
+      netContainer.innerHTML = `
+        <div style="text-align: center; padding: 1.5rem 0; color: var(--text-muted);">
+          <span style="font-size: 2rem; display: block; margin-bottom: 6px;">🤝</span>
+          Vous n'avez pas encore publié votre fiche de contact.<br>
+          <span style="font-size: 0.76rem;">Partagez votre profil avec vos voisins de table pour échanger en 1 clic.</span><br>
+          <button type="button" class="btn-primary" style="margin-top: 12px; font-size: 0.82rem;" onclick="window.closeProfileModal(); window.NetworkingWizard?.open();">
+            ✨ Créer ma fiche de réseautage
+          </button>
+        </div>
+      `;
+    }
   }
 };
 

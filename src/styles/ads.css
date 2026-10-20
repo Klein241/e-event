@@ -41,25 +41,38 @@
   gap: 4px;
 }
 
-/* Grille / Défilement horizontal des 4 petites cartes pastel (Exact Design Image 2) */
+/* Défilement horizontal fluide des cartes pastel sur UNE SEULE LIGNE (Strictement sans saut de ligne) */
 .home-ads-scroll-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  overflow-x: auto;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  gap: 14px;
   padding: 0.5rem 0.25rem 0.85rem;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Masque la barre disgracieuse pour un aspect claymorphic moderne */
+}
+
+.home-ads-scroll-row::-webkit-scrollbar {
+  display: none;
 }
 
 @media (max-width: 680px) {
   .home-ads-scroll-row {
-    grid-template-columns: repeat(4, minmax(130px, 1fr));
+    gap: 12px;
+    padding-bottom: 0.6rem;
   }
 }
 
 /* CARTE CLAYMORPHIC PASTEL (REPRODUCTION EXACTE DU MODÈLE REFERENCE) */
 .clay-ad-card {
+  flex: 0 0 148px !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  box-sizing: border-box;
   border-radius: 26px;
   padding: 14px 12px 14px;
   display: flex;

@@ -129,8 +129,15 @@ export const NetworkingWizard = {
 
   prefillDefaults() {
     if (AppState.guest) {
+      const g = AppState.guest;
       const nameInput = document.getElementById('net-step-fullname');
-      if (nameInput && !nameInput.value) nameInput.value = AppState.guest.name || '';
+      const profInput = document.getElementById('net-step-profession');
+      const compInput = document.getElementById('net-step-company');
+      const waInput = document.getElementById('net-step-whatsapp');
+      if (nameInput && !nameInput.value) nameInput.value = g.name || g.full_name || '';
+      if (profInput && !profInput.value && g.profession) profInput.value = g.profession;
+      if (compInput && !compInput.value && g.company) compInput.value = g.company;
+      if (waInput && !waInput.value && (g.phone || g.whatsapp)) waInput.value = g.phone || g.whatsapp;
     }
   },
 
@@ -298,6 +305,17 @@ export const NetworkingWizard = {
 
       await Api.saveNetworkingProfile(payload);
       localStorage.setItem('compagnon_my_net_profile', JSON.stringify(payload));
+
+      // Synchronisation intelligente des coordonnées de l'invité
+      if (AppState.guest) {
+        if (fullName) AppState.guest.name = fullName;
+        if (profession) AppState.guest.profession = profession;
+        if (company) AppState.guest.company = company;
+        if (whatsapp) AppState.guest.phone = whatsapp;
+        if (photoUrl) AppState.guest.photo_url = photoUrl;
+        localStorage.setItem('compagnon_guest', JSON.stringify(AppState.guest));
+        if (typeof window.updateGuestHeader === 'function') window.updateGuestHeader();
+      }
 
       this.close();
       this.updateTriggerButton();

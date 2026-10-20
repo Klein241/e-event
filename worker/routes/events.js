@@ -90,6 +90,76 @@ export async function handleEventRoutes(pathname, request, env) {
     });
   }
 
+  // 3b. Mise à jour directe du profil invité (Coordonnées & CRM)
+  if (pathname === "/api/guests/profile" && method === "POST") {
+    const data = await request.json();
+    const guestId = data.id || data.guest_id;
+    if (!guestId) return errorResponse("ID invité requis");
+
+    const name = (data.name || "").trim();
+    const tableNumber = (data.table_number || "").trim();
+    const phone = (data.phone || data.whatsapp || "").trim();
+    const profession = (data.profession || "").trim();
+    const company = (data.company || "").trim();
+    const residenceLocation = (data.residence_location || "").trim();
+    const hasChurch = data.has_church !== undefined ? (Number(data.has_church) ? 1 : 0) : null;
+    const churchName = (data.church_name || "").trim();
+
+    if (db) {
+      try {
+        await db.prepare(`
+          UPDATE guests SET
+            name = CASE WHEN ? != '' THEN ? ELSE name END,
+            table_number = CASE WHEN ? != '' THEN ? ELSE table_number END,
+            phone = CASE WHEN ? != '' THEN ? ELSE phone END,
+            profession = CASE WHEN ? != '' THEN ? ELSE profession END,
+            company = CASE WHEN ? != '' THEN ? ELSE company END,
+            residence_location = CASE WHEN ? != '' THEN ? ELSE residence_location END,
+            has_church = COALESCE(?, has_church),
+            church_name = CASE WHEN ? != '' THEN ? ELSE church_name END,
+            last_active = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(
+          name, name,
+          tableNumber, tableNumber,
+          phone, phone,
+          profession, profession,
+          company, company,
+          residenceLocation, residenceLocation,
+          hasChurch,
+          churchName, churchName,
+          guestId
+        ).run();
+      } catch (err) {
+        console.error("Erreur mise à jour profil invité:", err);
+      }
+    }
+
+    return jsonResponse({ success: true, guest_id: guestId });
+  }
+
+  // 3c. Consultation du profil consolidé (Prières, Réseau & Coordonnées)
+  if (pathname === "/api/guests/detail" && method === "GET") {
+    const url = new URL(request.url);
+    const guestId = url.searchParams.get("id");
+    if (!guestId || !db) return jsonResponse({ guest: null, prayers: [], networking: null });
+
+    try {
+      const guest = await db.prepare("SELECT * FROM guests WHERE id = ?").bind(guestId).first();
+      const prayers = await db.prepare("SELECT * FROM prayer_requests WHERE guest_id = ? ORDER BY created_at DESC LIMIT 20").bind(guestId).all();
+      const networking = await db.prepare("SELECT * FROM networking_profiles WHERE guest_id = ?").bind(guestId).first();
+
+      return jsonResponse({
+        guest: guest || null,
+        prayers: prayers.results || [],
+        networking: networking || null
+      });
+    } catch (err) {
+      console.error("Erreur récupération détail invité:", err);
+      return jsonResponse({ guest: null, prayers: [], networking: null });
+    }
+  }
+
   // 4. Liste des invités actifs
   if (pathname === "/api/guests" && method === "GET") {
     if (!db) return jsonResponse([getMockGuest()]);

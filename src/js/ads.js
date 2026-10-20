@@ -144,6 +144,41 @@ export const AdsModule = {
     }).join('');
 
     container.innerHTML = cardsHtml;
+    this.renderVitrinePage();
+  },
+
+  renderVitrinePage() {
+    const vitrineGallery = document.getElementById('vitrine-full-gallery');
+    if (!vitrineGallery) return;
+
+    if (!this.ads || this.ads.length === 0) {
+      vitrineGallery.innerHTML = '<p style="text-align:center;color:var(--text-muted);grid-column:1/-1;">Aucun produit disponible pour le moment.</p>';
+      return;
+    }
+
+    vitrineGallery.innerHTML = this.ads.map(ad => {
+      const imgSrc = ad.image_data || ad.image_url || '';
+      const thumbHtml = imgSrc
+        ? `<img src="${imgSrc}" alt="${escapeHtml(ad.title)}" onerror="this.parentNode.innerHTML='<span style=font-size:2rem>${ad.icon_emoji || '🛍️'}</span>'">`
+        : `<span style="font-size:2rem">${ad.icon_emoji || '🛍️'}</span>`;
+
+      return `
+        <div class="vitrine-item-card" onclick="window.AdsModule.openModal3D('${ad.id}')" title="Découvrir en 3D 360°">
+          <div class="vitrine-item-thumb">
+            ${thumbHtml}
+          </div>
+          <div class="vitrine-item-info">
+            <span class="vitrine-item-brand">${escapeHtml(ad.brand || 'Partenaire Officiel')}</span>
+            <div class="vitrine-item-title">${escapeHtml(ad.title)}</div>
+            <div class="vitrine-item-tagline">${escapeHtml(ad.description || ad.tagline || '')}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+              <span style="font-size:0.75rem; font-weight:700; color:#b45309;">${escapeHtml(ad.price_tag || 'Disponible ce soir')}</span>
+              <span style="font-size:0.75rem; font-weight:700; color:#ea580c;">Voir 3D ➔</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   },
 
   openModal3D(adId) {
