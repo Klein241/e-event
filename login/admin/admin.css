@@ -926,3 +926,72 @@ body.dark-mode .admin-modal-overlay {
   overflow-y: auto;
   position: relative;
 }
+
+/* Pastilles Thème Publicitaire Régie */
+.clay-theme-pill.theme-sage {
+  background: #E2ECE5;
+  color: #2D5A43;
+  border: 1px solid rgba(125, 164, 146, 0.4);
+}
+.clay-theme-pill.theme-peach {
+  background: #F9E2D8;
+  color: #A3482E;
+  border: 1px solid rgba(232, 142, 116, 0.4);
+}
+.clay-theme-pill.theme-honey {
+  background: #FCEFD5;
+  color: #8C6212;
+  border: 1px solid rgba(230, 181, 85, 0.4);
+}
+.clay-theme-pill.theme-blue {
+  background: #DCE7F0;
+  color: #275678;
+  border: 1px solid rgba(128, 161, 186, 0.4);
+}
+body.dark-mode .clay-theme-pill.theme-sage { background: #182823; color: #a7f3d0; border-color: rgba(167, 243, 208, 0.2); }
+body.dark-mode .clay-theme-pill.theme-peach { background: #2B1D19; color: #fca5a5; border-color: rgba(252, 165, 165, 0.2); }
+body.dark-mode .clay-theme-pill.theme-honey { background: #282114; color: #fde047; border-color: rgba(253, 224, 71, 0.2); }
+body.dark-mode .clay-theme-pill.theme-blue { background: #172430; color: #93c5fd; border-color: rgba(147, 197, 253, 0.2); }
+
+/* ============================================================
+   CRM INVITÉS & DOSSIERS PARTICIPANTS CLAYMORPHISM
+   ============================================================ */
+.guest-crm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.guest-crm-card-item {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 24px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.guest-crm-card-item:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--terracotta-accent);
+}
+
+.guest-crm-card-item:active {
+  transform: translateY(1px);
+}
+
+.guest-crm-card {
+  background: var(--bg-card);
+  border-radius: 28px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+}
+
+

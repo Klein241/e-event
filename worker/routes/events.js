@@ -22,7 +22,37 @@ export async function handleEventRoutes(pathname, request, env) {
   if (pathname === "/api/event" && method === "GET") {
     if (!db) return jsonResponse(getMockEvent());
     const event = await db.prepare("SELECT * FROM events WHERE is_active = 1 LIMIT 1").first();
-    return jsonResponse(event || getMockEvent());
+    const eventData = event || getMockEvent();
+    return jsonResponse({
+      ...eventData,
+      direct_feature_enabled: eventData.direct_feature_enabled !== undefined ? Number(eventData.direct_feature_enabled) : 1,
+    });
+  }
+
+  // 2bis. Programme de la cérémonie & Statut de la fonctionnalité Direct
+  if (pathname === "/api/program" && method === "GET") {
+    let directEnabled = 1;
+    let items = [];
+
+    if (db) {
+      try {
+        const eventRow = await db.prepare("SELECT direct_feature_enabled FROM events WHERE id = 'default' LIMIT 1").first();
+        if (eventRow && eventRow.direct_feature_enabled !== null && eventRow.direct_feature_enabled !== undefined) {
+          directEnabled = Number(eventRow.direct_feature_enabled);
+        }
+
+        const { results } = await db.prepare("SELECT * FROM program_items WHERE event_id = 'default' ORDER BY order_index ASC, start_time ASC").all();
+        items = results || [];
+      } catch (err) {
+        console.error("Erreur lecture programme:", err);
+      }
+    }
+
+    return jsonResponse({
+      direct_feature_enabled: directEnabled,
+      items,
+      server_time: new Date().toISOString(),
+    });
   }
 
   // 3. Inscription / Onboarding Invité (15 secondes)
@@ -65,6 +95,32 @@ export async function handleEventRoutes(pathname, request, env) {
     if (!db) return jsonResponse([getMockGuest()]);
     const { results } = await db.prepare("SELECT * FROM guests ORDER BY last_active DESC LIMIT 100").all();
     return jsonResponse(results || []);
+  }
+
+  // 5. Espaces Publicitaires & Vitrine Sponsors
+  if (pathname === "/api/ads" && method === "GET") {
+    if (!db) return jsonResponse([]);
+    try {
+      const { results } = await db.prepare("SELECT * FROM ads_sponsors WHERE is_active = 1 ORDER BY order_index ASC").all();
+      if (results && results.length > 0) {
+        db.prepare("UPDATE ads_sponsors SET views_count = views_count + 1 WHERE is_active = 1").run().catch(() => {});
+      }
+      return jsonResponse(results || []);
+    } catch (err) {
+      console.error("Erreur chargement annonces:", err);
+      return jsonResponse([]);
+    }
+  }
+
+  // 6. Clic / Interaction sur une annonce
+  if (pathname.startsWith("/api/ads/") && pathname.endsWith("/click") && method === "POST") {
+    const adId = pathname.replace("/api/ads/", "").replace("/click", "").trim();
+    if (db && adId) {
+      try {
+        await db.prepare("UPDATE ads_sponsors SET clicks_count = clicks_count + 1 WHERE id = ?").bind(adId).run();
+      } catch (_) {}
+    }
+    return jsonResponse({ success: true, id: adId });
   }
 
   return null;

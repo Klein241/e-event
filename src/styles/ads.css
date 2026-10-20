@@ -1,0 +1,558 @@
+/**
+ * ============================================================
+ * COMPAGNON DE CÉRÉMONIE - STYLE ESPACES PUBLICITAIRES & 3D 360°
+ * Exacte reproduction du style Claymorphism Pastel (Image Modèle)
+ * ============================================================
+ */
+
+/* Conteneur de la vitrine publicitaire d'accueil */
+.home-ads-section {
+  margin: 0.75rem 0 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.home-ads-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.25rem;
+}
+
+.home-ads-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #6B5D54);
+}
+
+.home-ads-hint {
+  font-size: 0.72rem;
+  color: var(--terracotta-accent, #E67A53);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Grille / Défilement horizontal des 4 petites cartes pastel (Exact Design Image 2) */
+.home-ads-scroll-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem 0.85rem;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 680px) {
+  .home-ads-scroll-row {
+    grid-template-columns: repeat(4, minmax(130px, 1fr));
+  }
+}
+
+/* CARTE CLAYMORPHIC PASTEL (REPRODUCTION EXACTE DU MODÈLE REFERENCE) */
+.clay-ad-card {
+  border-radius: 26px;
+  padding: 14px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+}
+
+.clay-ad-card:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+
+.clay-ad-card:active {
+  transform: translateY(2px) scale(0.97);
+}
+
+/* PALETTE PASTEL CLAY (EXACT IMAGE MODÈLE 2) */
+/* 1. Sage Green (Pastel Menthe / Vert doux) */
+.clay-ad-card.theme-sage {
+  background: #E2ECE5;
+  box-shadow: 
+    6px 8px 16px rgba(180, 200, 190, 0.55),
+    -4px -4px 12px rgba(255, 255, 255, 0.95),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+.clay-ad-card.theme-sage .clay-ad-icon-box,
+.clay-ad-card.theme-sage .clay-ad-img-box {
+  background: #7DA492;
+  box-shadow: 
+    3px 4px 10px rgba(100, 140, 120, 0.45),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* 2. Peach / Terracotta Soft (Pastel Pêche / Saumon doux) */
+.clay-ad-card.theme-peach {
+  background: #F9E2D8;
+  box-shadow: 
+    6px 8px 16px rgba(225, 195, 185, 0.55),
+    -4px -4px 12px rgba(255, 255, 255, 0.95),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+.clay-ad-card.theme-peach .clay-ad-icon-box,
+.clay-ad-card.theme-peach .clay-ad-img-box {
+  background: #E88E74;
+  box-shadow: 
+    3px 4px 10px rgba(210, 110, 85, 0.45),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* 3. Honey Yellow (Pastel Miel / Jaune doux) */
+.clay-ad-card.theme-honey {
+  background: #FCEFD5;
+  box-shadow: 
+    6px 8px 16px rgba(225, 210, 180, 0.55),
+    -4px -4px 12px rgba(255, 255, 255, 0.95),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+.clay-ad-card.theme-honey .clay-ad-icon-box,
+.clay-ad-card.theme-honey .clay-ad-img-box {
+  background: #E6B555;
+  box-shadow: 
+    3px 4px 10px rgba(200, 150, 60, 0.45),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* 4. Powder Blue (Pastel Bleu Poudré doux) */
+.clay-ad-card.theme-blue {
+  background: #DCE7F0;
+  box-shadow: 
+    6px 8px 16px rgba(185, 200, 215, 0.55),
+    -4px -4px 12px rgba(255, 255, 255, 0.95),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+.clay-ad-card.theme-blue .clay-ad-icon-box,
+.clay-ad-card.theme-blue .clay-ad-img-box {
+  background: #80A1BA;
+  box-shadow: 
+    3px 4px 10px rgba(100, 135, 160, 0.45),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* Support Mode Sombre pour les cartes */
+body.dark-mode .clay-ad-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+body.dark-mode .clay-ad-card.theme-sage { background: #182823; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+body.dark-mode .clay-ad-card.theme-peach { background: #2B1D19; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+body.dark-mode .clay-ad-card.theme-honey { background: #282114; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+body.dark-mode .clay-ad-card.theme-blue { background: #172430; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); }
+
+/* BOUTON CARRÉ 3D BOMBÉ AU SOMMET (EXACT ICON & IMAGE BOX DU MODÈLE) */
+.clay-ad-icon-box,
+.clay-ad-img-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #ffffff;
+  margin-bottom: 2px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.clay-ad-icon-box img,
+.clay-ad-img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 18px;
+}
+
+.clay-ad-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #38302B;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+body.dark-mode .clay-ad-label {
+  color: #f1f5f9;
+}
+
+.clay-ad-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #1F1915;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+body.dark-mode .clay-ad-value {
+  color: #ffffff;
+}
+
+.clay-ad-delta {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #1B5E39;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+body.dark-mode .clay-ad-delta {
+  color: #4ade80;
+}
+
+/* ============================================================
+   MODALE 3D INTERACTIVE À 360 DEGRÉS (POUR LE PRODUIT / ANNONCE)
+   ============================================================ */
+.modal-3d-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(30, 22, 18, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeInModal 0.25s ease-out;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-3d-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-card, #FAF4ED);
+  border: 1px solid var(--border-subtle, rgba(215, 195, 180, 0.55));
+  border-radius: 36px;
+  padding: 1.6rem 1.4rem;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+    0 10px 25px rgba(195, 175, 155, 0.5),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+/* Fermeture */
+.btn-close-3d {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-secondary, #EFE5DA);
+  border: 1px solid var(--border-subtle, rgba(215, 195, 180, 0.55));
+  color: var(--text-main, #2D231E);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  font-size: 1rem;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.btn-close-3d:hover {
+  transform: scale(1.1);
+  border-color: var(--terracotta-accent);
+}
+
+/* SCÈNE 3D POUR LA ROTATION 360° */
+.turntable-stage-3d {
+  perspective: 1100px;
+  width: 100%;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  background: radial-gradient(circle at 50% 50%, rgba(247, 198, 101, 0.18) 0%, transparent 68%);
+  border-radius: 24px;
+}
+
+.turntable-stage-3d:active {
+  cursor: grabbing;
+}
+
+/* Objet 3D Tournant */
+.product-object-3d {
+  width: 170px;
+  height: 210px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.08s ease-out;
+  border-radius: 22px;
+  box-shadow: 
+    0 16px 36px rgba(0, 0, 0, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 3px solid #ffffff;
+}
+
+.product-object-3d img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Ombre projetée 3D sous l'objet */
+.turntable-shadow-3d {
+  position: absolute;
+  bottom: 12px;
+  width: 140px;
+  height: 22px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.35) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(4px);
+  pointer-events: none;
+  transition: transform 0.08s ease-out;
+}
+
+/* Contrôles interactifs du 360° */
+.turntable-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary, #EFE5DA);
+  border-radius: 999px;
+  padding: 6px 14px;
+  box-shadow: var(--shadow-inset);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.btn-auto-spin {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-main);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.btn-auto-spin.active {
+  background: var(--terracotta-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Détails du produit */
+.product-modal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.product-modal-brand {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--terracotta-accent, #E67A53);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.product-modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--text-main);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.product-modal-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.product-modal-price {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #10b981;
+}
+
+/* Bouton d'action CTA */
+.btn-cta-ad {
+  width: 100%;
+  background: var(--terracotta-gradient);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-full, 9999px);
+  padding: 0.95rem 1.4rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  box-shadow: 
+    0 8px 20px rgba(220, 105, 65, 0.45),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.75);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-cta-ad:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(220, 105, 65, 0.55);
+}
+
+.btn-cta-ad:active {
+  transform: translateY(2px);
+}
+
+/* ============================================================
+   BANNIÈRE PWA - ANIMATION CLIGNOTANTE D'ATTENTION
+   ============================================================ */
+.pwa-install-banner {
+  background: var(--bg-card, #FAF4ED);
+  border: 1.5px solid rgba(237, 132, 94, 0.4);
+  border-radius: 20px;
+  padding: 12px 16px;
+  margin: 10px 0 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: pwaAttentionGlow 2.2s ease-in-out infinite;
+  box-shadow: 
+    0 8px 20px -4px rgba(220, 105, 65, 0.25),
+    -4px -4px 10px rgba(255, 255, 255, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+}
+
+@keyframes pwaAttentionGlow {
+  0%, 100% {
+    box-shadow: 0 4px 14px rgba(237, 132, 94, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    border-color: rgba(237, 132, 94, 0.35);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 8px 26px rgba(237, 132, 94, 0.65), 0 0 16px rgba(237, 132, 94, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.95);
+    border-color: rgba(237, 132, 94, 0.9);
+    transform: scale(1.015);
+  }
+}
+
+.pwa-install-banner .pwa-text h4 {
+  margin: 0 0 3px 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-main, #2D231E);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pwa-install-banner .pwa-text p {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-muted, #7A6C62);
+  line-height: 1.3;
+}
+
+.pwa-install-banner #btn-pwa-install {
+  background: var(--terracotta-gradient, linear-gradient(135deg, #ED845E 0%, #DC6941 100%));
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 0.5rem 1.1rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(220, 105, 65, 0.45);
+  animation: pwaBtnPulse 2.2s ease-in-out infinite;
+  transition: all 0.2s ease;
+}
+
+@keyframes pwaBtnPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(220, 105, 65, 0.45);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 6px 18px rgba(220, 105, 65, 0.8), 0 0 10px rgba(255, 255, 255, 0.6);
+  }
+}
+
+body.dark-mode .pwa-install-banner {
+  background: #141c26;
+  border-color: rgba(212, 175, 55, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .pwa-install-banner .pwa-text h4 {
+  color: #ffffff;
+}
+
+body.dark-mode .pwa-install-banner .pwa-text p {
+  color: #94a3b8;
+}
+

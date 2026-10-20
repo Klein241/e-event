@@ -22,6 +22,9 @@
   <link rel="stylesheet" href="/src/styles/networking.css">
   <link rel="stylesheet" href="/src/styles/prayer.css">
   <link rel="stylesheet" href="/src/styles/projector.css">
+  <link rel="stylesheet" href="/src/styles/program.css">
+  <link rel="stylesheet" href="/src/styles/ads.css">
+
 
   <!-- Styles critiques Anti-FOUC (Mode Clair Neumorphique par défaut) -->
   <style>
@@ -263,10 +266,17 @@
       <section class="tab-view active" id="home-tab">
         <div class="hero-welcome-section animate-fade-in">
           <div class="hero-edition-badge">✨ 2ÈME ÉDITION • DÎNER DE GALA</div>
-          <h1 class="hero-welcome-title" id="hero-welcome-title">Bienvenue à cette 2ème édition de dîner de gala</h1>
-          <p class="hero-welcome-subtitle" id="hero-welcome-subtitle">
-            Une soirée d'excellence, d'opportunités et de communion. Choisissez votre espace pour participer en direct.
-          </p>
+          <!-- ESPACE VITRINE PUBLICITAIRE & SPONSORS (PETITES CARTES PASTEL CLAYMORPHISM) -->
+          <div class="home-ads-section">
+            <div class="home-ads-header">
+              <span class="home-ads-badge">✨ Vitrine Privilège & Sponsors</span>
+              <span class="home-ads-hint">3D 360° tactile 🔄</span>
+            </div>
+            <div class="home-ads-scroll-row" id="home-ads-showcase">
+              <!-- Rendu dynamique par AdsModule -->
+            </div>
+          </div>
+
 
           <!-- LES 3 GRANDES CARTES EN BULLE DE DIALOGUE (EXACT DESIGN DU MODÈLE) -->
           <div class="gala-speech-cards-container">
@@ -370,6 +380,45 @@
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           ONGLET 1BIS : PROGRAMME DÉROULÉ DE LA CÉRÉMONIE (SYNCHRONE TÉLÉPHONE)
+           ========================================== -->
+      <section class="tab-view" id="program-tab">
+        <div class="program-container animate-fade-in">
+
+          <!-- En-tête avec horloge neumorphique synchronisée au téléphone -->
+          <div class="program-hero-header">
+            <div class="program-header-top">
+              <span class="program-badge-tag">✨ Déroulé Officiel • Gala</span>
+              <div class="program-live-clock-pill" title="Heure synchronisée avec votre appareil">
+                <span class="clock-pulse-dot"></span>
+                <span id="program-live-clock-time">--:--:--</span>
+              </div>
+            </div>
+
+            <h2 class="program-hero-title">Programme du Dîner de Gala</h2>
+            <p class="program-hero-subtitle" style="font-weight: 700; letter-spacing: 0.02em;">
+              🟢 À venir, ⚡ En cours, 🔴 Passé
+            </p>
+
+            <!-- Progression globale de la cérémonie -->
+            <div class="program-progress-wrapper" title="Progression de la soirée">
+              <div class="program-progress-bar" id="program-overall-progress" style="width: 0%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+              <span id="program-step-summary">Chargement du déroulé...</span>
+              <span>Synchronisation locale 100%</span>
+            </div>
+          </div>
+
+          <!-- Ligne de temps des créneaux du programme -->
+          <div class="program-timeline" id="program-timeline-list">
+            <!-- Injecté dynamiquement par program.js -->
+          </div>
+
         </div>
       </section>
 
@@ -494,6 +543,7 @@
       </section>
 
     </main>
+
 
     <!-- ==========================================
          BARRE DE NAVIGATION DU BAS (MOBILE-FIRST)
@@ -639,49 +689,51 @@
   <div class="modal-overlay" id="prayer-wizard-modal" style="display: none;">
     <div class="modal-card" style="border: 1px solid rgba(245, 197, 66, 0.4); max-width: 520px;">
       
-      <!-- Barre de progression -->
+      <!-- Barre de progression (3 étapes) -->
       <div class="wizard-progress-bar">
         <div class="wizard-progress-pill active" id="prayer-wizard-pill-1"></div>
         <div class="wizard-progress-pill" id="prayer-wizard-pill-2"></div>
+        <div class="wizard-progress-pill" id="prayer-wizard-pill-3"></div>
       </div>
 
       <div class="modal-header">
         <h2>🙏 Demande de Prière & Intercession</h2>
-        <p>Notre équipe d'intercession est à votre écoute en toute discrétion.</p>
+        <p>Notre équipe pastorale et d'intercession vous accompagne avec discrétion et amour.</p>
       </div>
 
-      <!-- CARTE 1 : Sélection rapide du thème -->
-      <div id="prayer-wizard-card-1" class="wizard-step-container">
-        <label class="form-label">Étape 1/2 : Choisissez le sujet de votre requête</label>
-        <div class="prayer-topics-grid" id="prayer-wizard-topics-grid">
-          <!-- Injecté dynamiquement par prayer-wizard.js -->
-        </div>
-        <p style="font-size: 0.8rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
-          Cliquez sur un sujet pour passer directement à la description.
-        </p>
-        <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
-          <button type="button" class="btn-icon" id="btn-close-prayer-wizard" style="width: auto; padding: 0 1.25rem;">Fermer</button>
-        </div>
-      </div>
+      <form id="prayer-wizard-form">
 
-      <!-- CARTE 2 : Description, Contact WhatsApp & Confidentialité -->
-      <div id="prayer-wizard-card-2" class="wizard-step-container" style="display: none;">
-        <form id="prayer-wizard-form">
+        <!-- CARTE 1 : Sélection rapide du thème -->
+        <div id="prayer-wizard-card-1" class="wizard-step-container">
+          <label class="form-label">Étape 1/3 : Choisissez le sujet de votre requête</label>
+          <div class="prayer-topics-grid" id="prayer-wizard-topics-grid">
+            <!-- Injecté dynamiquement par prayer-wizard.js -->
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
+            Cliquez sur un sujet pour passer directement aux précisions.
+          </p>
+          <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+            <button type="button" class="btn-icon" id="btn-close-prayer-wizard" style="width: auto; padding: 0 1.25rem;">Fermer</button>
+          </div>
+        </div>
+
+        <!-- CARTE 2 : Description, Contact WhatsApp & Confidentialité -->
+        <div id="prayer-wizard-card-2" class="wizard-step-container" style="display: none;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-            <label class="form-label" style="margin: 0;">Sujet sélectionné :</label>
+            <label class="form-label" style="margin: 0;">Étape 2/3 : Sujet sélectionné</label>
             <span class="hub-card-badge" id="prayer-wizard-title-preview">Famille</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="prayer-wizard-content">Décrivez votre requête</label>
+            <label class="form-label" for="prayer-wizard-content">Décrivez votre requête *</label>
             <textarea id="prayer-wizard-content" class="form-textarea" rows="3" placeholder="Partagez librement ce que vous traversez ou vos besoins spirituels..." required></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="prayer-wizard-whatsapp">Numéro WhatsApp (avec indicatif)</label>
-            <input type="tel" id="prayer-wizard-whatsapp" class="form-input" placeholder="Ex: +225 0700000000 (Optionnel)">
+            <label class="form-label" for="prayer-wizard-whatsapp">Votre numéro WhatsApp (avec indicatif)</label>
+            <input type="tel" id="prayer-wizard-whatsapp" class="form-input" placeholder="Ex: +241 07000000 ou +33 600000000">
             <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
-              Permet à l'équipe pastorale d'échanger avec vous plus tard en privé.
+              Permet à l'équipe pastorale d'échanger avec vous et de prier à vos côtés.
             </p>
           </div>
 
@@ -689,19 +741,71 @@
           <div class="privacy-reassurance-box">
             <span style="font-size: 1.2rem; flex-shrink: 0;">🔒</span>
             <div>
-              <strong>Rassurez-vous :</strong> ce que vous décrivez reste <u>strictement privé et confidentiel</u> avec l'équipe d'intercession.
+              <strong>Confidentialité absolue :</strong> ce que vous écrivez reste <u>strictement confidentiel</u> entre vous et l'équipe pastorale.
             </div>
           </div>
 
           <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
             <button type="button" class="btn-icon" id="btn-back-prayer-step1" style="width: auto; padding: 0 1rem;">← Précédent</button>
-            <button type="submit" id="btn-submit-prayer-wizard" class="btn-3d btn-3d-amber" style="flex: 1;">
-              <span>Envoyer ma requête 🙏</span>
+            <button type="button" id="btn-next-prayer-step3" class="btn-3d btn-3d-amber" style="flex: 1;">
+              <span>Suivant (Accompagnement) →</span>
             </button>
           </div>
-        </form>
-      </div>
+        </div>
 
+        <!-- CARTE 3 : Coordonnées pastorales, personne ciblée & église -->
+        <div id="prayer-wizard-card-3" class="wizard-step-container" style="display: none;">
+          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 3/3 : Accompagnement Pastoral & Visite</div>
+
+          <div class="form-group">
+            <label class="form-label" for="prayer-wizard-target-person">Pour qui souhaitez-vous qu'on prie ?</label>
+            <input type="text" id="prayer-wizard-target-person" class="form-input" placeholder="Ex : Pour moi-même, mon époux(se), mes enfants, mes parents...">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prayer-wizard-full-name">Comment vous appelez-vous ?</label>
+            <input type="text" id="prayer-wizard-full-name" class="form-input" placeholder="Votre nom et prénom">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prayer-wizard-residence" style="display: flex; justify-content: space-between;">
+              <span>Où résidez-vous si jamais vous voulez qu'on vienne sur place prier ? *</span>
+              <span style="font-size: 0.72rem; color: #ea580c; font-weight: 700;">Obligatoire</span>
+            </label>
+            <input type="text" id="prayer-wizard-residence" class="form-input" placeholder="Ex : Libreville, Quartier Louis / Akanda / Port-Gentil" required>
+            <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
+              Indispensable si vous souhaitez une visite pastorale ou d'intercession à domicile.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prayer-wizard-has-church">Avez-vous une église où vous priez actuellement ?</label>
+            <select id="prayer-wizard-has-church" class="form-input">
+              <option value="non">Non, pas pour le moment</option>
+              <option value="oui">Oui, je fréquente une église / assemblée</option>
+            </select>
+          </div>
+
+          <div id="prayer-wizard-church-details" style="display: none; padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; margin-bottom: 12px; border: 1px dashed rgba(245, 197, 66, 0.3);">
+            <div class="form-group" style="margin-bottom: 8px;">
+              <label class="form-label" for="prayer-wizard-church-name">Nom de votre église / communauté</label>
+              <input type="text" id="prayer-wizard-church-name" class="form-input" placeholder="Ex : Église Céleste, Centre Évangélique...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="prayer-wizard-church-duration">Depuis combien de temps la fréquentez-vous ?</label>
+              <input type="text" id="prayer-wizard-church-duration" class="form-input" placeholder="Ex : 6 mois, 3 ans, depuis l'enfance...">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+            <button type="button" class="btn-icon" id="btn-back-prayer-step2" style="width: auto; padding: 0 1rem;">← Précédent</button>
+            <button type="submit" id="btn-submit-prayer-wizard" class="btn-3d btn-3d-amber" style="flex: 1;">
+              <span>Envoyer ma requête pastorale 🙏</span>
+            </button>
+          </div>
+        </div>
+
+      </form>
     </div>
   </div>
 
@@ -904,8 +1008,49 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       MODALE 3D INTERACTIVE À 360° DU PRODUIT / ANNONCE
+       ============================================================ -->
+  <div class="modal-3d-overlay" id="modal-ad-360" style="display: none;" onclick="if(event.target === this) window.AdsModule.closeModal3D()">
+    <div class="modal-3d-card animate-scale-up">
+      <button type="button" class="btn-close-3d" onclick="window.AdsModule.closeModal3D()" title="Fermer">✕</button>
+
+      <!-- Scène 3D Interactive (Touch & Mouse Drag) -->
+      <div class="turntable-stage-3d" id="turntable-stage-3d" title="Glissez pour faire tourner le produit à 360°">
+        <div class="product-object-3d" id="product-object-3d">
+          <img id="product-3d-img" src="" alt="Produit Gala 3D">
+          <div id="product-3d-emoji-fallback" style="display: none; font-size: 4.5rem; align-items: center; justify-content: center; height: 100%;">🛍️</div>
+        </div>
+        <div class="turntable-shadow-3d" id="turntable-shadow-3d"></div>
+      </div>
+
+      <!-- Barre de contrôle de rotation -->
+      <div class="turntable-controls-bar">
+        <span>🔄 Angle : <strong id="turntable-angle-indicator" style="color: var(--terracotta-accent, #E67A53);">0°</strong> (Tactile 360°)</span>
+        <button type="button" id="btn-auto-spin" class="btn-auto-spin" onclick="window.AdsModule.toggleAutoSpin()">
+          <span>⚡ Auto-spin</span>
+        </button>
+      </div>
+
+      <!-- Fiche détaillée du produit / sponsor -->
+      <div class="product-info-sheet">
+        <span class="product-modal-brand" id="modal-3d-brand">Partenaire Officiel</span>
+        <h3 class="product-modal-title" id="modal-3d-title">Titre du produit</h3>
+        <p class="product-modal-desc" id="modal-3d-desc">Description complète du produit ou de l'offre d'honneur.</p>
+        <div class="product-modal-price" id="modal-3d-price">Offre Spéciale</div>
+      </div>
+
+      <!-- Bouton d'action et lien de redirection -->
+      <a id="btn-3d-cta" class="btn-cta-ad" href="#" target="_blank" rel="noopener noreferrer">
+        <span>Découvrir l'offre exclusive</span>
+        <span>➔</span>
+      </a>
+    </div>
+  </div>
+
   <!-- Conteneur pour les Toasts / Notifications -->
   <div class="toast-container" id="toast-container"></div>
+
 
 
   <!-- Script d'aide pour sélection d'émojis dans la modale & Splash Screen -->

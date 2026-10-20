@@ -98,12 +98,13 @@ export async function handleAdminRoutes(pathname, request, env) {
           networking_count: networkingCount?.count || 0,
           push_subscribers_count: pushCount?.count || 0,
         },
-        event: eventRow || {
+        event: {
           id: "default",
-          name: env.EVENT_NAME || "Compagnon de Cérémonie",
-          subtitle: "Compagnon Interactif",
-          venue: "Salle Principale",
-          is_active: 1,
+          name: eventRow?.name || env.EVENT_NAME || "Compagnon de Cérémonie",
+          subtitle: eventRow?.subtitle || "Compagnon Interactif",
+          venue: eventRow?.venue || "Salle Principale",
+          is_active: eventRow?.is_active !== undefined ? eventRow.is_active : 1,
+          direct_feature_enabled: eventRow?.direct_feature_enabled !== undefined && eventRow?.direct_feature_enabled !== null ? Number(eventRow.direct_feature_enabled) : 1,
         },
         active_quiz: activeQuizRow || null,
       });
@@ -137,19 +138,60 @@ export async function handleAdminRoutes(pathname, request, env) {
     return jsonResponse({ success: true, message: "Événement mis à jour avec succès" });
   }
 
-  // 4. Liste complète des invités
+  // 4. Liste complète des invités enrichie (CRM complet)
   if (pathname === "/api/admin/guests" && method === "GET") {
     if (!db) return jsonResponse([]);
     const { results } = await db.prepare(`
-      SELECT g.*, coalesce(SUM(qa.points_awarded), 0) as points
+      SELECT 
+        g.id,
+        g.event_id,
+        g.name,
+        g.table_number,
+        g.avatar_emoji,
+        COALESCE(NULLIF(g.photo_url, ''), np.photo_url, '') as photo_url,
+        COALESCE(NULLIF(g.profession, ''), np.profession, '') as profession,
+        COALESCE(NULLIF(g.company, ''), np.company, '') as company,
+        COALESCE(NULLIF(g.residence_location, ''), '') as residence_location,
+        COALESCE(NULLIF(g.phone, ''), np.whatsapp, '') as phone,
+        COALESCE(g.has_church, 0) as has_church,
+        COALESCE(NULLIF(g.church_name, ''), '') as church_name,
+        COALESCE(NULLIF(g.church_duration, ''), '') as church_duration,
+        g.role,
+        g.created_at,
+        g.last_active,
+        COALESCE(SUM(qa.points_awarded), 0) as points,
+        np.bio as net_bio,
+        np.interests_tags,
+        np.looking_for,
+        np.offering,
+        (SELECT COUNT(*) FROM prayer_requests pr WHERE pr.guest_id = g.id) as prayers_count
       FROM guests g
       LEFT JOIN quiz_answers qa ON qa.guest_id = g.id AND qa.is_correct = 1
+      LEFT JOIN networking_profiles np ON np.guest_id = g.id
       GROUP BY g.id
       ORDER BY g.created_at DESC
-      LIMIT 200
+      LIMIT 300
     `).all();
-    return jsonResponse(results || []);
+
+    const guests = results || [];
+    for (const guest of guests) {
+      if (guest.prayers_count > 0) {
+        const prayers = await db.prepare(`
+          SELECT id, title, content, target_person, residence_location, has_church, church_name, church_duration, created_at
+          FROM prayer_requests
+          WHERE guest_id = ?
+          ORDER BY created_at DESC
+          LIMIT 10
+        `).bind(guest.id).all().catch(() => ({ results: [] }));
+        guest.prayers_history = prayers.results || [];
+      } else {
+        guest.prayers_history = [];
+      }
+    }
+
+    return jsonResponse(guests);
   }
+
 
   // 5. Supprimer un invité
   if (pathname.startsWith("/api/admin/guests/") && method === "DELETE") {
@@ -373,6 +415,175 @@ export async function handleAdminRoutes(pathname, request, env) {
       await db.prepare("UPDATE quiz_questions SET status = 'ended'").run();
     }
     return jsonResponse({ success: true, message: "Données de test purgées avec succès !" });
+  }
+
+  // 22. Activer / Désactiver la fonctionnalité "Direct" côté utilisateur
+  if (pathname === "/api/admin/feature/toggle-direct" && method === "POST") {
+    const data = await request.json().catch(() => ({}));
+    const enabled = data.enabled ? 1 : 0;
+    if (db) {
+      try {
+        await db.prepare("ALTER TABLE events ADD COLUMN direct_feature_enabled INTEGER DEFAULT 1").run();
+      } catch (_) {}
+      await db.prepare("UPDATE events SET direct_feature_enabled = ? WHERE id = 'default'").bind(enabled).run();
+    }
+    return jsonResponse({
+      success: true,
+      direct_feature_enabled: enabled,
+      message: enabled 
+        ? "Fonctionnalité Direct activée côté utilisateur 🔴" 
+        : "Direct désactivé : Le Programme interactif est désormais actif 📋"
+    });
+  }
+
+  // 23. Liste des points du programme pour l'administration
+  if (pathname === "/api/admin/program" && method === "GET") {
+    let items = [];
+    let directEnabled = 1;
+    if (db) {
+      const eventRow = await db.prepare("SELECT direct_feature_enabled FROM events WHERE id = 'default' LIMIT 1").first().catch(() => null);
+      if (eventRow && eventRow.direct_feature_enabled !== null && eventRow.direct_feature_enabled !== undefined) {
+        directEnabled = Number(eventRow.direct_feature_enabled);
+      }
+      const { results } = await db.prepare("SELECT * FROM program_items WHERE event_id = 'default' ORDER BY order_index ASC, start_time ASC").all().catch(() => ({ results: [] }));
+      items = results || [];
+    }
+    return jsonResponse({
+      direct_feature_enabled: directEnabled,
+      items,
+    });
+  }
+
+  // 24. Créer ou Mettre à jour un point du programme
+  if (pathname === "/api/admin/program/item" && method === "POST") {
+    const data = await request.json().catch(() => ({}));
+    const id = data.id || `prog-${Date.now()}`;
+    const start_time = (data.start_time || "16:00").trim();
+    const end_time = (data.end_time || "17:00").trim();
+    const title = (data.title || "").trim();
+    const speaker = (data.speaker || "").trim();
+    const description = (data.description || "").trim();
+    const order_index = parseInt(data.order_index, 10) || 1;
+
+    if (!title) {
+      return errorResponse("Le titre du créneau du programme est obligatoire");
+    }
+
+    if (db) {
+      await db.prepare(`
+        INSERT INTO program_items (id, event_id, start_time, end_time, title, speaker, description, order_index)
+        VALUES (?, 'default', ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          start_time = excluded.start_time,
+          end_time = excluded.end_time,
+          title = excluded.title,
+          speaker = excluded.speaker,
+          description = excluded.description,
+          order_index = excluded.order_index
+      `).bind(id, start_time, end_time, title, speaker, description, order_index).run();
+    }
+
+    return jsonResponse({
+      success: true,
+      item: { id, start_time, end_time, title, speaker, description, order_index },
+      message: "Point du programme enregistré !"
+    });
+  }
+
+  // 25. Supprimer un point du programme
+  if (pathname.startsWith("/api/admin/program/item/") && method === "DELETE") {
+    const id = pathname.replace("/api/admin/program/item/", "").trim();
+    if (db && id) {
+      await db.prepare("DELETE FROM program_items WHERE id = ?").bind(id).run();
+    }
+    return jsonResponse({ success: true, id, message: "Créneau retiré du programme" });
+  }
+
+  // 26. Réinitialiser au programme officiel du Dîner de Gala
+  if (pathname === "/api/admin/program/reset-default" && method === "POST") {
+    if (db) {
+      await db.prepare("DELETE FROM program_items WHERE event_id = 'default'").run();
+      await db.prepare(`
+        INSERT INTO program_items (id, event_id, start_time, end_time, title, speaker, description, order_index)
+        VALUES 
+        ('prog-1', 'default', '16:00', '17:00', 'Accueil des invités & Cocktail de bienvenue', 'Équipe d''accueil', 'Cocktail de bienvenue et installation conviviale', 1),
+        ('prog-2', 'default', '17:00', '17:15', 'Ouverture officielle & Mot de bienvenue', 'Avec remerciement à la salle Le Rocher des Âges', 'Cérémonie d''ouverture et allocution d''accueil', 2),
+        ('prog-3', 'default', '17:15', '17:45', 'Prestation artistique & témoignage inspirant', 'Artistes invités', 'Chants, louange et témoignages poignants', 3),
+        ('prog-4', 'default', '17:45', '18:05', 'Message principal (20 min)', 'Pasteur KAMZOLES Charly Ingénu', 'Exhortation solennelle et vision d''excellence', 4),
+        ('prog-5', 'default', '18:05', '18:20', 'Présentation des ouvrages & Dédicace', 'Pasteur KAMZOLES', 'Présentation spéciale des livres et signatures d''auteurs', 5),
+        ('prog-6', 'default', '18:20', '19:15', 'Dîner convivial', 'La table des livres reste ouverte pendant le repas', 'Service du repas gastronomique et échanges fraternels', 6),
+        ('prog-7', 'default', '19:15', '19:45', 'Prestation artistique & témoignage', 'Artistes invités', 'Deuxième partie musicale et partages d''impact', 7),
+        ('prog-8', 'default', '19:45', '20:30', 'Duo artistique de clôture', 'Artistes invités', 'Prestation finale en duo et bénédiction de clôture', 8)
+      `).run();
+    }
+    return jsonResponse({ success: true, message: "Programme réinitialisé au programme officiel du Gala !" });
+  }
+
+  // 27. Régie Publicitaire : Liste de toutes les annonces & statistiques
+  if (pathname === "/api/admin/ads" && method === "GET") {
+    if (!db) return jsonResponse([]);
+    const { results } = await db.prepare("SELECT * FROM ads_sponsors WHERE event_id = 'default' ORDER BY order_index ASC").all().catch(() => ({ results: [] }));
+    return jsonResponse(results || []);
+  }
+
+  // 28. Régie Publicitaire : Créer ou Mettre à jour une annonce
+  if (pathname === "/api/admin/ads/item" && method === "POST") {
+    const data = await request.json().catch(() => ({}));
+    const id = data.id || `ad-${Date.now()}`;
+    const title = (data.title || "").trim();
+    const brand = (data.brand || "").trim();
+    const tagline = (data.tagline || "").trim();
+    const description = (data.description || "").trim();
+    const image_url = (data.image_url || "").trim();
+    const image_data = data.image_data || "";
+    const redirect_url = (data.redirect_url || "").trim();
+    const theme_color = data.theme_color || "peach";
+    const icon_emoji = data.icon_emoji || "🛍️";
+    const price_tag = (data.price_tag || "").trim();
+    const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : 1;
+    const order_index = parseInt(data.order_index, 10) || 1;
+
+    if (!title) return errorResponse("Le titre de l'annonce ou du produit est requis");
+
+    if (db) {
+      await db.prepare(`
+        INSERT INTO ads_sponsors (id, event_id, title, brand, tagline, description, image_url, image_data, redirect_url, theme_color, icon_emoji, price_tag, is_active, order_index)
+        VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          title = excluded.title,
+          brand = excluded.brand,
+          tagline = excluded.tagline,
+          description = excluded.description,
+          image_url = excluded.image_url,
+          image_data = excluded.image_data,
+          redirect_url = excluded.redirect_url,
+          theme_color = excluded.theme_color,
+          icon_emoji = excluded.icon_emoji,
+          price_tag = excluded.price_tag,
+          is_active = excluded.is_active,
+          order_index = excluded.order_index
+      `).bind(id, title, brand, tagline, description, image_url, image_data, redirect_url, theme_color, icon_emoji, price_tag, is_active, order_index).run();
+    }
+
+    return jsonResponse({ success: true, message: "Espace publicitaire enregistré avec succès !" });
+  }
+
+  // 29. Régie Publicitaire : Supprimer une annonce
+  if (pathname.startsWith("/api/admin/ads/item/") && method === "DELETE") {
+    const id = pathname.replace("/api/admin/ads/item/", "").trim();
+    if (db && id) {
+      await db.prepare("DELETE FROM ads_sponsors WHERE id = ?").bind(id).run();
+    }
+    return jsonResponse({ success: true, id, message: "Annonce retirée." });
+  }
+
+  // 30. Régie Publicitaire : Remise à zéro des statistiques
+  if (pathname.startsWith("/api/admin/ads/reset-stats/") && method === "POST") {
+    const id = pathname.replace("/api/admin/ads/reset-stats/", "").trim();
+    if (db && id) {
+      await db.prepare("UPDATE ads_sponsors SET views_count = 0, clicks_count = 0 WHERE id = ?").bind(id).run();
+    }
+    return jsonResponse({ success: true, message: "Statistiques remises à zéro." });
   }
 
   return null;

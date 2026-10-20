@@ -65,6 +65,12 @@ export async function handlePrayerRoutes(pathname, request, env) {
     const content = (data.content || "").trim();
     const whatsapp = (data.whatsapp || "").trim();
     const isPrivate = data.is_private !== undefined ? (data.is_private ? 1 : 0) : 1;
+    const targetPerson = (data.target_person || "").trim();
+    const residenceLocation = (data.residence_location || "").trim();
+    const hasChurch = data.has_church !== undefined ? (data.has_church ? 1 : 0) : 0;
+    const churchName = (data.church_name || "").trim();
+    const churchDuration = (data.church_duration || "").trim();
+    const fullName = (data.full_name || authorName).trim();
 
     if (!content) {
       return errorResponse("Le contenu de la prière est obligatoire");
@@ -72,49 +78,59 @@ export async function handlePrayerRoutes(pathname, request, env) {
 
     if (db) {
       try {
-        // Tenter d'insérer avec les colonnes complètes (whatsapp, is_private)
+        await db.prepare(`
+          INSERT INTO prayer_requests (
+            id, event_id, guest_id, author_name, table_number, is_anonymous, category, 
+            title, content, whatsapp, is_private, target_person, residence_location, 
+            has_church, church_name, church_duration, full_name, prayer_count, is_moderated
+          ) VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+        `).bind(
+          id, guestId, authorName, tableNumber, isAnonymous, category, 
+          title, content, whatsapp, isPrivate, targetPerson, residenceLocation, 
+          hasChurch, churchName, churchDuration, fullName
+        ).run();
+
+        // Mise à jour synchrone du profil de l'invité dans la table guests
+        if (guestId && guestId !== 'guest-anon') {
+          await db.prepare(`
+            UPDATE guests SET
+              name = CASE WHEN ? != '' THEN ? ELSE name END,
+              residence_location = CASE WHEN ? != '' THEN ? ELSE residence_location END,
+              has_church = ?,
+              church_name = CASE WHEN ? != '' THEN ? ELSE church_name END,
+              church_duration = CASE WHEN ? != '' THEN ? ELSE church_duration END,
+              phone = CASE WHEN ? != '' THEN ? ELSE phone END,
+              last_active = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).bind(fullName, fullName, residenceLocation, residenceLocation, hasChurch, churchName, churchName, churchDuration, churchDuration, whatsapp, whatsapp, guestId).run();
+        }
+      } catch (insertErr) {
+        console.error("Erreur insertion prière enrichie:", insertErr);
+        // Fallback sécurisé
         await db.prepare(`
           INSERT INTO prayer_requests (id, event_id, guest_id, author_name, table_number, is_anonymous, category, title, content, whatsapp, is_private, prayer_count, is_moderated)
           VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
-        `).bind(id, guestId, authorName, tableNumber, isAnonymous, category, title, content, whatsapp, isPrivate).run();
-      } catch (insertErr) {
-        // Si les colonnes whatsapp / is_private manquent dans D1, tenter de les ajouter dynamiquement
-        try {
-          await db.prepare("ALTER TABLE prayer_requests ADD COLUMN whatsapp TEXT").run();
-        } catch (_) {}
-        try {
-          await db.prepare("ALTER TABLE prayer_requests ADD COLUMN is_private INTEGER DEFAULT 1").run();
-        } catch (_) {}
-
-        try {
-          // Re-tenter après migration
-          await db.prepare(`
-            INSERT INTO prayer_requests (id, event_id, guest_id, author_name, table_number, is_anonymous, category, title, content, whatsapp, is_private, prayer_count, is_moderated)
-            VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
-          `).bind(id, guestId, authorName, tableNumber, isAnonymous, category, title, content, whatsapp, isPrivate).run();
-        } catch (fallbackErr) {
-          // Fallback sur le schéma initial sans whatsapp ni is_private
-          const enrichedContent = whatsapp ? `${content}\n(WhatsApp: ${whatsapp})` : content;
-          await db.prepare(`
-            INSERT INTO prayer_requests (id, event_id, guest_id, author_name, table_number, is_anonymous, category, title, content, prayer_count, is_moderated)
-            VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, 1, 1)
-          `).bind(id, guestId, authorName, tableNumber, isAnonymous, category, title, enrichedContent).run();
-        }
+        `).bind(id, guestId, authorName, tableNumber, isAnonymous, category, title, content, whatsapp, isPrivate).run().catch(() => {});
       }
     }
 
     return jsonResponse({
       id,
-      author_name: authorName,
+      author_name: fullName || authorName,
       title,
       content,
-      category,
       whatsapp,
+      target_person: targetPerson,
+      residence_location: residenceLocation,
+      has_church: hasChurch,
+      church_name: churchName,
+      church_duration: churchDuration,
       is_private: isPrivate,
       prayer_count: 1,
       created_at: new Date().toISOString(),
     });
   }
+
 
   // 4. Soutenir dans la prière ("Amen / Je m'associe")
   if (pathname.startsWith("/api/prayers/") && pathname.endsWith("/support") && method === "POST") {

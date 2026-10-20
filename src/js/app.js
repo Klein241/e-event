@@ -10,10 +10,15 @@ import { OfflineQueue } from './offline-queue.js';
 import { PrayerWizard } from './prayer-wizard.js';
 import { NetworkingWizard } from './networking-wizard.js';
 import { BibleGamesModule } from './bible-games.js';
+import { ProgramModule } from './program.js';
+import { AdsModule } from './ads.js';
 
 window.PrayerWizard = PrayerWizard;
 window.NetworkingWizard = NetworkingWizard;
 window.BibleGames = BibleGamesModule;
+window.ProgramModule = ProgramModule;
+window.AdsModule = AdsModule;
+
 
 let deferredPrompt = null;
 
@@ -59,6 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   ProjectorModule.init();
   PrayerWizard.init();
   NetworkingWizard.init();
+  ProgramModule.init();
+  AdsModule.init();
 
   // 3. Charger l'événement
   loadEventInfo();
@@ -117,6 +124,11 @@ async function loadEventInfo() {
     AppState.event = ev;
     const titleEl = document.getElementById('header-event-title');
     if (titleEl) titleEl.textContent = ev.name;
+
+    if (ev.direct_feature_enabled !== undefined) {
+      AppState.direct_feature_enabled = Number(ev.direct_feature_enabled);
+      ProgramModule.applyDirectFeatureToggle(AppState.direct_feature_enabled);
+    }
   }
 }
 
@@ -126,10 +138,19 @@ function setupNavigation() {
 
   window.switchTab = (targetTab) => {
     if (!targetTab) return;
+
+    // Si l'utilisateur clique sur chat ou direct mais que la régie l'a remplacé par le programme
+    if (targetTab === 'chat' && AppState.direct_feature_enabled === 0) {
+      targetTab = 'program';
+    } else if (targetTab === 'program' && AppState.direct_feature_enabled === 1) {
+      targetTab = 'chat';
+    }
+
     navItems.forEach(n => {
-      if (n.dataset.tab === targetTab) n.classList.add('active');
+      if (n.dataset.tab === targetTab || (targetTab === 'program' && n.dataset.tab === 'chat')) n.classList.add('active');
       else n.classList.remove('active');
     });
+
     views.forEach(v => {
       if (v.id === `${targetTab}-tab`) v.classList.add('active');
       else v.classList.remove('active');
@@ -143,22 +164,22 @@ function setupNavigation() {
   navItems.forEach(item => {
     item.addEventListener('click', (e) => {
       const btn = e.currentTarget;
-      const targetTab = btn.dataset.tab;
+      let targetTab = btn.dataset.tab;
       window.switchTab(targetTab);
     });
   });
 
-  // Gestion du hash d'URL (ex: #home, #chat, #games, #networking, #prayer)
+  // Gestion du hash d'URL (ex: #home, #chat, #program, #games, #networking, #prayer)
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.replace('#', '');
-    if (['home', 'chat', 'games', 'networking', 'prayer'].includes(hash)) {
+    if (['home', 'chat', 'program', 'games', 'networking', 'prayer'].includes(hash)) {
       window.switchTab(hash);
     }
   });
 
   if (window.location.hash) {
     const hash = window.location.hash.replace('#', '');
-    if (['home', 'chat', 'games', 'networking', 'prayer'].includes(hash)) {
+    if (['home', 'chat', 'program', 'games', 'networking', 'prayer'].includes(hash)) {
       window.switchTab(hash);
     }
   } else {
@@ -230,6 +251,9 @@ function refreshCurrentView() {
     case 'chat':
       ChatModule.refresh();
       break;
+    case 'program':
+      ProgramModule.fetchProgram();
+      break;
     case 'games':
       GamesModule.refresh();
       break;
@@ -283,24 +307,39 @@ function setupPwaInstall() {
   const banner = document.getElementById('pwa-install-banner');
   const installBtn = document.getElementById('btn-pwa-install');
 
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isDismissed = localStorage.getItem('compagnon_pwa_dismissed') === 'true';
+
+  if (!isStandalone && !isDismissed && banner) {
+    // Affiche la bannière clignotante avec un léger délai pour un effet doux
+    setTimeout(() => {
+      banner.style.display = 'flex';
+    }, 800);
+  }
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    if (banner) banner.style.display = 'flex';
+    if (banner && !isStandalone) banner.style.display = 'flex';
   });
 
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        if (banner) banner.style.display = 'none';
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          if (banner) banner.style.display = 'none';
+          localStorage.setItem('compagnon_pwa_dismissed', 'true');
+        }
+        deferredPrompt = null;
+      } else {
+        window.showToast("📲 Pour installer : Ouvrez le menu de votre navigateur ➔ 'Ajouter à l\\'écran d\\'accueil'");
       }
-      deferredPrompt = null;
     });
   }
 }
+
 
 // ==========================================
 // Fonctions Globales pour Modales et Toasts

@@ -13,6 +13,39 @@ import { handlePrayerRoutes } from "./routes/prayers.js";
 import { handleProjectorRoutes } from "./routes/projector.js";
 import { handleAdminRoutes } from "./routes/admin.js";
 
+// Handler inline pour les routes publicitaires (annonces)
+async function handleAdsRoutes(pathname, request, env) {
+  const db = env.DB;
+  const method = request.method;
+
+  // GET /api/ads - Liste des annonces actives
+  if (pathname === "/api/ads" && method === "GET") {
+    if (!db) return jsonResponse([]);
+    const { results } = await db.prepare(
+      "SELECT id, title, brand, tagline, description, image_url, image_data, redirect_url, theme_color, icon_emoji, price_tag, views_count, clicks_count, order_index FROM ads_sponsors WHERE event_id = 'default' AND is_active = 1 ORDER BY order_index ASC"
+    ).all().catch(() => ({ results: [] }));
+    return jsonResponse(results || []);
+  }
+
+  // POST /api/ads/:id/view - Incrément compteur de vues
+  const viewMatch = pathname.match(/^\/api\/ads\/([^/]+)\/view$/);
+  if (viewMatch && method === "POST") {
+    const id = viewMatch[1];
+    if (db) await db.prepare("UPDATE ads_sponsors SET views_count = COALESCE(views_count, 0) + 1 WHERE id = ?").bind(id).run().catch(() => {});
+    return jsonResponse({ success: true });
+  }
+
+  // POST /api/ads/:id/click - Incrément compteur de clics
+  const clickMatch = pathname.match(/^\/api\/ads\/([^/]+)\/click$/);
+  if (clickMatch && method === "POST") {
+    const id = clickMatch[1];
+    if (db) await db.prepare("UPDATE ads_sponsors SET clicks_count = COALESCE(clicks_count, 0) + 1 WHERE id = ?").bind(id).run().catch(() => {});
+    return jsonResponse({ success: true });
+  }
+
+  return null;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -42,6 +75,8 @@ export default {
           response = await handlePrayerRoutes(pathname, request, env);
         } else if (pathname.startsWith("/api/projector")) {
           response = await handleProjectorRoutes(pathname, request, env);
+        } else if (pathname.startsWith("/api/ads")) {
+          response = await handleAdsRoutes(pathname, request, env);
         } else {
           // Routes génériques événements / invités / santé
           response = await handleEventRoutes(pathname, request, env);

@@ -134,6 +134,8 @@ async function sendWithOfflineFallback(type, endpoint, data, options = {}) {
 }
 
 export const Api = {
+  request,
+
   // 1. Événement actif
   async getEvent() {
     try {

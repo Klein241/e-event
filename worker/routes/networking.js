@@ -97,10 +97,25 @@ export async function handleNetworkingRoutes(pathname, request, env) {
             updated_at = CURRENT_TIMESTAMP
         `).bind(id, guestId, fullName, profession, company, bio, interestsTags, lookingFor, offering, whatsapp, linkedin, tableNumber).run();
       }
+
+      // Synchroniser avec la table guests
+      if (guestId) {
+        await db.prepare(`
+          UPDATE guests SET
+            name = CASE WHEN ? != '' THEN ? ELSE name END,
+            profession = CASE WHEN ? != '' THEN ? ELSE profession END,
+            company = CASE WHEN ? != '' THEN ? ELSE company END,
+            photo_url = CASE WHEN ? != '' THEN ? ELSE photo_url END,
+            phone = CASE WHEN ? != '' THEN ? ELSE phone END,
+            last_active = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(fullName, fullName, profession, profession, company, company, photoUrl, photoUrl, whatsapp, whatsapp, guestId).run().catch(() => {});
+      }
     }
 
     return jsonResponse({ success: true, message: "Profil de réseautage enregistré avec succès !" });
   }
+
 
   // 3. Envoyer une salutation / contact icebreaker
   if (pathname === "/api/networking/greet" && method === "POST") {

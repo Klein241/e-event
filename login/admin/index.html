@@ -117,7 +117,14 @@
       <button type="button" class="admin-tab-btn" data-tab="guests">
         👥 Invités
       </button>
+      <button type="button" class="admin-tab-btn" data-tab="program">
+        📋 Programme Déroulé
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="ads">
+        🛍️ Régie Pubs & Sponsors
+      </button>
     </nav>
+
 
     <!-- -------------------------------------------------------------
          ONGLET 1 : VUE D'ENSEMBLE (OVERVIEW)
@@ -172,6 +179,35 @@
             <div class="kpi-icon-box">📢</div>
           </div>
           <div class="kpi-value" id="kpi-push-count">0</div>
+        </div>
+      </div>
+
+      <!-- Commutateur Clé : Fonctionnalité Direct vs Remplacement par Programme -->
+      <div class="admin-card" style="border: 2px solid var(--terracotta-accent);">
+        <div class="admin-card-header">
+          <div>
+            <h3>🎛️ Mode Utilisateur : "Direct" vs "Programme Déroulé"</h3>
+            <p>Choisissez ce que voient les invités dans la barre principale de l'application</p>
+          </div>
+          <span id="badge-direct-status" class="status-pill status-active">🔴 Direct Activé</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
+            Si la fonctionnalité <strong>Direct</strong> est désactivée, l'application remplace instantanément l'onglet "Direct" par <strong>"Programme"</strong>. Chaque créneau s'affiche sous forme de carte interactive synchronisée à la seconde avec l'heure du téléphone de l'invité (🟢 À venir, ⚡ En cours, 🔴 Passé) avec notification automatique.
+          </p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="button" id="btn-toggle-direct-active" class="btn-table-action" style="padding: 10px 18px; font-weight: 800;" onclick="adminToggleDirect(1)">
+              🔴 Activer le "Direct"
+            </button>
+            <button type="button" id="btn-toggle-direct-program" class="btn-table-action" style="padding: 10px 18px; font-weight: 800;" onclick="adminToggleDirect(0)">
+              📋 Remplacer par "Programme"
+            </button>
+            <button type="button" class="btn-table-action" style="padding: 10px 18px; font-weight: 800; background: var(--sage-gradient); color: var(--sage-dark);" onclick="switchAdminTab('program')">
+              ⚙️ Modifier le Programme Déroulé
+            </button>
+          </div>
         </div>
       </div>
 
@@ -588,37 +624,335 @@
     </section>
 
     <!-- -------------------------------------------------------------
-         ONGLET 7 : LISTE DES INVITÉS & GESTION DES TABLES
+         ONGLET 7 : LISTE DES INVITÉS & GESTION DES TABLES (CRM COMPLET)
          ------------------------------------------------------------- -->
     <section id="tab-guests" class="admin-tab-content">
       <div class="admin-card">
+        <div class="admin-card-header" style="flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3>👥 Registre & Fiches CRM des Invités</h3>
+            <p>Cliquez sur n'importe quel invité pour ouvrir son dossier complet (coordonnées, prières, église, réseautage)</p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span id="admin-guests-count" class="status-pill status-active" style="font-weight: 800;">0 invité(s)</span>
+          </div>
+        </div>
+
+        <!-- Barre de recherche rapide CRM -->
+        <div style="margin: 12px 0 18px 0;">
+          <input type="text" id="admin-guest-search" class="admin-input" placeholder="🔍 Rechercher un invité par nom, table, métier, résidence ou téléphone..." oninput="window.filterGuests(this.value)">
+        </div>
+
+        <!-- Grille de fiches CRM interactives -->
+        <div id="admin-guests-grid" class="guest-crm-grid">
+          <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 2rem;">Chargement des profils invités...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- -------------------------------------------------------------
+         ONGLET 8 : GESTION DU PROGRAMME DÉROULÉ DE LA CÉRÉMONIE
+         ------------------------------------------------------------- -->
+    <section id="tab-program" class="admin-tab-content">
+      
+      <!-- Commutateur de diffusion principal -->
+      <div class="admin-card">
         <div class="admin-card-header">
-          <h3>👥 Registre des Invités Connectés</h3>
-          <p>Liste complète des participants, répartition aux tables et points cumulés</p>
+          <div>
+            <h3>🎛️ Statut de Diffusion Côté Invités</h3>
+            <p>Activez le "Direct" ou remplacez-le par le "Programme"</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-table-action" id="btn-tab-prog-direct" onclick="adminToggleDirect(1)">
+              🔴 Direct
+            </button>
+            <button type="button" class="btn-table-action" id="btn-tab-prog-replace" onclick="adminToggleDirect(0)">
+              📋 Programme Actif
+            </button>
+          </div>
+        </div>
+        <p style="font-size: 0.86rem; color: var(--text-muted); margin: 0;">
+          Statut actuel : <strong id="program-current-broadcast-status">Direct Actif</strong>. Synchronisé en temps réel avec la base Cloudflare D1.
+        </p>
+      </div>
+
+      <!-- Formulaire d'ajout / modification de créneau -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3 id="program-form-title">➕ Ajouter ou Modifier un Moment du Programme</h3>
+            <p>Modifiable à la volée durant la cérémonie (non hardcodé)</p>
+          </div>
+          <button type="button" class="btn-table-action" id="btn-cancel-slot-edit" style="display: none;" onclick="cancelProgramSlotEdit()">
+            ✕ Annuler modification
+          </button>
+        </div>
+
+        <form id="admin-program-slot-form" onsubmit="saveProgramSlot(event)" style="display: flex; flex-direction: column; gap: 12px;">
+          <input type="hidden" id="slot-id" value="">
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="slot-start-time">Heure de début</label>
+              <input type="text" id="slot-start-time" class="admin-input" required placeholder="Ex : 16:00 ou 16h00">
+            </div>
+            <div>
+              <label class="admin-label" for="slot-end-time">Heure de fin</label>
+              <input type="text" id="slot-end-time" class="admin-input" required placeholder="Ex : 17:00 ou 17h00">
+            </div>
+          </div>
+
+          <div>
+            <label class="admin-label" for="slot-title">Intitulé du moment</label>
+            <input type="text" id="slot-title" class="admin-input" required placeholder="Ex : Message principal (20 min)">
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="slot-speaker">Intervenant / Responsable</label>
+              <input type="text" id="slot-speaker" class="admin-input" placeholder="Ex : Pasteur KAMZOLES Charly Ingénu">
+            </div>
+            <div>
+              <label class="admin-label" for="slot-order">Ordre d'affichage</label>
+              <input type="number" id="slot-order" class="admin-input" value="1" min="1" max="99">
+            </div>
+          </div>
+
+          <div>
+            <label class="admin-label" for="slot-desc">Précisions / Détails (optionnel)</label>
+            <input type="text" id="slot-desc" class="admin-input" placeholder="Ex : La table des livres reste ouverte pendant le repas">
+          </div>
+
+          <button type="submit" id="btn-save-program-slot" class="btn-unlock" style="background: var(--terracotta-gradient);">
+            💾 Enregistrer ce créneau dans le programme
+          </button>
+        </form>
+      </div>
+
+      <!-- Liste complète des créneaux configurés -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>📋 Déroulé du Dîner de Gala (Synchronisé D1)</h3>
+            <p>🟢 À venir, ⚡ En cours, 🔴 Passé</p>
+          </div>
+          <button type="button" class="btn-table-action" style="background: var(--honey-gradient); color: var(--honey-dark); font-weight: 800;" onclick="resetProgramToDefaultGala()">
+            🔄 Restaurer le Programme Officiel du Gala
+          </button>
         </div>
 
         <div class="admin-table-wrapper">
           <table class="admin-table">
             <thead>
               <tr>
-                <th>Invité</th>
-                <th>Table</th>
-                <th>Score</th>
-                <th>Heure d'arrivée</th>
-                <th>Action</th>
+                <th>Ordre</th>
+                <th>Créneau</th>
+                <th>Intitulé & Intervenant</th>
+                <th>Détails</th>
+                <th>Statut Live</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="admin-guests-tbody">
+            <tbody id="admin-program-tbody">
               <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted);">Chargement des invités...</td>
+                <td colspan="6" style="text-align: center; color: var(--text-muted);">Chargement du programme...</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
+
+    </section>
+ 
+    <!-- -------------------------------------------------------------
+         ONGLET 9 : RÉGIE PUBLICITAIRE & SPONSORS
+         ------------------------------------------------------------- -->
+    <section id="tab-ads" class="admin-tab-content">
+      
+      <!-- KPIs Publicitaires -->
+      <div class="kpi-grid">
+        <div class="kpi-card terracotta">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Vues Pubs</span>
+            <div class="kpi-icon-box">👁️</div>
+          </div>
+          <div class="kpi-value" id="kpi-ads-views">0</div>
+        </div>
+
+        <div class="kpi-card sage">
+          <div class="kpi-header">
+            <span class="kpi-label">Clics & Redirections</span>
+            <div class="kpi-icon-box">🖱️</div>
+          </div>
+          <div class="kpi-value" id="kpi-ads-clicks">0</div>
+        </div>
+
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <span class="kpi-label">CTR Moyen</span>
+            <div class="kpi-icon-box">📈</div>
+          </div>
+          <div class="kpi-value" id="kpi-ads-ctr">0%</div>
+        </div>
+      </div>
+
+      <!-- Formulaire d'ajout / modification d'une annonce / sponsor -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3 id="form-ad-title">🛍️ Ajouter un Espace Publicitaire / Produit 3D</h3>
+            <p>Ajoutez une photo, un lien de redirection WhatsApp/site et suivez les clics en temps réel.</p>
+          </div>
+          <button type="button" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main);" onclick="resetAdForm()">
+            ✨ Nouveau Produit
+          </button>
+        </div>
+
+        <form id="form-ad-item" class="admin-form" onsubmit="saveAd(event)">
+          <input type="hidden" id="ad-id" value="">
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="ad-title">Titre du produit / Offre *</label>
+              <input type="text" id="ad-title" class="admin-input" required placeholder="Ex : Ouvrages Pasteur KAMZOLES">
+            </div>
+            <div>
+              <label class="admin-label" for="ad-brand">Marque / Partenaire</label>
+              <input type="text" id="ad-brand" class="admin-input" placeholder="Ex : Read's Great Publishing">
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <div>
+              <label class="admin-label" for="ad-theme">Thème Couleur (Claymorphism Pastel)</label>
+              <select id="ad-theme" class="admin-input">
+                <option value="sage">🌿 Sage Green (Pastel Menthe)</option>
+                <option value="peach" selected>🍑 Peach (Pastel Pêche / Saumon)</option>
+                <option value="honey">🍯 Honey Yellow (Pastel Miel / Doré)</option>
+                <option value="blue">🌊 Powder Blue (Pastel Bleu Poudré)</option>
+              </select>
+            </div>
+            <div>
+              <label class="admin-label" for="ad-emoji">Icône 3D / Emoji</label>
+              <input type="text" id="ad-emoji" class="admin-input" value="🛍️" placeholder="Ex : 📚, 🏰, 👑, 💎">
+            </div>
+            <div>
+              <label class="admin-label" for="ad-price">Prix / Badge VIP</label>
+              <input type="text" id="ad-price" class="admin-input" placeholder="Ex : Disponible ce soir, 15 000 FCFA">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="ad-image-file">Photo du produit / Affiche (Upload local) *</label>
+              <input type="file" id="ad-image-file" class="admin-input" accept="image/*" onchange="window.previewAdImage(event)">
+              <input type="hidden" id="ad-existing-image" value="">
+              <input type="hidden" id="ad-image-url" value="">
+              <div id="ad-image-preview-wrapper" style="margin-top: 8px; display: none; align-items: center; gap: 10px;">
+                <img id="ad-image-preview" src="" alt="Aperçu photo" style="width: 72px; height: 72px; object-fit: cover; border-radius: 14px; border: 2px solid var(--terracotta-accent);">
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  <strong style="color: var(--text-main); display: block;">Photo sélectionnée</strong>
+                  Prête pour la vitrine pastel et rotation 360°
+                </div>
+              </div>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">
+                📁 Choisissez une photo nette depuis votre téléphone ou ordinateur (JPG, PNG, WebP).
+              </small>
+            </div>
+            <div>
+              <label class="admin-label" for="ad-redirect-url">Lien de redirection au clic (WhatsApp, Boutique, Web)</label>
+              <input type="url" id="ad-redirect-url" class="admin-input" placeholder="Ex : https://wa.me/241... ou https://monsite.com">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="admin-label" for="ad-tagline">Slogan court (Tagline)</label>
+              <input type="text" id="ad-tagline" class="admin-input" placeholder="Ex : Dédicace d'honneur">
+            </div>
+            <div>
+              <label class="admin-label" for="ad-order">Ordre d'affichage (1 à 99)</label>
+              <input type="number" id="ad-order" class="admin-input" value="1" min="1" max="99">
+            </div>
+          </div>
+
+          <div>
+            <label class="admin-label" for="ad-desc">Description complète (affichée dans la modale 3D 360°)</label>
+            <textarea id="ad-desc" class="admin-input" rows="3" placeholder="Présentation détaillée du produit, points forts et invitation à commander lors du dîner de gala..."></textarea>
+          </div>
+
+          <button type="submit" id="btn-save-ad" class="btn-unlock" style="background: var(--terracotta-gradient);">
+            💾 Enregistrer dans la vitrine publicitaire
+          </button>
+        </form>
+      </div>
+
+      <!-- Tableau des annonces & Statistiques détaillées -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>📊 Statistiques & Performance des Annonces en Direct</h3>
+            <p>Suivi en direct du nombre de vues, de clics et du taux de conversion (CTR) par produit.</p>
+          </div>
+        </div>
+
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Ordre</th>
+                <th>Produit / Annonce</th>
+                <th>Thème</th>
+                <th>Prix / Badge</th>
+                <th>Vues 👁️</th>
+                <th>Clics 🖱️</th>
+                <th>CTR % 📈</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-ads-tbody">
+              <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted);">Chargement des annonces...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
   </main>
+
+  <!-- ============================================================
+       MODALE CRM DÉTAILLÉE : FICHE COMPLÈTE DE L'INVITÉ
+       ============================================================ -->
+  <div class="admin-modal-overlay" id="modal-guest-crm" style="display: none;" onclick="if(event.target === this) window.closeGuestCRM()">
+    <div class="admin-modal-card guest-crm-card animate-scale-up" style="max-width: 680px; width: 94%; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">👤</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main);">Dossier CRM Participant</h3>
+            <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Informations consolidées (Prières, Réseautage & Soirée)</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-table-action" style="background: var(--honey-gradient); color: var(--honey-dark); font-weight: 800;" onclick="window.exportCurrentGuestPDF()" title="Imprimer ou enregistrer en PDF">
+            🖨️ Exporter PDF
+          </button>
+          <button type="button" class="btn-table-action" onclick="window.closeGuestCRM()" style="background: var(--bg-card); font-size: 1.1rem; padding: 4px 10px;">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Corps dynamique injecté par admin.js -->
+      <div id="guest-crm-modal-body">
+        <p style="text-align: center; color: var(--text-muted); padding: 2rem;">Chargement du dossier...</p>
+      </div>
+    </div>
+  </div>
+
 
   <!-- SCRIPT DU BACKOFFICE RÉGIE -->
   <script type="module" src="./admin.js"></script>

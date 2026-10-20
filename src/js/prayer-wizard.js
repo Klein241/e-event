@@ -1,7 +1,8 @@
 /**
- * COMPAGNON DE CÉRÉMONIE - Assistant Interactif de Prière par Étapes
- * Carte 1 : Sélection rapide du thème (Famille, Foyer, Enfants, Activités...)
- * Carte 2 : Description, Contact WhatsApp, Note de confidentialité privée
+ * COMPAGNON DE CEREMONIE - Assistant Interactif de Priere par Etapes
+ * Carte 1 : Selection rapide du theme
+ * Carte 2 : Description + Contact WhatsApp
+ * Carte 3 : Informations pastorales enrichies (pour qui, qui appelle, eglise)
  */
 
 import { Api } from './api.js';
@@ -12,16 +13,16 @@ export const PrayerWizard = {
   currentStep: 1,
 
   topics: [
-    { id: 'famille', label: '👨‍👩‍👧‍👦 Famille' },
-    { id: 'foyer', label: '💍 Foyer & Couple' },
-    { id: 'enfants', label: '👶 Enfants' },
-    { id: 'mari', label: '🤵 Mari / Conjoint' },
-    { id: 'femme', label: '👰 Femme / Conjointe' },
-    { id: 'parents', label: '👵 Parents' },
-    { id: 'activite', label: '💼 Activités & Entreprise' },
-    { id: 'sante', label: '🩺 Santé & Guérison' },
-    { id: 'finances', label: '📈 Finances & Percée' },
-    { id: 'autre', label: '✨ Autre sujet' }
+    { id: 'famille', label: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66 Famille' },
+    { id: 'foyer', label: '\uD83D\uDC8D Foyer & Couple' },
+    { id: 'enfants', label: '\uD83D\uDC76 Enfants' },
+    { id: 'mari', label: '\uD83E\uDD35 Mari / Conjoint' },
+    { id: 'femme', label: '\uD83D\uDC70 Femme / Conjointe' },
+    { id: 'parents', label: '\uD83D\uDC75 Parents' },
+    { id: 'activite', label: '\uD83D\uDCBC Activites & Entreprise' },
+    { id: 'sante', label: '\uD83E\uDE7A Sante & Guerison' },
+    { id: 'finances', label: '\uD83D\uDCC8 Finances & Percee' },
+    { id: 'autre', label: '\u2728 Autre sujet' }
   ],
 
   init() {
@@ -32,17 +33,14 @@ export const PrayerWizard = {
   renderTopicButtons() {
     const grid = document.getElementById('prayer-wizard-topics-grid');
     if (!grid) return;
-
     grid.innerHTML = this.topics.map(t => `
       <button type="button" class="prayer-topic-btn ${t.label.includes(this.selectedTopic) ? 'selected' : ''}" data-topic="${t.label}">
         ${t.label}
       </button>
     `).join('');
-
     grid.querySelectorAll('.prayer-topic-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const topic = e.currentTarget.dataset.topic;
-        this.selectTopic(topic);
+        this.selectTopic(e.currentTarget.dataset.topic);
       });
     });
   },
@@ -52,137 +50,122 @@ export const PrayerWizard = {
     const grid = document.getElementById('prayer-wizard-topics-grid');
     if (grid) {
       grid.querySelectorAll('.prayer-topic-btn').forEach(btn => {
-        if (btn.dataset.topic === topic) btn.classList.add('selected');
-        else btn.classList.remove('selected');
+        btn.classList.toggle('selected', btn.dataset.topic === topic);
       });
     }
-
     const titleInput = document.getElementById('prayer-wizard-title-preview');
     if (titleInput) titleInput.textContent = topic;
-
-    // Transition automatique vers la Carte 2 après sélection pour fluidité
-    setTimeout(() => {
-      this.goToStep(2);
-    }, 180);
+    setTimeout(() => { this.goToStep(2); }, 180);
   },
 
   goToStep(stepNumber) {
     this.currentStep = stepNumber;
-    const card1 = document.getElementById('prayer-wizard-card-1');
-    const card2 = document.getElementById('prayer-wizard-card-2');
-    const pill1 = document.getElementById('prayer-wizard-pill-1');
-    const pill2 = document.getElementById('prayer-wizard-pill-2');
-
-    if (stepNumber === 1) {
-      if (card1) card1.style.display = 'block';
-      if (card2) card2.style.display = 'none';
-      if (pill1) pill1.classList.add('active');
-      if (pill2) pill2.classList.remove('active');
-    } else {
-      if (card1) card1.style.display = 'none';
-      if (card2) card2.style.display = 'block';
-      if (pill1) pill1.classList.add('active');
-      if (pill2) pill2.classList.add('active');
-      document.getElementById('prayer-wizard-content')?.focus();
-    }
+    [1, 2, 3].forEach(n => {
+      const card = document.getElementById(`prayer-wizard-card-${n}`);
+      if (card) card.style.display = (n === stepNumber) ? 'block' : 'none';
+      const pill = document.getElementById(`prayer-wizard-pill-${n}`);
+      if (pill) pill.classList.toggle('active', n <= stepNumber);
+    });
+    if (stepNumber === 2) document.getElementById('prayer-wizard-content')?.focus();
+    if (stepNumber === 3) document.getElementById('prayer-wizard-target-person')?.focus();
   },
 
   open(presetTopic = null) {
     const modal = document.getElementById('prayer-wizard-modal');
     if (!modal) return;
-
-    if (presetTopic) {
-      this.selectedTopic = presetTopic;
-    }
+    if (presetTopic) this.selectedTopic = presetTopic;
     this.renderTopicButtons();
     this.goToStep(1);
     modal.style.display = 'flex';
-    requestAnimationFrame(() => {
-      modal.classList.add('active');
-    });
+    requestAnimationFrame(() => modal.classList.add('active'));
   },
 
   close() {
     const modal = document.getElementById('prayer-wizard-modal');
     if (modal) {
       modal.classList.remove('active');
-      setTimeout(() => {
-        if (!modal.classList.contains('active')) {
-          modal.style.display = 'none';
-        }
-      }, 200);
+      setTimeout(() => { if (!modal.classList.contains('active')) modal.style.display = 'none'; }, 200);
     }
   },
 
   bindEvents() {
     const modal = document.getElementById('prayer-wizard-modal');
-    if (modal) {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) this.close();
-      });
-    }
+    if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) this.close(); });
 
     document.getElementById('btn-close-prayer-wizard')?.addEventListener('click', () => this.close());
     document.getElementById('btn-back-prayer-step1')?.addEventListener('click', () => this.goToStep(1));
+    document.getElementById('btn-next-prayer-step3')?.addEventListener('click', () => {
+      const content = document.getElementById('prayer-wizard-content')?.value.trim();
+      if (!content) { alert('Veuillez decrire brievement votre sujet de priere.'); return; }
+      this.goToStep(3);
+    });
+    document.getElementById('btn-back-prayer-step2')?.addEventListener('click', () => this.goToStep(2));
     document.getElementById('prayer-wizard-form')?.addEventListener('submit', (e) => this.handleSubmit(e));
+
+    const hasChurchSelect = document.getElementById('prayer-wizard-has-church');
+    if (hasChurchSelect) {
+      hasChurchSelect.addEventListener('change', () => {
+        const churchDetails = document.getElementById('prayer-wizard-church-details');
+        if (churchDetails) churchDetails.style.display = hasChurchSelect.value === 'oui' ? 'block' : 'none';
+      });
+    }
   },
 
   async handleSubmit(e) {
     e.preventDefault();
     const content = document.getElementById('prayer-wizard-content')?.value.trim();
     const whatsapp = document.getElementById('prayer-wizard-whatsapp')?.value.trim();
+    const targetPerson = document.getElementById('prayer-wizard-target-person')?.value.trim() || '';
+    const fullName = document.getElementById('prayer-wizard-full-name')?.value.trim() || '';
+    const residenceLocation = document.getElementById('prayer-wizard-residence')?.value.trim() || '';
+    const hasChurchVal = document.getElementById('prayer-wizard-has-church')?.value || 'non';
+    const hasChurch = hasChurchVal === 'oui' ? 1 : 0;
+    const churchName = document.getElementById('prayer-wizard-church-name')?.value.trim() || '';
+    const churchDuration = document.getElementById('prayer-wizard-church-duration')?.value.trim() || '';
     const submitBtn = document.getElementById('btn-submit-prayer-wizard');
 
-    if (!content) {
-      alert("Veuillez décrire brièvement votre sujet de prière.");
-      return;
-    }
+    if (!content) { alert('Veuillez decrire votre sujet de priere.'); this.goToStep(2); return; }
+    if (!residenceLocation) { alert('Le lieu de residence est obligatoire (pour que nous puissions vous rejoindre si vous le souhaitez).'); return; }
 
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `<span>Envoi en cours...</span>`;
-    }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<span>Envoi en cours...</span>'; }
 
     try {
       const payload = {
         guest_id: AppState.guest ? AppState.guest.id : `guest-${Date.now()}`,
-        author_name: AppState.guest ? AppState.guest.name : "Invité de Gala",
-        table_number: AppState.guest ? AppState.guest.table_number : "Table 1",
+        author_name: AppState.guest ? AppState.guest.name : (fullName || 'Invite de Gala'),
+        table_number: AppState.guest ? AppState.guest.table_number : 'Table 1',
         title: this.selectedTopic,
         content,
         whatsapp,
         is_anonymous: 0,
-        is_private: 1, // 100% Confidentiel avec l'équipe pastorale
-        category: 'priere'
+        is_private: 1,
+        category: 'priere',
+        target_person: targetPerson,
+        full_name: fullName,
+        residence_location: residenceLocation,
+        has_church: hasChurch,
+        church_name: hasChurch ? churchName : '',
+        church_duration: hasChurch ? churchDuration : '',
       };
 
       const result = await Api.submitPrayer(payload);
-
-      // Sauvegarde dans "Mes requêtes" en local
       this.saveToMyPrayers({
         id: result?.id || `local-${Date.now()}`,
-        title: this.selectedTopic,
-        content,
-        whatsapp,
+        title: this.selectedTopic, content, whatsapp, target_person: targetPerson,
         created_at: new Date().toISOString()
       });
 
       this.close();
       document.getElementById('prayer-wizard-form')?.reset();
+      const churchDetails = document.getElementById('prayer-wizard-church-details');
+      if (churchDetails) churchDetails.style.display = 'none';
 
-      window.showToast("🙏 Votre requête a été transmise en toute confidentialité à l'équipe d'intercession.", "success");
-
-      // Basculer vers l'onglet prières pour voir "Mes requêtes"
-      if (typeof window.switchTab === 'function') {
-        window.switchTab('prayer');
-      }
+      window.showToast("\uD83D\uDE4F Votre requete a ete transmise en toute confidentialite a l'equipe d'intercession.", 'success');
+      if (typeof window.switchTab === 'function') window.switchTab('prayer');
     } catch (err) {
-      window.showToast(err.message, "error");
+      window.showToast(err.message, 'error');
     } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = `<span>Envoyer ma requête 🙏</span>`;
-      }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<span>Envoyer ma requete \uD83D\uDE4F</span>'; }
     }
   },
 
@@ -196,10 +179,7 @@ export const PrayerWizard = {
   },
 
   getMyPrayers() {
-    try {
-      return JSON.parse(localStorage.getItem('compagnon_my_prayers') || '[]');
-    } catch (e) {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem('compagnon_my_prayers') || '[]'); }
+    catch (e) { return []; }
   }
 };
