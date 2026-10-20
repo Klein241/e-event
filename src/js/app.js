@@ -97,19 +97,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     (count) => window.showToast(`✨ ${count} action(s) hors-ligne synchronisée(s) !`, "success")
   );
 
-  // 11. Boucle de rafraîchissement temps réel (Polling doux 5s)
+  // 11. Initialisation et mise à jour des métriques dynamiques d'accueil (Prières & Réseautage)
+  updateHomeMetrics();
+  setInterval(() => {
+    updateHomeMetrics();
+  }, 20000);
+
+  // 12. Boucle de rafraîchissement temps réel (Polling doux 5s)
   setInterval(() => {
     refreshCurrentView();
   }, 5000);
 
-  // 12. Retrait fluide de l'écran de chargement anti-flash
+  // 13. Retrait fluide de l'écran de chargement anti-flash
   setTimeout(() => {
     if (typeof window.dismissSplash === 'function') {
       window.dismissSplash();
     }
   }, 80);
 
-  // 13. Proposer l'onboarding aux nouveaux invités sans bloquer l'accès
+  // 14. Proposer l'onboarding aux nouveaux invités sans bloquer l'accès
   if (!AppState.guest) {
     setTimeout(() => {
       window.openOnboarding();
@@ -437,31 +443,77 @@ window.closeNetworkingModal = () => {
   window.NetworkingWizard?.close();
 };
 
-// Sous-onglets de l'onglet Jeux (Jeux Bibliques vs Duel Tables vs Quiz IA Live)
+// ==========================================
+// Métriques dynamiques de l'Accueil (Prières & Réseautage)
+// ==========================================
+function getFictionalPrayerCount(realCount = 0) {
+  const now = Date.now();
+  const anchor = 1792454400000;
+  const slotMinutes = 10;
+  const slotMs = slotMinutes * 60 * 1000;
+  const elapsedSlots = Math.max(0, Math.floor((now - anchor) / slotMs));
+
+  let simulatedBonus = 0;
+  const cappedSlots = Math.min(elapsedSlots, 200);
+  for (let s = 1; s <= cappedSlots; s++) {
+    const inc = (((s * 9301 + 49297) % 233280) % 15) + 1;
+    simulatedBonus += inc;
+  }
+  if (elapsedSlots > 200) {
+    simulatedBonus += (elapsedSlots - 200) * 8;
+  }
+
+  const base = 102;
+  return base + simulatedBonus + (Number(realCount) || 0);
+}
+
+async function updateHomeMetrics() {
+  // 1. Compteur Prières (102 de base, +1 à 15 aléatoire chaque 10 min, + envois réels)
+  const prayerCountEl = document.getElementById('prayer-display-count');
+  if (prayerCountEl) {
+    let realPrayers = 0;
+    try {
+      if (Api && typeof Api.getPrayers === 'function') {
+        const prayers = await Api.getPrayers();
+        if (Array.isArray(prayers)) realPrayers = prayers.length;
+      }
+    } catch (_) {}
+    prayerCountEl.textContent = getFictionalPrayerCount(realPrayers);
+  }
+
+  // 2. Compteur Réseautage (10 profils de base + nombre réel de profils publiés)
+  const netCountEl = document.getElementById('networking-display-count');
+  if (netCountEl) {
+    let realNet = 0;
+    try {
+      if (Api && typeof Api.getNetworkingProfiles === 'function') {
+        const netProfiles = await Api.getNetworkingProfiles();
+        if (Array.isArray(netProfiles)) realNet = netProfiles.length;
+      }
+    } catch (_) {}
+    const baseNetworking = 10;
+    netCountEl.textContent = baseNetworking + realNet;
+  }
+}
+window.updateHomeMetrics = updateHomeMetrics;
+
+// Sous-onglets de l'onglet Jeux (Jeux Bibliques vs Duel Tables)
 window.switchGameSubTab = (subTab) => {
   const bibleContainer = document.getElementById('bible-games-container');
   const liveContainer = document.getElementById('live-games-container');
   const btnBible = document.getElementById('btn-mode-bible-games');
   const btnDuel = document.getElementById('btn-mode-duel-games');
-  const btnLive = document.getElementById('btn-mode-live-quiz');
 
-  // Réinitialiser les états et classes de tous les boutons
-  [btnBible, btnDuel, btnLive].forEach(btn => {
-    if (btn) {
-      btn.classList.remove('active', 'btn-3d-gold', 'btn-3d-coral', 'btn-3d-porcelain');
-      btn.classList.add('btn-3d-porcelain');
-    }
-  });
+  if (btnBible) {
+    btnBible.classList.remove('active', 'btn-3d-gold', 'btn-3d-coral');
+    btnBible.classList.add('btn-3d-porcelain');
+  }
+  if (btnDuel) {
+    btnDuel.classList.remove('active', 'btn-3d-gold', 'btn-3d-coral');
+    btnDuel.classList.add('btn-3d-porcelain');
+  }
 
-  if (subTab === 'bible') {
-    if (bibleContainer) bibleContainer.style.display = 'block';
-    if (liveContainer) liveContainer.style.display = 'none';
-    if (btnBible) {
-      btnBible.classList.remove('btn-3d-porcelain');
-      btnBible.classList.add('active', 'btn-3d-gold');
-    }
-    window.BibleGames?.init();
-  } else if (subTab === 'duel') {
+  if (subTab === 'duel') {
     if (bibleContainer) bibleContainer.style.display = 'none';
     if (liveContainer) liveContainer.style.display = 'block';
     if (btnDuel) {
@@ -470,14 +522,14 @@ window.switchGameSubTab = (subTab) => {
     }
     window.GamesModule?.openDuelLobby();
   } else {
-    // Mode Quiz IA en Live
-    if (bibleContainer) bibleContainer.style.display = 'none';
-    if (liveContainer) liveContainer.style.display = 'block';
-    if (btnLive) {
-      btnLive.classList.remove('btn-3d-porcelain');
-      btnLive.classList.add('active', 'btn-3d-gold');
+    // Mode Jeux Bibliques par défaut
+    if (bibleContainer) bibleContainer.style.display = 'block';
+    if (liveContainer) liveContainer.style.display = 'none';
+    if (btnBible) {
+      btnBible.classList.remove('btn-3d-porcelain');
+      btnBible.classList.add('active', 'btn-3d-gold');
     }
-    window.GamesModule?.openLiveQuiz();
+    window.BibleGames?.init();
   }
 };
 

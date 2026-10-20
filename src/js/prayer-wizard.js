@@ -160,7 +160,8 @@ export const PrayerWizard = {
       const churchDetails = document.getElementById('prayer-wizard-church-details');
       if (churchDetails) churchDetails.style.display = 'none';
 
-      window.showToast("\uD83D\uDE4F Votre requete a ete transmise en toute confidentialite a l'equipe d'intercession.", 'success');
+      window.showToast("🙏 Votre requête a été transmise en toute confidentialité à l'équipe d'intercession.", 'success');
+      if (typeof window.updateHomeMetrics === 'function') window.updateHomeMetrics();
       if (typeof window.switchTab === 'function') window.switchTab('prayer');
     } catch (err) {
       window.showToast(err.message, 'error');

@@ -159,10 +159,14 @@
 
         <div class="kpi-card honey">
           <div class="kpi-header">
-            <span class="kpi-label">Prières</span>
+            <span class="kpi-label">Prières Reçues</span>
             <div class="kpi-icon-box">🙏</div>
           </div>
           <div class="kpi-value" id="kpi-prayers-count">0</div>
+          <div style="font-size: 0.72rem; margin-top: 4px; font-weight: 700; color: var(--text-muted); display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
+            <span>Réel : <strong id="admin-prayers-real-kpi" style="color: #10b981;">0</strong></span>
+            <span>Affiché public : <strong id="admin-prayers-fake-kpi" style="color: #ff7a45;">102</strong></span>
+          </div>
         </div>
 
         <div class="kpi-card gold">
@@ -591,9 +595,16 @@
          ------------------------------------------------------------- -->
     <section id="tab-prayers" class="admin-tab-content">
       <div class="admin-card">
-        <div class="admin-card-header">
-          <h3>🙏 Requêtes de Prières & Témoignages</h3>
-          <p>Accompagnement pastoral avec contact WhatsApp direct en un clic</p>
+        <div class="admin-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3>🙏 Requêtes de Prières & Témoignages</h3>
+            <p>Accompagnement pastoral avec contact WhatsApp direct en un clic</p>
+          </div>
+          <div style="background: rgba(255, 122, 69, 0.12); border: 1px solid var(--terracotta-accent, #ff7a45); border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; color: var(--terracotta-accent, #ff7a45); display: flex; gap: 12px; align-items: center;">
+            <span>📥 Reçues en base : <strong id="admin-prayers-real-header" style="color: #10b981;">0</strong></span>
+            <span>|</span>
+            <span>👀 Affiché aux invités : <strong id="admin-prayers-fake-header" style="color: #ff7a45;">102</strong></span>
+          </div>
         </div>
 
         <div id="admin-prayers-list" style="display: flex; flex-direction: column; gap: 12px;">
@@ -844,20 +855,27 @@
 
           <div class="form-grid-2">
             <div>
-              <label class="admin-label" for="ad-image-file">Photo du produit / Affiche (Upload local) *</label>
-              <input type="file" id="ad-image-file" class="admin-input" accept="image/*" onchange="window.previewAdImage(event)">
-              <input type="hidden" id="ad-existing-image" value="">
-              <input type="hidden" id="ad-image-url" value="">
-              <div id="ad-image-preview-wrapper" style="margin-top: 8px; display: none; align-items: center; gap: 10px;">
-                <img id="ad-image-preview" src="" alt="Aperçu photo" style="width: 72px; height: 72px; object-fit: cover; border-radius: 14px; border: 2px solid var(--terracotta-accent);">
-                <div style="font-size: 0.78rem; color: var(--text-muted);">
-                  <strong style="color: var(--text-main); display: block;">Photo sélectionnée</strong>
-                  Prête pour la vitrine pastel et rotation 360°
+              <label class="admin-label">Photo du produit (Upload local direct) *</label>
+              <div id="ad-upload-dropzone" onclick="document.getElementById('ad-image-file').click()" style="border: 2px dashed var(--terracotta-accent, #ff7a45); border-radius: 14px; padding: 1rem; text-align: center; cursor: pointer; background: rgba(255, 122, 69, 0.05); transition: all 0.2s ease;">
+                <div id="ad-upload-prompt">
+                  <div style="font-size: 1.8rem; margin-bottom: 0.25rem;">📸</div>
+                  <div style="font-weight: 700; font-size: 0.85rem; color: var(--terracotta-accent, #ff7a45);">
+                    Sélectionner la photo depuis l'appareil
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    (Fichier image local : JPG, PNG, WebP)
+                  </div>
+                </div>
+                <div id="ad-image-preview-wrapper" style="display: none; align-items: center; justify-content: center; gap: 10px;">
+                  <img id="ad-image-preview" src="" alt="Aperçu photo" style="width: 72px; height: 72px; object-fit: cover; border-radius: 12px; border: 2px solid var(--terracotta-accent, #ff7a45);">
+                  <div style="text-align: left;">
+                    <strong style="color: #10b981; font-size: 0.82rem; display: block;">✓ Photo prête</strong>
+                    <span style="font-size: 0.74rem; color: var(--text-muted); text-decoration: underline;">Cliquer pour remplacer</span>
+                  </div>
                 </div>
               </div>
-              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">
-                📁 Choisissez une photo nette depuis votre téléphone ou ordinateur (JPG, PNG, WebP).
-              </small>
+              <input type="file" id="ad-image-file" style="display: none;" accept="image/*" onchange="window.previewAdImage(event)">
+              <input type="hidden" id="ad-existing-image" value="">
             </div>
             <div>
               <label class="admin-label" for="ad-redirect-url">Lien de redirection au clic (WhatsApp, Boutique, Web)</label>

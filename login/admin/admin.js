@@ -294,6 +294,27 @@ async function loadOverview() {
   }
 }
 
+function getPublicPrayerCount(realCount = 0) {
+  const now = Date.now();
+  const anchor = 1792454400000;
+  const slotMinutes = 10;
+  const slotMs = slotMinutes * 60 * 1000;
+  const elapsedSlots = Math.max(0, Math.floor((now - anchor) / slotMs));
+
+  let simulatedBonus = 0;
+  const cappedSlots = Math.min(elapsedSlots, 200);
+  for (let s = 1; s <= cappedSlots; s++) {
+    const inc = (((s * 9301 + 49297) % 233280) % 15) + 1;
+    simulatedBonus += inc;
+  }
+  if (elapsedSlots > 200) {
+    simulatedBonus += (elapsedSlots - 200) * 8;
+  }
+
+  const base = 102;
+  return base + simulatedBonus + (Number(realCount) || 0);
+}
+
 function renderOverview(data) {
   const { stats, event, active_quiz } = data;
 
@@ -301,7 +322,15 @@ function renderOverview(data) {
   document.getElementById('kpi-guests-count').textContent = stats.guests_count || 0;
   document.getElementById('kpi-tables-count').textContent = stats.tables_count || 0;
   document.getElementById('kpi-chat-count').textContent = stats.chat_count || 0;
-  document.getElementById('kpi-prayers-count').textContent = stats.prayers_count || 0;
+  
+  const realPrayers = stats.prayers_count || 0;
+  const fakePrayers = getPublicPrayerCount(realPrayers);
+  document.getElementById('kpi-prayers-count').textContent = realPrayers;
+  const realKpi = document.getElementById('admin-prayers-real-kpi');
+  const fakeKpi = document.getElementById('admin-prayers-fake-kpi');
+  if (realKpi) realKpi.textContent = realPrayers;
+  if (fakeKpi) fakeKpi.textContent = fakePrayers;
+
   document.getElementById('kpi-networking-count').textContent = stats.networking_count || 0;
   document.getElementById('kpi-push-count').textContent = stats.push_subscribers_count || 0;
 
@@ -730,6 +759,13 @@ async function loadPrayers() {
 function renderPrayers(prayers) {
   const container = document.getElementById('admin-prayers-list');
   if (!container) return;
+
+  const realCount = prayers ? prayers.length : 0;
+  const fakeCount = getPublicPrayerCount(realCount);
+  const realH = document.getElementById('admin-prayers-real-header');
+  const fakeH = document.getElementById('admin-prayers-fake-header');
+  if (realH) realH.textContent = realCount;
+  if (fakeH) fakeH.textContent = fakeCount;
 
   if (!prayers || prayers.length === 0) {
     container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Aucune requête déposée.</p>`;
@@ -1614,12 +1650,14 @@ window.previewAdImage = (event) => {
   const file = event.target.files && event.target.files[0];
   const preview = document.getElementById('ad-image-preview');
   const wrapper = document.getElementById('ad-image-preview-wrapper');
+  const prompt = document.getElementById('ad-upload-prompt');
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = (e) => {
     if (preview) preview.src = e.target.result;
     if (wrapper) wrapper.style.display = 'flex';
+    if (prompt) prompt.style.display = 'none';
   };
   reader.readAsDataURL(file);
 };
@@ -1718,12 +1756,16 @@ function editAd(id) {
   // Preview de l'image existante
   const preview = document.getElementById('ad-image-preview');
   const wrapper = document.getElementById('ad-image-preview-wrapper');
+  const prompt = document.getElementById('ad-upload-prompt');
   const existingSrc = ad.image_data || ad.image_url || '';
   if (preview) {
     preview.src = existingSrc;
   }
   if (wrapper) {
     wrapper.style.display = existingSrc ? 'flex' : 'none';
+  }
+  if (prompt) {
+    prompt.style.display = existingSrc ? 'none' : 'block';
   }
   const existingInput = document.getElementById('ad-existing-image');
   if (existingInput) existingInput.value = existingSrc;
@@ -1763,8 +1805,10 @@ function resetAdForm() {
   document.getElementById('ad-existing-image').value = '';
   const preview = document.getElementById('ad-image-preview');
   const wrapper = document.getElementById('ad-image-preview-wrapper');
+  const prompt = document.getElementById('ad-upload-prompt');
   if (preview) preview.src = '';
   if (wrapper) wrapper.style.display = 'none';
+  if (prompt) prompt.style.display = 'block';
   document.getElementById('ad-order').value = (AdminState.ads.length + 1) || 1;
   const titleEl = document.getElementById('form-ad-title');
   if (titleEl) titleEl.textContent = "🛍️ Ajouter un Espace Publicitaire / Produit 3D";

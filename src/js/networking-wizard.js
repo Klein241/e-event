@@ -312,6 +312,10 @@ export const NetworkingWizard = {
         NetworkingModule.refresh();
       }
 
+      if (typeof window.updateHomeMetrics === 'function') {
+        window.updateHomeMetrics();
+      }
+
       // Basculer vers l'onglet réseautage
       if (typeof window.switchTab === 'function') {
         window.switchTab('networking');

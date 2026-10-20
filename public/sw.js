@@ -1,5 +1,5 @@
 // Service Worker - Compagnon de Cérémonie PWA & Web Push
-const CACHE_NAME = 'compagnon-v1.2.0';
+const CACHE_NAME = 'compagnon-v1.3.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

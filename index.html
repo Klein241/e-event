@@ -281,7 +281,7 @@
           <!-- LES 3 GRANDES CARTES EN BULLE DE DIALOGUE (EXACT DESIGN DU MODÈLE) -->
           <div class="gala-speech-cards-container">
 
-            <!-- 1. BANNIÈRE 1 (TEAL) : PRIÈRE & FOI -->
+            <!-- 1. BANNIÈRE 1 (TEAL) : NOUS PRIONS POUR VOUS -->
             <div class="speech-card card-teal" id="btn-hero-prayer" onclick="window.PrayerWizard?.open()">
               <div class="speech-card-badge">
                 <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
@@ -290,11 +290,15 @@
                 </svg>
               </div>
               <div class="speech-card-body">
-                <h2 class="speech-card-title">Prière & Foi</h2>
+                <h2 class="speech-card-title">Nous prions pour vous</h2>
                 <div class="speech-card-line"></div>
                 <p class="speech-card-text">
                   Confiez vos intentions en toute discrétion. Une équipe dédiée prie pour vous, vos familles et vos projets tout au long du gala.
                 </p>
+                <div class="speech-card-metric" style="margin-top: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #047857; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>🕊️</span>
+                  <span>Déjà <strong id="prayer-display-count" style="font-size: 0.92rem; text-decoration: underline;">102</strong> requêtes reçues</span>
+                </div>
               </div>
             </div>
 
@@ -312,10 +316,14 @@
                 <p class="speech-card-text">
                   Vos futurs partenaires et clients partagent votre table. Échangez votre profil digital en 1 clic et tissez des alliances stratégiques.
                 </p>
+                <div class="speech-card-metric" style="margin-top: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #c2410c; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>🤝</span>
+                  <span>Déjà <strong id="networking-display-count" style="font-size: 0.92rem; text-decoration: underline;">10</strong> profils publiés</span>
+                </div>
               </div>
             </div>
 
-            <!-- 3. BANNIÈRE 3 (ORANGE) : DÉFIS & QUIZ LIVE -->
+            <!-- 3. BANNIÈRE 3 (ORANGE) : JEUX EN LIGNE -->
             <div class="speech-card card-orange" id="btn-hero-games" onclick="window.switchTab('games')">
               <div class="speech-card-badge">
                 <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
@@ -328,10 +336,10 @@
                 </svg>
               </div>
               <div class="speech-card-body">
-                <h2 class="speech-card-title">Défis & Quiz</h2>
+                <h2 class="speech-card-title">Jeux en ligne</h2>
                 <div class="speech-card-line"></div>
                 <p class="speech-card-text">
-                  Hissez votre table au sommet ! Défiez vos voisins en duel express, jouez avec l'Animateur IA et remportez le grand trophée du gala.
+                  Hissez votre table au sommet ! Défiez vos voisins en duel express, participez aux défis bibliques et remportez le grand trophée du gala.
                 </p>
               </div>
             </div>
@@ -441,15 +449,12 @@
           </div>
 
           <!-- Sélecteur de mode de jeu -->
-          <div class="game-mode-tabs" style="display: flex; gap: 0.4rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-            <button type="button" id="btn-mode-bible-games" class="btn-3d btn-3d-gold active" style="flex: 1; min-width: 110px; padding: 0.6rem 0.4rem; font-size: 0.8rem;" onclick="window.switchGameSubTab('bible')">
+          <div class="game-mode-tabs" style="display: flex; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <button type="button" id="btn-mode-bible-games" class="btn-3d btn-3d-gold active" style="flex: 1; padding: 0.75rem 0.5rem; font-size: 0.86rem;" onclick="window.switchGameSubTab('bible')">
               <span>📖 Jeux Bibliques</span>
             </button>
-            <button type="button" id="btn-mode-duel-games" class="btn-3d btn-3d-coral" style="flex: 1.2; min-width: 125px; padding: 0.6rem 0.4rem; font-size: 0.8rem;" onclick="window.switchGameSubTab('duel')">
-              <span>⚔️ Duel Tables</span>
-            </button>
-            <button type="button" id="btn-mode-live-quiz" class="btn-3d btn-3d-porcelain" style="flex: 1.1; min-width: 120px; padding: 0.6rem 0.4rem; font-size: 0.8rem;" onclick="window.switchGameSubTab('live')">
-              <span>🤖 Quiz IA en Live</span>
+            <button type="button" id="btn-mode-duel-games" class="btn-3d btn-3d-coral" style="flex: 1; padding: 0.75rem 0.5rem; font-size: 0.86rem;" onclick="window.switchGameSubTab('duel')">
+              <span>⚔️ Duel des Tables</span>
             </button>
           </div>
 

@@ -104,29 +104,24 @@ export const GamesModule = {
 
     const quiz = AppState.activeQuiz;
 
-    // Pas de question live active : Hub d'accueil de l'Animateur IA
+    // Pas de question live active : Hub des défis et duels
     if (!quiz) {
       quizCard.innerHTML = `
         <div class="live-waiting-hub">
-          <div class="ai-mc-avatar-bubble">
-            <div class="ai-mc-avatar">🤖</div>
-            <div class="ai-mc-badge">M.C. CÉLESTE IA</div>
-          </div>
-
-          <div class="ai-mc-speech">
-            « ${escapeHtml(this.aiCommentary)} »
-          </div>
-
-          <p style="font-size: 0.84rem; color: var(--text-muted); margin: 0.75rem auto 1.25rem; max-width: 420px; line-height: 1.4;">
-            L'Animateur IA synchronise toutes les tables de la salle et le grand écran vidéoprojecteur en temps réel.
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚔️</div>
+          <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.4rem;">
+            Arène de Duel & Défis de Tables
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.5rem auto 1.25rem; max-width: 420px; line-height: 1.45;">
+            Défiez les tables voisines en combat express ou préparez-vous pour les questions directes lancées par la régie de la soirée !
           </p>
 
           <div style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 380px; margin: 0 auto;">
-            <button class="btn-3d btn-3d-gold" onclick="window.GamesModule.triggerAiNextQuestion()">
-              <span>🚀 Animateur IA : Lancer la manche live !</span>
-            </button>
             <button class="btn-3d btn-3d-coral" onclick="window.GamesModule.openDuelLobby()">
               <span>⚔️ Lancer un Duel de Tables (5 Manches)</span>
+            </button>
+            <button class="btn-3d btn-3d-gold" onclick="window.GamesModule.triggerAiNextQuestion()">
+              <span>⚡ Lancer une Question Direct</span>
             </button>
           </div>
         </div>
@@ -141,10 +136,10 @@ export const GamesModule = {
           <div class="quiz-timer-bar" id="quiz-timer-bar"></div>
         </div>
 
-        <div class="ai-mc-live-header">
-          <div class="ai-mc-live-pill">
-            <span>🤖</span>
-            <span>ANIMATEUR IA EN DIRECT</span>
+        <div class="ai-mc-live-header" style="justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 800; color: #ff7a45; background: rgba(255, 122, 69, 0.12); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255, 122, 69, 0.3);">
+            <span>⚡</span>
+            <span>QUESTION EN DIRECT</span>
           </div>
           <span class="quiz-points-badge">+${quiz.points || 100} PTS</span>
         </div>
@@ -176,12 +171,12 @@ export const GamesModule = {
 
         <div id="quiz-feedback-box"></div>
 
-        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-          <button class="btn-icon" style="font-size: 0.75rem; width: auto; padding: 4px 10px;" onclick="window.GamesModule.openDuelLobby()">
+        <div style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+          <button class="btn-icon" style="font-size: 0.78rem; width: auto; padding: 6px 14px;" onclick="window.GamesModule.openDuelLobby()">
             ⚔️ Passer en Duel
           </button>
-          <button class="btn-icon" style="font-size: 0.75rem; width: auto; padding: 4px 12px; color: var(--gold-primary);" onclick="window.GamesModule.triggerAiNextQuestion()">
-            ⏭️ Animateur IA : Question suivante
+          <button class="btn-icon" style="font-size: 0.78rem; width: auto; padding: 6px 14px; color: var(--gold-primary);" onclick="window.GamesModule.triggerAiNextQuestion()">
+            ⏭️ Question suivante
           </button>
         </div>
       </div>
@@ -416,11 +411,23 @@ export const GamesModule = {
   },
 
   async launchNewDuel() {
-    window.showToast?.("⚔️ Création du Duel dans la salle...", "info");
+    window.showToast?.("⚔️ Le duel commence ! À vos marques...", "info");
 
     const questions = getQuickBibleQuiz(5);
     const challengerName = AppState.guest ? AppState.guest.name : "Invité";
 
+    this.duelQuestions = questions;
+    this.duelCurrentIndex = 0;
+    this.duelMyScore = 0;
+    this.duelOpponentScore = 0;
+    this.duelActive = true;
+    this.duelId = `duel-local-${Date.now()}`;
+
+    // Lancement instantané de l'arène sans temps de latence
+    this.renderDuelArena();
+    this.startDuelLoop();
+
+    // Enregistrement asynchrone côté serveur
     try {
       const res = await Api.createDuel({
         challenger_table: this.duelChallengerTable,
@@ -431,23 +438,9 @@ export const GamesModule = {
 
       if (res && res.duel_id) {
         this.duelId = res.duel_id;
-        this.duelQuestions = questions;
-        this.duelCurrentIndex = 0;
-        this.duelMyScore = 0;
-        this.duelOpponentScore = 0;
-        this.duelActive = true;
-
-        this.startDuelLoop();
       }
     } catch (err) {
-      console.warn("[Duel Create Error] :", err);
-      // Fallback local fluide
-      this.duelQuestions = questions;
-      this.duelCurrentIndex = 0;
-      this.duelMyScore = 0;
-      this.duelOpponentScore = 0;
-      this.duelActive = true;
-      this.renderDuelArena();
+      console.warn("[Duel Async Create] : Mode duel local autonome actif :", err);
     }
   },
 
@@ -458,12 +451,13 @@ export const GamesModule = {
         this.duelId = res.duel.id;
         this.duelChallengerTable = res.duel.challenger_table;
         this.duelOpponentTable = res.duel.opponent_table;
-        this.duelQuestions = res.duel.questions;
+        this.duelQuestions = res.duel.questions && res.duel.questions.length > 0 ? res.duel.questions : getQuickBibleQuiz(5);
         this.duelCurrentIndex = 0;
         this.duelMyScore = 0;
         this.duelOpponentScore = 0;
         this.duelActive = true;
 
+        this.renderDuelArena();
         this.startDuelLoop();
       }
     } catch (err) {
@@ -472,20 +466,21 @@ export const GamesModule = {
   },
 
   startDuelLoop() {
-    this.renderDuelArena();
-
-    // Polling régulier de l'état du duel pour synchroniser les deux tables en direct
+    // Polling régulier pour synchroniser les duels distants sans écraser les scores locaux
     if (this.duelPollInterval) clearInterval(this.duelPollInterval);
     this.duelPollInterval = setInterval(async () => {
-      if (!this.duelActive || !this.duelId) return;
+      if (!this.duelActive || !this.duelId || this.duelId.startsWith('duel-local-')) return;
 
       try {
         const res = await Api.getDuelStatus(this.duelId);
         if (res && res.duel) {
           const d = res.duel;
           const isChallenger = (String(AppState.guest?.table_number || '1') === String(d.challenger_table));
-          this.duelMyScore = isChallenger ? d.challenger_score : d.opponent_score;
-          this.duelOpponentScore = isChallenger ? d.opponent_score : d.challenger_score;
+          const serverMy = isChallenger ? d.challenger_score : d.opponent_score;
+          const serverOpp = isChallenger ? d.opponent_score : d.challenger_score;
+
+          this.duelMyScore = Math.max(this.duelMyScore, Number(serverMy) || 0);
+          this.duelOpponentScore = Math.max(this.duelOpponentScore, Number(serverOpp) || 0);
 
           this.updateDuelHeaderScores();
 
@@ -494,9 +489,9 @@ export const GamesModule = {
           }
         }
       } catch (e) {
-        // Silencieux pour ne pas polluer l'interface
+        // Silencieux
       }
-    }, 1500);
+    }, 2000);
   },
 
   renderDuelArena() {
