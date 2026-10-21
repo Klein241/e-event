@@ -160,10 +160,89 @@ export async function handleEventRoutes(pathname, request, env) {
     }
   }
 
-  // 4. Liste des invités actifs
+  // 4a. Heartbeat & statut de présence invité
+  if (pathname === "/api/guests/heartbeat" && method === "POST") {
+    let guestId = null;
+    try {
+      const body = await request.json();
+      guestId = body.guest_id || body.id;
+    } catch(e) {}
+
+    if (db && guestId) {
+      await db.prepare("UPDATE guests SET last_active = CURRENT_TIMESTAMP WHERE id = ?").bind(guestId).run().catch(() => {});
+    }
+
+    let onlineCount = 1;
+    let totalCount = 1;
+    if (db) {
+      try {
+        const stats = await db.prepare(`
+          SELECT 
+            COUNT(*) as total,
+            SUM(CASE WHEN last_active >= datetime('now', '-2 minutes') THEN 1 ELSE 0 END) as online
+          FROM guests
+        `).first();
+        if (stats) {
+          totalCount = stats.total || 0;
+          onlineCount = stats.online || 0;
+        }
+      } catch (e) {}
+    }
+
+    return jsonResponse({ success: true, online_count: onlineCount, total_count: totalCount });
+  }
+
+  // 4b. Liste détaillée des invités connectés et déconnectés (qui étaient connectés)
+  if (pathname === "/api/guests/presence" && method === "GET") {
+    if (!db) return jsonResponse({ online: [], offline: [], online_count: 0, total_count: 0 });
+
+    try {
+      const { results } = await db.prepare(`
+        SELECT 
+          id, name, table_number, role, avatar_emoji, photo_url, profession, company, last_active,
+          CASE WHEN last_active >= datetime('now', '-2 minutes') THEN 1 ELSE 0 END as is_online,
+          CAST((strftime('%s', 'now') - strftime('%s', last_active)) AS INTEGER) as seconds_ago
+        FROM guests
+        ORDER BY is_online DESC, last_active DESC
+        LIMIT 150
+      `).all();
+
+      const online = [];
+      const offline = [];
+
+      (results || []).forEach(g => {
+        if (g.is_online === 1) {
+          online.push(g);
+        } else {
+          offline.push(g);
+        }
+      });
+
+      return jsonResponse({
+        online,
+        offline,
+        online_count: online.length,
+        offline_count: offline.length,
+        total_count: (results || []).length
+      });
+    } catch (err) {
+      console.error("Erreur présence invités:", err);
+      return jsonResponse({ online: [], offline: [], online_count: 0, total_count: 0 });
+    }
+  }
+
+  // 4c. Liste des invités actifs
   if (pathname === "/api/guests" && method === "GET") {
     if (!db) return jsonResponse([getMockGuest()]);
-    const { results } = await db.prepare("SELECT * FROM guests ORDER BY last_active DESC LIMIT 100").all();
+    const { results } = await db.prepare(`
+      SELECT 
+        id, name, table_number, role, avatar_emoji, photo_url, profession, company, last_active,
+        CASE WHEN last_active >= datetime('now', '-2 minutes') THEN 1 ELSE 0 END as is_online,
+        CAST((strftime('%s', 'now') - strftime('%s', last_active)) AS INTEGER) as seconds_ago
+      FROM guests 
+      ORDER BY is_online DESC, last_active DESC 
+      LIMIT 100
+    `).all();
     return jsonResponse(results || []);
   }
 

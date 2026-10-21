@@ -457,46 +457,44 @@ window.openPrivateChat = (index) => {
 
   // Récupérer l'historique privé dans localStorage
   const chatKey = `private_chat_${recipient.guest_id || recipient.id || recipient.full_name}`;
-  let history = JSON.parse(localStorage.getItem(chatKey) || '[]');
+  const history = JSON.parse(localStorage.getItem(chatKey) || '[]');
 
-  // S'il n'y a pas encore de message, préparons la première salutation
-  if (history.length === 0) {
-    const greetingText = `👋 Bonsoir ${recipient.full_name} ! Ravi de faire votre connaissance à ce gala. Échangeons un instant ! 🥂`;
-    history.push({
-      sender: 'me',
-      text: greetingText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    });
-    localStorage.setItem(chatKey, JSON.stringify(history));
-
-    // Réponse automatique amicale simulée au premier contact pour dynamiser l'expérience
-    setTimeout(() => {
-      let updated = JSON.parse(localStorage.getItem(chatKey) || '[]');
-      updated.push({
-        sender: 'recipient',
-        text: `Enchanté ! C'est un plaisir de vous rencontrer également. Vous êtes à quelle table ? ✨`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-      localStorage.setItem(chatKey, JSON.stringify(updated));
-      renderPrivateMessages(updated);
-    }, 1200);
-  }
-
-  renderPrivateMessages(history);
+  renderPrivateMessages(history, recipient);
 
   if (inputEl) {
-    inputEl.value = '';
+    if (history.length === 0) {
+      inputEl.value = `👋 Bonsoir ${recipient.full_name} ! Ravi de faire votre connaissance au gala.`;
+    } else {
+      inputEl.value = '';
+    }
   }
 
   chatModal.classList.add('active');
   setTimeout(() => {
-    if (inputEl) inputEl.focus();
+    if (inputEl) {
+      inputEl.focus();
+      if (history.length === 0) {
+        inputEl.select();
+      }
+    }
   }, 200);
 };
 
-function renderPrivateMessages(messages) {
+function renderPrivateMessages(messages, recipient) {
   const list = document.getElementById('private-chat-messages-list');
   if (!list) return;
+
+  if (!messages || messages.length === 0) {
+    const name = recipient ? escapeHtml(recipient.full_name) : 'cet invité';
+    list.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 2.2rem;">🤝</span>
+        <strong style="color: var(--text-main); font-size: 0.95rem;">Commencez la discussion privée</strong>
+        <p style="font-size: 0.8rem; margin: 0; max-width: 260px;">Envoyez un message amical à ${name}. Vos échanges sont directs et confidentiels.</p>
+      </div>
+    `;
+    return;
+  }
 
   list.innerHTML = messages.map(m => `
     <div class="private-bubble ${m.sender === 'me' ? 'sent' : 'received'}">

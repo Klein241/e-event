@@ -1615,7 +1615,20 @@ function renderAds() {
 
 function readImageFileAsBase64(file) {
   return new Promise((resolve, reject) => {
+    const fileName = (file.name || '').toLowerCase();
+    const isGlb = fileName.endsWith('.glb') || fileName.endsWith('.gltf') || file.type.includes('gltf') || file.type.includes('glb');
+
     const reader = new FileReader();
+
+    // Pour les fichiers 3D .glb / .gltf : lecture directe en DataURL binaire
+    if (isGlb) {
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Pour les photos classiques : compression canvas fluide
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
@@ -1651,8 +1664,24 @@ window.previewAdImage = (event) => {
   const preview = document.getElementById('ad-image-preview');
   const wrapper = document.getElementById('ad-image-preview-wrapper');
   const prompt = document.getElementById('ad-upload-prompt');
+  const badge3d = document.getElementById('ad-3d-model-badge');
+  const badge3dName = document.getElementById('ad-3d-filename');
   if (!file) return;
 
+  const fileName = (file.name || '').toLowerCase();
+  const isGlb = fileName.endsWith('.glb') || fileName.endsWith('.gltf') || file.type.includes('gltf') || file.type.includes('glb');
+
+  if (isGlb) {
+    if (prompt) prompt.style.display = 'none';
+    if (wrapper) wrapper.style.display = 'none';
+    if (badge3d) {
+      badge3d.style.display = 'flex';
+      if (badge3dName) badge3dName.textContent = `📦 Modèle 3D GLB : ${file.name} (${(file.size / 1024).toFixed(0)} Ko)`;
+    }
+    return;
+  }
+
+  if (badge3d) badge3d.style.display = 'none';
   const reader = new FileReader();
   reader.onload = (e) => {
     if (preview) preview.src = e.target.result;
@@ -1661,6 +1690,7 @@ window.previewAdImage = (event) => {
   };
   reader.readAsDataURL(file);
 };
+
 
 async function saveAd(event) {
   if (event) event.preventDefault();
@@ -1805,9 +1835,11 @@ function resetAdForm() {
   document.getElementById('ad-existing-image').value = '';
   const preview = document.getElementById('ad-image-preview');
   const wrapper = document.getElementById('ad-image-preview-wrapper');
+  const badge3d = document.getElementById('ad-3d-model-badge');
   const prompt = document.getElementById('ad-upload-prompt');
   if (preview) preview.src = '';
   if (wrapper) wrapper.style.display = 'none';
+  if (badge3d) badge3d.style.display = 'none';
   if (prompt) prompt.style.display = 'block';
   document.getElementById('ad-order').value = (AdminState.ads.length + 1) || 1;
   const titleEl = document.getElementById('form-ad-title');

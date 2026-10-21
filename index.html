@@ -478,6 +478,18 @@
 
         <div class="chat-container">
           
+          <!-- Bannière Statut Invités Connectés & Hors-Ligne (Cliquable) -->
+          <div class="chat-presence-banner" id="chat-presence-banner" onclick="window.openGuestsPresenceModal()" title="Cliquer pour voir la liste des invités connectés et hors-ligne">
+            <div class="presence-indicator">
+              <span class="presence-pulse-dot"></span>
+              <span id="chat-online-count" class="presence-count">Chargement présence...</span>
+            </div>
+            <div class="presence-summary">
+              <span id="chat-total-guests-count">-- invités</span>
+              <span class="presence-cta">Voir les participants 👥</span>
+            </div>
+          </div>
+
           <!-- Bannière Message Épinglé (Régie / MC) -->
           <div class="pinned-banner" id="pinned-banner" style="display: none;">
             <div class="pinned-icon">📢</div>
@@ -492,8 +504,42 @@
             <!-- Injecté dynamiquement par chat.js -->
           </div>
 
+          <!-- Sélecteur complet de tous les Emojis (Popup flottant riche) -->
+          <div class="chat-emoji-picker-container" id="chat-emoji-picker" style="display: none;">
+            <div class="emoji-picker-header">
+              <div class="emoji-category-tabs" id="emoji-category-tabs">
+                <button type="button" class="emoji-cat-btn active" data-cat="faces" title="Sourires & Émotions">😀</button>
+                <button type="button" class="emoji-cat-btn" data-cat="hands" title="Gestes & Mains">👋</button>
+                <button type="button" class="emoji-cat-btn" data-cat="hearts" title="Amour & Célébration">❤️</button>
+                <button type="button" class="emoji-cat-btn" data-cat="party" title="Fête & Gala">🍾</button>
+                <button type="button" class="emoji-cat-btn" data-cat="faith" title="Cérémonie & Symboles">✨</button>
+              </div>
+              <button type="button" class="emoji-picker-close" onclick="ChatModule.toggleEmojiPicker(false)">✕</button>
+            </div>
+            <div class="emoji-search-bar">
+              <input type="text" id="emoji-search-input" placeholder="🔍 Rechercher un emoji..." autocomplete="off">
+            </div>
+            <div class="emoji-grid-content" id="emoji-grid-content">
+              <!-- Grille d'émojis injectée dynamiquement -->
+            </div>
+          </div>
+
           <!-- Zone de composition du message -->
           <div class="chat-composer">
+            
+            <!-- Prévisualisation de la pièce jointe (Ultra-compressée) -->
+            <div class="chat-attachment-preview" id="chat-attachment-preview" style="display: none;">
+              <div class="attachment-preview-thumb-box" id="attachment-preview-thumb-box">
+                <img id="attachment-preview-img" src="" alt="Aperçu image">
+              </div>
+              <div class="attachment-preview-info">
+                <span id="attachment-preview-name" class="attachment-name">fichier.jpg</span>
+                <span id="attachment-preview-badge" class="attachment-badge">⚡ Ultra-compressé (48 Ko)</span>
+              </div>
+              <button type="button" class="btn-remove-attachment" onclick="ChatModule.clearAttachment()" title="Supprimer la pièce jointe">✕</button>
+            </div>
+
+            <!-- Barre d'émojis rapides -->
             <div class="emoji-quick-bar">
               <button class="quick-emoji-btn" data-emoji="🥂">🥂</button>
               <button class="quick-emoji-btn" data-emoji="🎉">🎉</button>
@@ -503,9 +549,18 @@
               <button class="quick-emoji-btn" data-emoji="🙏">🙏</button>
               <button class="quick-emoji-btn" data-emoji="👑">👑</button>
               <button class="quick-emoji-btn" data-emoji="✨">✨</button>
+              <button class="quick-emoji-btn quick-emoji-more" onclick="ChatModule.toggleEmojiPicker()" title="Voir tous les émojis">➕ Tous</button>
             </div>
+
             <div class="composer-row">
-              <input type="text" class="chat-input" id="chat-input" placeholder="Écrire un mot chaleureux à la salle..." maxlength="280">
+              <button type="button" class="btn-composer-icon" id="btn-toggle-emoji" title="Ouvrir la palette complète d'émojis" onclick="ChatModule.toggleEmojiPicker()">
+                😊
+              </button>
+              <button type="button" class="btn-composer-icon" id="btn-chat-attach" title="Joindre une photo (ultra-compressée) ou document" onclick="document.getElementById('chat-file-input').click()">
+                📎
+              </button>
+              <input type="file" id="chat-file-input" style="display: none;" accept="image/png,image/jpeg,image/webp,application/pdf,.doc,.docx" onchange="ChatModule.handleFileInput(event)">
+              <input type="text" class="chat-input" id="chat-input" placeholder="Écrire un mot chaleureux à la salle..." maxlength="500">
               <button class="btn-send" id="btn-send-chat" title="Envoyer le message">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
@@ -1297,6 +1352,64 @@
         <span>Découvrir l'offre exclusive</span>
         <span>➔</span>
       </a>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODALE PRÉSENCE DES INVITÉS (CONNECTÉS & HORS-LIGNE)
+       ============================================================ -->
+  <div class="modal-presence-overlay" id="modal-guests-presence" style="display: none;" onclick="if(event.target === this) window.closeGuestsPresenceModal()">
+    <div class="modal-presence-card animate-scale-up">
+      <div class="presence-modal-header">
+        <div>
+          <div class="presence-modal-badge">
+            <span class="presence-pulse-dot"></span>
+            <span>Flux Direct des Invités</span>
+          </div>
+          <h3 class="presence-modal-title">Participants & Statut Réseau</h3>
+          <p class="presence-modal-sub">Consultez les invités connectés en direct et ceux qui étaient présents.</p>
+        </div>
+        <button type="button" class="btn-close-presence" onclick="window.closeGuestsPresenceModal()" title="Fermer">✕</button>
+      </div>
+
+      <!-- Filtres par statut -->
+      <div class="presence-tabs-row">
+        <button type="button" class="presence-tab-btn active" id="presence-tab-online" onclick="ChatModule.setPresenceFilter('online')">
+          🟢 En ligne (<span id="count-badge-online">0</span>)
+        </button>
+        <button type="button" class="presence-tab-btn" id="presence-tab-offline" onclick="ChatModule.setPresenceFilter('offline')">
+          ⚪ Déconnectés (<span id="count-badge-offline">0</span>)
+        </button>
+        <button type="button" class="presence-tab-btn" id="presence-tab-all" onclick="ChatModule.setPresenceFilter('all')">
+          👥 Tous (<span id="count-badge-all">0</span>)
+        </button>
+      </div>
+
+      <!-- Champ de recherche réactif -->
+      <div class="presence-search-box">
+        <input type="text" id="presence-search-input" placeholder="🔍 Rechercher un invité par nom, table, métier..." autocomplete="off">
+      </div>
+
+      <!-- Liste déroulante des invités -->
+      <div class="presence-list-scroll" id="presence-list-scroll">
+        <!-- Rendu dynamique par ChatModule.renderPresenceList() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       VISIONNEUSE LIGHTBOX PHOTO DU CHAT (ZOOM PLEIN ÉCRAN)
+       ============================================================ -->
+  <div class="chat-lightbox-overlay" id="chat-lightbox-modal" style="display: none;" onclick="if(event.target === this) window.closeChatLightbox()">
+    <div class="chat-lightbox-content animate-scale-up">
+      <button type="button" class="btn-close-lightbox" onclick="window.closeChatLightbox()" title="Fermer">✕</button>
+      <img id="chat-lightbox-img" src="" alt="Photo chat agrandie">
+      <div class="chat-lightbox-bar">
+        <span id="chat-lightbox-caption">Photo partagée</span>
+        <a id="chat-lightbox-download" href="#" download="photo-gala.jpg" class="chat-lightbox-btn-download">
+          💾 Télécharger l'image
+        </a>
+      </div>
     </div>
   </div>
 

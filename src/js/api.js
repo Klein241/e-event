@@ -169,12 +169,42 @@ export const Api = {
     return await sendWithOfflineFallback('chat', '/chat', data);
   },
 
+  // 4b. Suppression d'un message envoyé (Auteur ou Admin)
+  async deleteChatMessage(messageId, guestId) {
+    return await request(`/chat/${messageId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ guest_id: guestId })
+    }, 0);
+  },
+
   // 5. Réaction emoji
   async reactToMessage(messageId, emoji) {
     return await request(`/chat/${messageId}/react`, {
       method: 'POST',
       body: JSON.stringify({ emoji })
     }, 0);
+  },
+
+  // 5b. Présence des invités (Connectés & Déconnectés)
+  async getGuestsPresence() {
+    try {
+      return await request('/guests/presence');
+    } catch (e) {
+      return { online: [], offline: [], online_count: 0, total_count: 0 };
+    }
+  },
+
+  // 5c. Heartbeat de présence invité
+  async sendGuestHeartbeat(guestId) {
+    if (!guestId) return null;
+    try {
+      return await request('/guests/heartbeat', {
+        method: 'POST',
+        body: JSON.stringify({ guest_id: guestId })
+      }, 0);
+    } catch (e) {
+      return null;
+    }
   },
 
   // 6. Jeux en direct (Quiz actif & Sondage)
