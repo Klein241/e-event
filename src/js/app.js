@@ -526,6 +526,83 @@ window.toggleCoupleFields = (isCouple) => {
   }
 };
 
+let currentInvitationPhotoBase64 = null;
+
+window.handleInvitationPhotoSelect = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert("Veuillez sélectionner un fichier image valide (JPG, PNG, WebP).");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxDim = 400;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      currentInvitationPhotoBase64 = compressedDataUrl;
+
+      const imgEl = document.getElementById('inv-photo-img-preview');
+      const emojiEl = document.getElementById('inv-photo-emoji-placeholder');
+      const removeBtn = document.getElementById('inv-photo-remove-btn');
+
+      if (imgEl) {
+        imgEl.src = compressedDataUrl;
+        imgEl.style.display = 'block';
+      }
+      if (emojiEl) emojiEl.style.display = 'none';
+      if (removeBtn) removeBtn.style.display = 'inline-block';
+
+      window.onInvitationFieldChange();
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeInvitationPhoto = () => {
+  currentInvitationPhotoBase64 = null;
+  const input = document.getElementById('inv-photo-input');
+  if (input) input.value = '';
+
+  const imgEl = document.getElementById('inv-photo-img-preview');
+  const emojiEl = document.getElementById('inv-photo-emoji-placeholder');
+  const removeBtn = document.getElementById('inv-photo-remove-btn');
+
+  if (imgEl) {
+    imgEl.src = '';
+    imgEl.style.display = 'none';
+  }
+  if (emojiEl) emojiEl.style.display = 'block';
+  if (removeBtn) removeBtn.style.display = 'none';
+
+  window.onInvitationFieldChange();
+};
+
 window.onInvitationFieldChange = () => {
   const gender = document.querySelector('input[name="inv-gender"]:checked')?.value || 'M';
   const ticketType = document.querySelector('input[name="inv-ticket-type"]:checked')?.value || 'seul';
@@ -536,7 +613,10 @@ window.onInvitationFieldChange = () => {
   const table = document.getElementById('inv-input-table')?.value || '';
   const host = document.getElementById('inv-input-host')?.value || '';
 
-  const draft = { gender, ticketType, name, partner, coupleName, phone, table, host };
+  const draft = { 
+    gender, ticketType, name, partner, coupleName, phone, table, host,
+    photoUrl: currentInvitationPhotoBase64 
+  };
   try {
     localStorage.setItem('compagnon_invite_draft', JSON.stringify(draft));
   } catch(e) {}
@@ -584,6 +664,18 @@ window.openInvitationModal = () => {
       if (draft.table) document.getElementById('inv-input-table').value = draft.table;
       if (draft.host && !document.getElementById('inv-input-host')?.value) {
         document.getElementById('inv-input-host').value = draft.host;
+      }
+      if (draft.photoUrl) {
+        currentInvitationPhotoBase64 = draft.photoUrl;
+        const imgEl = document.getElementById('inv-photo-img-preview');
+        const emojiEl = document.getElementById('inv-photo-emoji-placeholder');
+        const removeBtn = document.getElementById('inv-photo-remove-btn');
+        if (imgEl) {
+          imgEl.src = draft.photoUrl;
+          imgEl.style.display = 'block';
+        }
+        if (emojiEl) emojiEl.style.display = 'none';
+        if (removeBtn) removeBtn.style.display = 'inline-block';
       }
     } else if (AppState.guest) {
       const nameInput = document.getElementById('inv-input-name');
@@ -815,6 +907,7 @@ window.submitInvitationRegistration = async () => {
     phone,
     table_number: cleanTable,
     invited_by: host,
+    photo_url: currentInvitationPhotoBase64 || '',
     avatar_emoji: gender === 'F' ? '👑' : '🎉'
   };
 

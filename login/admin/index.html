@@ -700,29 +700,55 @@
         <div class="admin-card-header" style="flex-wrap: wrap; gap: 12px;">
           <div>
             <h3>👥 Registre & Fiches CRM des Invités</h3>
-            <p>Cliquez sur n'importe quel invité pour ouvrir son dossier complet (coordonnées, prières, église, réseautage)</p>
+            <p>Consultez, filtrez par parrain/hôte et gérez les participants (en salle ou par lien)</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-table-action" onclick="window.openCreateGuestModal()" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+              <span>➕</span> Créer un invité
+            </button>
             <span id="admin-guests-count" class="status-pill status-active" style="font-weight: 800;">0 invité(s)</span>
           </div>
         </div>
 
-        <!-- Sous-rubriques Invités : Tous vs Invités par lien -->
-        <div style="display: flex; gap: 10px; margin: 12px 0 14px 0; flex-wrap: wrap; align-items: center;">
-          <button type="button" id="subtab-guests-all" class="btn-table-action subtab-guest-btn active" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--terracotta-gradient); color: #fff; cursor: pointer;" onclick="window.setGuestSubTab('all')">
-            👥 Tous les invités (<span id="subtab-count-all">0</span>)
+        <!-- Les 2 Catégories Officielles d'Invités : En Salle vs Par Lien (+ Tous) -->
+        <div style="display: flex; gap: 8px; margin: 12px 0 14px 0; flex-wrap: wrap; align-items: center;">
+          <button type="button" id="subtab-guests-salle" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: var(--text-main); cursor: pointer;" onclick="window.setGuestSubTab('salle')">
+            🏛️ Invités en salle (<span id="subtab-count-salle">0</span>)
           </button>
           <button type="button" id="subtab-guests-link" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: var(--text-main); cursor: pointer;" onclick="window.setGuestSubTab('link')">
             💌 Invités par lien (<span id="subtab-count-link">0</span>)
           </button>
+          <button type="button" id="subtab-guests-all" class="btn-table-action subtab-guest-btn active" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--terracotta-gradient); color: #fff; cursor: pointer;" onclick="window.setGuestSubTab('all')">
+            👥 Tous les invités (<span id="subtab-count-all">0</span>)
+          </button>
         </div>
 
-        <!-- Barre de recherche rapide CRM -->
-        <div style="margin: 0 0 18px 0;">
-          <input type="text" id="admin-guest-search" class="admin-input" placeholder="🔍 Rechercher un invité par nom, table, invité par, métier, résidence ou téléphone..." oninput="window.filterGuests(this.value)">
+        <!-- Barre de recherche rapide & Répartition par Hôte -->
+        <div style="display: flex; gap: 10px; margin: 0 0 18px 0; flex-wrap: wrap; align-items: center;">
+          <div style="flex: 1; min-width: 220px;">
+            <input type="text" id="admin-guest-search" class="admin-input" placeholder="🔍 Rechercher par nom, table, métier, résidence, WhatsApp..." oninput="window.filterGuests(this.value)" style="width: 100%;">
+          </div>
+
+          <!-- Filtre sélectif par Hôte ("Invité par") -->
+          <div style="min-width: 240px;">
+            <select id="admin-guest-host-filter" class="admin-input" onchange="window.filterGuests()" style="width: 100%; cursor: pointer;">
+              <option value="">👑 Tous les hôtes / parrains (Vue globale)</option>
+              <!-- Rempli dynamiquement avec les hôtes (ex: Dr Sophie, Pasteur Paul...) -->
+            </select>
+          </div>
+
+          <!-- Bascule d'affichage : Grille CRM vs Répartition Groupée par Hôte -->
+          <div style="display: flex; gap: 4px; background: var(--bg-secondary); padding: 4px; border-radius: 12px; border: 1.5px solid var(--border-color);">
+            <button type="button" id="btn-view-mode-grid" class="btn-table-action active" style="font-size: 0.76rem; font-weight: 800; padding: 6px 12px; border-radius: 8px; background: var(--terracotta-gradient); color: #fff; cursor: pointer;" onclick="window.setGuestViewMode('grid')">
+              🗂️ Fiches CRM
+            </button>
+            <button type="button" id="btn-view-mode-hosts" class="btn-table-action" style="font-size: 0.76rem; font-weight: 800; padding: 6px 12px; border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer;" onclick="window.setGuestViewMode('hosts')">
+              👑 Répartition par Hôte
+            </button>
+          </div>
         </div>
 
-        <!-- Grille de fiches CRM interactives -->
+        <!-- Conteneur d'affichage des fiches CRM ou Répartition par Hôte -->
         <div id="admin-guests-grid" class="guest-crm-grid">
           <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 2rem;">Chargement des profils invités...</p>
         </div>
@@ -1054,6 +1080,148 @@
     </div>
   </div>
 
+
+  <!-- ============================================================
+       MODALE DE CRÉATION MANUELLE D'UN INVITÉ PAR L'ADMINISTRATEUR
+       ============================================================ -->
+  <div class="admin-modal-overlay" id="modal-create-guest" style="display: none;" onclick="if(event.target === this) window.closeCreateGuestModal()">
+    <div class="admin-modal-card animate-scale-up" style="max-width: 540px; width: 94%; max-height: 92vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">➕</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">Ajouter un Invité au Registre</h3>
+            <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Enregistrement manuel côté admin (classé en "Invité par lien")</p>
+          </div>
+        </div>
+        <button type="button" class="btn-table-action" onclick="window.closeCreateGuestModal()" style="background: var(--bg-card); font-size: 1.1rem; padding: 4px 10px;">
+          ✕
+        </button>
+      </div>
+
+      <form id="admin-create-guest-form" onsubmit="event.preventDefault(); window.saveManualGuest();">
+        
+        <!-- Sexe M / F -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            ⚧️ Sexe <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-guest-gender" value="M" checked>
+              <span style="font-weight: 700; font-size: 0.88rem;">👨 Homme (M)</span>
+            </label>
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-guest-gender" value="F">
+              <span style="font-weight: 700; font-size: 0.88rem;">👩 Femme (F)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Formule Billet (Seul / Couple) -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            🎟️ Formule de Billet <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-guest-ticket-type" value="seul" checked onchange="window.toggleAdminCoupleFields(false)">
+              <span style="font-weight: 700; font-size: 0.88rem;">👤 Billet Seul</span>
+            </label>
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-guest-ticket-type" value="couple" onchange="window.toggleAdminCoupleFields(true)">
+              <span style="font-weight: 700; font-size: 0.88rem;">👥 Billet Couple</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Nom et prénom -->
+        <div style="margin-bottom: 14px;">
+          <label for="admin-input-guest-name" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            👤 Nom et prénom de l'invité <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="text" id="admin-input-guest-name" class="admin-input" placeholder="Ex: Marc LEGRAND / Pasteur Jean" required>
+        </div>
+
+        <!-- Champs Couple Conditionnels -->
+        <div id="admin-couple-fields" style="display: none; background: rgba(236, 72, 153, 0.08); border: 1.5px dashed rgba(236, 72, 153, 0.35); border-radius: 14px; padding: 12px; margin-bottom: 14px;">
+          <div style="margin-bottom: 10px;">
+            <label for="admin-input-guest-partner" style="font-size: 0.82rem; font-weight: 700; color: #db2777; display: block; margin-bottom: 4px;">
+              💍 Nom du conjoint(e) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-input-guest-partner" class="admin-input" placeholder="Ex: Sarah LEGRAND">
+          </div>
+          <div>
+            <label for="admin-input-guest-couple-name" style="font-size: 0.82rem; font-weight: 700; color: #db2777; display: block; margin-bottom: 4px;">
+              ✨ Nom officiel du couple <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-input-guest-couple-name" class="admin-input" placeholder="Ex: Couple LEGRAND">
+          </div>
+        </div>
+
+        <!-- N° Table & Invité par -->
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 140px;">
+            <label for="admin-input-guest-table" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+              🍽️ N° de Table <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-input-guest-table" class="admin-input" placeholder="Ex: A, D, F..." required style="text-transform: uppercase;">
+          </div>
+          <div style="flex: 1.5; min-width: 180px;">
+            <label for="admin-input-guest-host" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+              👑 Invité par (Hôte) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-input-guest-host" class="admin-input" placeholder="Ex: Dr. Sophie / Pasteur Paul" list="admin-hosts-datalist" required>
+            <datalist id="admin-hosts-datalist">
+              <!-- Injecté dynamiquement avec la liste des hôtes connus -->
+            </datalist>
+          </div>
+        </div>
+
+        <!-- WhatsApp -->
+        <div style="margin-bottom: 14px;">
+          <label for="admin-input-guest-phone" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            💬 Numéro WhatsApp
+          </label>
+          <input type="tel" id="admin-input-guest-phone" class="admin-input" placeholder="Ex: +241 77 12 34 56">
+        </div>
+
+        <!-- Photo d'identité (facultative) -->
+        <div style="margin-bottom: 18px;">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            📸 Photo d'identité <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-muted);">(Facultative)</span>
+          </label>
+          <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-secondary); border: 1.5px dashed var(--border-color); border-radius: 14px; padding: 8px 12px;">
+            <div id="admin-guest-photo-preview" style="width: 52px; height: 52px; border-radius: 14px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; overflow: hidden; flex-shrink: 0; border: 1px solid var(--border-color);">
+              <span id="admin-guest-photo-placeholder">👤</span>
+              <img id="admin-guest-photo-img" src="" alt="Aperçu" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div style="flex: 1;">
+              <input type="file" id="admin-guest-photo-file" accept="image/*" style="display: none;" onchange="window.handleAdminGuestPhotoSelect(event)">
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn-table-action" onclick="document.getElementById('admin-guest-photo-file').click()" style="background: var(--honey-gradient); color: var(--honey-dark); font-weight: 700; padding: 5px 10px; font-size: 0.78rem;">
+                  📷 Sélectionner photo
+                </button>
+                <button type="button" id="admin-guest-photo-remove" onclick="window.removeAdminGuestPhoto()" style="display: none; background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 5px 8px; font-size: 0.76rem; border-radius: 8px; cursor: pointer;">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 14px;">
+          <button type="button" class="btn-table-action" onclick="window.closeCreateGuestModal()" style="background: var(--bg-secondary); color: var(--text-main); padding: 8px 16px;">
+            Annuler
+          </button>
+          <button type="submit" id="btn-admin-save-guest" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 8px 20px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);">
+            ✨ Enregistrer l'invité
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- SCRIPT DU BACKOFFICE RÉGIE -->
   <script type="module" src="./admin.js"></script>

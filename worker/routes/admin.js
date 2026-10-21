@@ -199,7 +199,74 @@ export async function handleAdminRoutes(pathname, request, env) {
   }
 
 
-  // 5. Supprimer un invité
+  // 5. Création manuelle d'un invité par l'administrateur (catégorisé 'link')
+  if (pathname === "/api/admin/guests" && method === "POST") {
+    let data = {};
+    try { data = await request.json(); } catch(e) {}
+
+    const name = (data.name || "").trim();
+    if (!name) return errorResponse("Le nom et prénom sont obligatoires", 400);
+
+    const gender = (data.gender || "M").toUpperCase().trim();
+    const ticketType = (data.ticket_type || "seul").toLowerCase().trim();
+    const partnerName = (data.partner_name || "").trim();
+    const coupleName = (data.couple_name || "").trim();
+    const phone = (data.phone || data.whatsapp || "").trim();
+    const rawTable = (data.table_number || "1").trim();
+    const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+    const invitedBy = (data.invited_by || "Admin").trim();
+    const photoUrl = (data.photo_url || "").trim();
+    const avatarEmoji = data.avatar_emoji || (gender === "F" ? "👑" : "🎉");
+    const registrationSource = data.registration_source || "link"; // invité par lien ou manuel
+
+    const guestId = data.id || `guest-admin-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    if (db) {
+      await db.prepare(`
+        INSERT INTO guests (
+          id, event_id, name, table_number, phone, invited_by, registration_source,
+          gender, ticket_type, partner_name, couple_name, photo_url,
+          avatar_emoji, role, created_at, last_active
+        ) VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          table_number = excluded.table_number,
+          phone = excluded.phone,
+          invited_by = excluded.invited_by,
+          registration_source = excluded.registration_source,
+          gender = excluded.gender,
+          ticket_type = excluded.ticket_type,
+          partner_name = excluded.partner_name,
+          couple_name = excluded.couple_name,
+          photo_url = COALESCE(NULLIF(excluded.photo_url, ''), guests.photo_url),
+          avatar_emoji = excluded.avatar_emoji,
+          last_active = CURRENT_TIMESTAMP
+      `).bind(
+        guestId, name, cleanTable, phone, invitedBy, registrationSource,
+        gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji
+      ).run();
+    }
+
+    const createdGuest = {
+      id: guestId,
+      name,
+      table_number: cleanTable,
+      phone,
+      invited_by: invitedBy,
+      registration_source: registrationSource,
+      gender,
+      ticket_type: ticketType,
+      partner_name: partnerName,
+      couple_name: coupleName,
+      photo_url: photoUrl,
+      avatar_emoji: avatarEmoji,
+      role: 'invite'
+    };
+
+    return jsonResponse({ success: true, guest: createdGuest });
+  }
+
+  // 5b. Supprimer un invité
   if (pathname.startsWith("/api/admin/guests/") && method === "DELETE") {
     const id = pathname.replace("/api/admin/guests/", "").trim();
     if (db && id) {

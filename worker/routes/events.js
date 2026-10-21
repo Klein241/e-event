@@ -166,6 +166,8 @@ export async function handleEventRoutes(pathname, request, env) {
       }, 400);
     }
 
+    const photoUrl = (data.photo_url || "").trim();
+
     // Identifiant unique haute concurrence (supporte 500+ inscrits sans collision)
     const guestId = data.id || `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
@@ -174,9 +176,9 @@ export async function handleEventRoutes(pathname, request, env) {
         await db.prepare(`
           INSERT INTO guests (
             id, event_id, name, table_number, phone, invited_by, registration_source,
-            gender, ticket_type, partner_name, couple_name,
+            gender, ticket_type, partner_name, couple_name, photo_url,
             avatar_emoji, role, created_at, last_active
-          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             table_number = excluded.table_number,
@@ -187,9 +189,10 @@ export async function handleEventRoutes(pathname, request, env) {
             ticket_type = excluded.ticket_type,
             partner_name = excluded.partner_name,
             couple_name = excluded.couple_name,
+            photo_url = COALESCE(NULLIF(excluded.photo_url, ''), guests.photo_url),
             avatar_emoji = excluded.avatar_emoji,
             last_active = CURRENT_TIMESTAMP
-        `).bind(guestId, name, cleanTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, avatarEmoji).run();
+        `).bind(guestId, name, cleanTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji).run();
       } catch (err) {
         console.error("Erreur insertion invité par lien:", err);
         return errorResponse("Erreur base de données: " + err.message, 500);
@@ -207,6 +210,7 @@ export async function handleEventRoutes(pathname, request, env) {
       ticket_type: ticketType,
       partner_name: partnerName,
       couple_name: coupleName,
+      photo_url: photoUrl,
       avatar_emoji: avatarEmoji,
       role: 'invite',
       token: `token-${guestId}`

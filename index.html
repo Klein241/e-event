@@ -1116,6 +1116,33 @@
             </div>
           </div>
 
+          <!-- Photo d'identité (facultative) -->
+          <div class="inv-form-group">
+            <label class="inv-form-label">
+              <span>📸</span> Photo d'identité <span style="font-size: 0.78rem; font-weight: 500; color: #94a3b8;">(Facultative)</span>
+            </label>
+            <div style="display: flex; align-items: center; gap: 14px; background: rgba(255, 255, 255, 0.03); border: 1.5px dashed rgba(212, 175, 55, 0.35); border-radius: 18px; padding: 10px 14px;">
+              <div id="inv-photo-preview-box" style="width: 58px; height: 58px; border-radius: 16px; background: rgba(0, 0, 0, 0.3); border: 1.5px solid rgba(212, 175, 55, 0.4); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; overflow: hidden; flex-shrink: 0;">
+                <span id="inv-photo-emoji-placeholder">👤</span>
+                <img id="inv-photo-img-preview" src="" alt="Photo" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <input type="file" id="inv-photo-input" accept="image/*" style="display: none;" onchange="window.handleInvitationPhotoSelect(event)">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn-table-action" onclick="document.getElementById('inv-photo-input').click()" style="background: rgba(212, 175, 55, 0.18); border: 1px solid rgba(212, 175, 55, 0.45); color: #ffd700; border-radius: 10px; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">
+                    📷 Choisir ma photo
+                  </button>
+                  <button type="button" id="inv-photo-remove-btn" onclick="window.removeInvitationPhoto()" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;">
+                    ✕ Retirer
+                  </button>
+                </div>
+                <div class="inv-form-hint" style="margin-top: 4px;">
+                  💡 Optionnel : apparaîtra sur votre profil invité et dans le trombinoscope.
+                </div>
+              </div>
+            </div>
+          </div>
+
           <button type="submit" id="inv-btn-submit" class="inv-btn-submit">
             <span>✨</span> Confirmer mon invitation & Générer mon billet ➔
           </button>

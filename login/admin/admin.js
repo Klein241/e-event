@@ -913,38 +913,235 @@ window.exportNetworkingCSV = () => {
 // -------------------------------------------------------------
 let currentCrmGuestId = null;
 
-let currentGuestSubTab = 'all'; // 'all' or 'link'
+let currentGuestSubTab = 'all'; // 'salle', 'link', or 'all'
+let guestViewMode = 'grid'; // 'grid' or 'hosts'
+let currentAdminGuestPhotoBase64 = null;
 
 window.setGuestSubTab = (tab) => {
   currentGuestSubTab = tab;
-  const btnAll = document.getElementById('subtab-guests-all');
+  const btnSalle = document.getElementById('subtab-guests-salle');
   const btnLink = document.getElementById('subtab-guests-link');
+  const btnAll = document.getElementById('subtab-guests-all');
 
-  if (tab === 'link') {
-    if (btnAll) {
-      btnAll.style.background = 'var(--bg-secondary)';
-      btnAll.style.color = 'var(--text-main)';
-      btnAll.classList.remove('active');
+  [
+    { el: btnSalle, key: 'salle' },
+    { el: btnLink, key: 'link' },
+    { el: btnAll, key: 'all' }
+  ].forEach(item => {
+    if (!item.el) return;
+    if (item.key === tab) {
+      item.el.style.background = 'var(--terracotta-gradient)';
+      item.el.style.color = '#fff';
+      item.el.classList.add('active');
+    } else {
+      item.el.style.background = 'var(--bg-secondary)';
+      item.el.style.color = 'var(--text-main)';
+      item.el.classList.remove('active');
     }
-    if (btnLink) {
-      btnLink.style.background = 'var(--terracotta-gradient)';
-      btnLink.style.color = '#fff';
-      btnLink.classList.add('active');
+  });
+
+  window.filterGuests();
+};
+
+window.setGuestViewMode = (mode) => {
+  guestViewMode = mode;
+  const btnGrid = document.getElementById('btn-view-mode-grid');
+  const btnHosts = document.getElementById('btn-view-mode-hosts');
+
+  if (mode === 'hosts') {
+    if (btnGrid) {
+      btnGrid.style.background = 'transparent';
+      btnGrid.style.color = 'var(--text-muted)';
+      btnGrid.classList.remove('active');
+    }
+    if (btnHosts) {
+      btnHosts.style.background = 'var(--terracotta-gradient)';
+      btnHosts.style.color = '#fff';
+      btnHosts.classList.add('active');
     }
   } else {
-    if (btnAll) {
-      btnAll.style.background = 'var(--terracotta-gradient)';
-      btnAll.style.color = '#fff';
-      btnAll.classList.add('active');
+    if (btnGrid) {
+      btnGrid.style.background = 'var(--terracotta-gradient)';
+      btnGrid.style.color = '#fff';
+      btnGrid.classList.add('active');
     }
-    if (btnLink) {
-      btnLink.style.background = 'var(--bg-secondary)';
-      btnLink.style.color = 'var(--text-main)';
-      btnLink.classList.remove('active');
+    if (btnHosts) {
+      btnHosts.style.background = 'transparent';
+      btnHosts.style.color = 'var(--text-muted)';
+      btnHosts.classList.remove('active');
     }
   }
 
   window.filterGuests();
+};
+
+function updateHostsDropdownAndDatalist() {
+  const hostSelect = document.getElementById('admin-guest-host-filter');
+  const hostDatalist = document.getElementById('admin-hosts-datalist');
+  const guests = AdminState.guests || [];
+
+  const hostCounts = {};
+  guests.forEach(g => {
+    const h = (g.invited_by || '').trim();
+    if (h) {
+      hostCounts[h] = (hostCounts[h] || 0) + 1;
+    }
+  });
+
+  const sortedHosts = Object.keys(hostCounts).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+
+  if (hostSelect) {
+    const currentVal = hostSelect.value;
+    hostSelect.innerHTML = `
+      <option value="">👑 Tous les hôtes / Parrains (Tous)</option>
+      ${sortedHosts.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)} (${hostCounts[h]} invité${hostCounts[h] > 1 ? 's' : ''})</option>`).join('')}
+    `;
+    if (currentVal && sortedHosts.includes(currentVal)) {
+      hostSelect.value = currentVal;
+    }
+  }
+
+  if (hostDatalist) {
+    hostDatalist.innerHTML = sortedHosts.map(h => `<option value="${escapeHtml(h)}">`).join('');
+  }
+}
+
+// -------------------------------------------------------------
+// CRÉATION MANUELLE D'UN INVITÉ PAR L'ADMIN
+// -------------------------------------------------------------
+window.openCreateGuestModal = () => {
+  const modal = document.getElementById('modal-create-guest');
+  if (!modal) return;
+  const form = document.getElementById('admin-create-guest-form');
+  if (form) form.reset();
+  window.removeAdminGuestPhoto();
+  window.toggleAdminCoupleFields(false);
+  modal.style.display = 'flex';
+  const nameInput = document.getElementById('admin-input-guest-name');
+  if (nameInput) nameInput.focus();
+};
+
+window.closeCreateGuestModal = () => {
+  const modal = document.getElementById('modal-create-guest');
+  if (modal) modal.style.display = 'none';
+};
+
+window.toggleAdminCoupleFields = (isCouple) => {
+  const container = document.getElementById('admin-couple-fields');
+  const partnerInput = document.getElementById('admin-input-guest-partner');
+  const coupleInput = document.getElementById('admin-input-guest-couple-name');
+  if (container) container.style.display = isCouple ? 'block' : 'none';
+  if (partnerInput) partnerInput.required = !!isCouple;
+  if (coupleInput) coupleInput.required = !!isCouple;
+};
+
+window.handleAdminGuestPhotoSelect = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showAdminToast("Veuillez sélectionner un fichier image valide", "warning");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxDim = 400;
+      let width = img.width, height = img.height;
+      if (width > height) {
+        if (width > maxDim) { height = Math.round((height * maxDim) / width); width = maxDim; }
+      } else {
+        if (height > maxDim) { width = Math.round((width * maxDim) / height); height = maxDim; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      currentAdminGuestPhotoBase64 = dataUrl;
+
+      const imgEl = document.getElementById('admin-guest-photo-img');
+      const placeholder = document.getElementById('admin-guest-photo-placeholder');
+      const removeBtn = document.getElementById('admin-guest-photo-remove');
+
+      if (imgEl) { imgEl.src = dataUrl; imgEl.style.display = 'block'; }
+      if (placeholder) placeholder.style.display = 'none';
+      if (removeBtn) removeBtn.style.display = 'inline-block';
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeAdminGuestPhoto = () => {
+  currentAdminGuestPhotoBase64 = null;
+  const fileInput = document.getElementById('admin-guest-photo-file');
+  if (fileInput) fileInput.value = '';
+
+  const imgEl = document.getElementById('admin-guest-photo-img');
+  const placeholder = document.getElementById('admin-guest-photo-placeholder');
+  const removeBtn = document.getElementById('admin-guest-photo-remove');
+
+  if (imgEl) { imgEl.src = ''; imgEl.style.display = 'none'; }
+  if (placeholder) placeholder.style.display = 'block';
+  if (removeBtn) removeBtn.style.display = 'none';
+};
+
+window.saveManualGuest = async () => {
+  const name = document.getElementById('admin-input-guest-name')?.value.trim();
+  const gender = document.querySelector('input[name="admin-guest-gender"]:checked')?.value || 'M';
+  const ticketType = document.querySelector('input[name="admin-guest-ticket-type"]:checked')?.value || 'seul';
+  const partnerName = document.getElementById('admin-input-guest-partner')?.value.trim() || '';
+  const coupleName = document.getElementById('admin-input-guest-couple-name')?.value.trim() || '';
+  const rawTable = document.getElementById('admin-input-guest-table')?.value.trim() || 'A';
+  const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+  const host = document.getElementById('admin-input-guest-host')?.value.trim() || 'Admin';
+  const phone = document.getElementById('admin-input-guest-phone')?.value.trim() || '';
+
+  if (!name) {
+    showAdminToast("Veuillez saisir le nom de l'invité", "warning");
+    return;
+  }
+  if (ticketType === 'couple' && (!partnerName || !coupleName)) {
+    showAdminToast("Veuillez renseigner le conjoint et le nom du couple", "warning");
+    return;
+  }
+
+  const btn = document.getElementById('btn-admin-save-guest');
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span>⏳</span> Enregistrement...`; }
+
+  try {
+    const payload = {
+      name,
+      gender,
+      ticket_type: ticketType,
+      partner_name: partnerName,
+      couple_name: coupleName,
+      table_number: cleanTable,
+      invited_by: host,
+      phone,
+      photo_url: currentAdminGuestPhotoBase64 || '',
+      registration_source: 'link'
+    };
+
+    await adminFetch('/admin/guests', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    showAdminToast(`Invité ${name} enregistré avec succès !`, "success");
+    window.closeCreateGuestModal();
+    await loadGuests();
+  } catch (err) {
+    console.error("Erreur création manuelle invité:", err);
+    showAdminToast("Erreur création invité : " + err.message, "error");
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = `✨ Enregistrer l'invité`; }
+  }
 };
 
 window.copyInvitationLink = () => {
@@ -1020,6 +1217,7 @@ async function loadGuests() {
   try {
     const guests = await adminFetch('/admin/guests');
     AdminState.guests = Array.isArray(guests) ? guests : [];
+    updateHostsDropdownAndDatalist();
     window.filterGuests();
     loadAdminTables();
   } catch (err) {
@@ -1028,17 +1226,122 @@ async function loadGuests() {
   }
 }
 
+function renderGroupedByHostView(guests, container) {
+  if (!guests || guests.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">👑</span>
+        <p>Aucun invité ne correspond à cette sélection.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Regrouper par hôte
+  const hostGroups = {};
+  guests.forEach(g => {
+    const hostName = (g.invited_by || '').trim() || 'Hôte non spécifié';
+    if (!hostGroups[hostName]) hostGroups[hostName] = [];
+    hostGroups[hostName].push(g);
+  });
+
+  const sortedHostNames = Object.keys(hostGroups).sort((a, b) => {
+    if (a === 'Hôte non spécifié') return 1;
+    if (b === 'Hôte non spécifié') return -1;
+    return a.localeCompare(b, 'fr', { sensitivity: 'base' });
+  });
+
+  container.innerHTML = `
+    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 20px;">
+      ${sortedHostNames.map(hostName => {
+        const list = hostGroups[hostName];
+        
+        // Calcul des tables uniques occupées par les invités de cet hôte
+        const tablesCount = {};
+        list.forEach(g => {
+          const t = String(g.table_number || '1').toUpperCase();
+          tablesCount[t] = (tablesCount[t] || 0) + 1;
+        });
+        const tablesSummary = Object.keys(tablesCount).map(t => `Table ${t} (${tablesCount[t]})`).join(' • ');
+
+        return `
+          <div class="admin-card" style="padding: 18px; border: 1.5px solid rgba(212, 175, 55, 0.4); border-radius: 20px; background: var(--bg-card); box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border-color); padding-bottom: 12px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.8rem;">👑</span>
+                <div>
+                  <h4 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                    ${escapeHtml(hostName)}
+                  </h4>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                    🍽️ Répartition des tables : <strong>${escapeHtml(tablesSummary)}</strong>
+                  </div>
+                </div>
+              </div>
+              <span class="status-pill status-active" style="background: rgba(212, 175, 55, 0.18); color: #b45309; border: 1.5px solid rgba(212, 175, 55, 0.5); font-weight: 800; font-size: 0.85rem; padding: 4px 12px;">
+                ${list.length} invité${list.length > 1 ? 's' : ''}
+              </span>
+            </div>
+
+            <!-- Liste des invités sous cet hôte -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+              ${list.map(g => {
+                const hasPhoto = !!(g.photo_url && g.photo_url.length > 5);
+                const photoHtml = hasPhoto
+                  ? `<img src="${g.photo_url}" alt="${escapeHtml(g.name)}" style="width: 44px; height: 44px; border-radius: 14px; object-fit: cover; border: 1.5px solid var(--terracotta-accent);">`
+                  : `<div style="width: 44px; height: 44px; border-radius: 14px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 1px solid var(--border-color);">${g.avatar_emoji || (g.gender === 'F' ? '👑' : '🎉')}</div>`;
+
+                const isLink = g.registration_source === 'link';
+                const sourceBadge = isLink
+                  ? `<span class="status-pill status-active" style="font-size: 0.68rem; padding: 1px 6px; background: rgba(212, 175, 55, 0.15); color: #b45309; font-weight: 800;">💌 Par lien</span>`
+                  : `<span class="status-pill status-active" style="font-size: 0.68rem; padding: 1px 6px; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 800;">🏛️ En salle</span>`;
+
+                const coupleHtml = g.ticket_type === 'couple' && g.couple_name
+                  ? `<div style="font-size: 0.74rem; color: #db2777; font-weight: 700; margin-top: 1px;">💍 ${escapeHtml(g.couple_name)}</div>`
+                  : '';
+
+                return `
+                  <div onclick="window.openGuestCRM('${g.id}')" style="display: flex; gap: 10px; align-items: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 10px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    ${photoHtml}
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; gap: 4px;">
+                        <strong style="font-size: 0.92rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                          ${escapeHtml(g.name)}
+                        </strong>
+                        <span class="status-pill status-ended" style="font-size: 0.68rem; font-weight: 800; padding: 1px 6px;">Table ${escapeHtml(g.table_number || '1')}</span>
+                      </div>
+                      ${coupleHtml}
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                        <span style="font-size: 0.74rem; color: var(--text-muted);">${g.phone ? escapeHtml(g.phone) : 'Sans contact'}</span>
+                        ${sourceBadge}
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function renderGuests(guests) {
   const container = document.getElementById('admin-guests-grid');
   const countBadge = document.getElementById('admin-guests-count');
   if (countBadge) countBadge.textContent = `${guests ? guests.length : 0} invité(s)`;
 
-  // Mettre à jour les compteurs des sous-rubriques
+  // Mettre à jour les compteurs des 2 catégories officielles (+ Tous)
   const allCount = (AdminState.guests || []).length;
+  const salleCount = (AdminState.guests || []).filter(g => g.registration_source !== 'link').length;
   const linkCount = (AdminState.guests || []).filter(g => g.registration_source === 'link').length;
+
   const countAllEl = document.getElementById('subtab-count-all');
+  const countSalleEl = document.getElementById('subtab-count-salle');
   const countLinkEl = document.getElementById('subtab-count-link');
   if (countAllEl) countAllEl.textContent = allCount;
+  if (countSalleEl) countSalleEl.textContent = salleCount;
   if (countLinkEl) countLinkEl.textContent = linkCount;
 
   // Initialiser l'URL du lien d'invitation
@@ -1053,13 +1356,21 @@ function renderGuests(guests) {
 
   if (!container) return;
 
+  // Si le mode de vue "Répartition par Hôte" est activé
+  if (guestViewMode === 'hosts') {
+    renderGroupedByHostView(guests, container);
+    return;
+  }
+
   if (!guests || guests.length === 0) {
-    const emptyMsg = currentGuestSubTab === 'link'
-      ? "Aucun invité ne s'est encore inscrit via le lien public d'invitation."
-      : "Aucun invité ne correspond à votre recherche.";
+    const emptyMsg = currentGuestSubTab === 'salle'
+      ? "Aucun invité en salle n'est actuellement enregistré (ceux qui scannent le QR code et remplissent leur profil)."
+      : (currentGuestSubTab === 'link'
+        ? "Aucun invité par lien ou manuel n'est encore enregistré."
+        : "Aucun invité ne correspond à votre recherche.");
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
-        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">${currentGuestSubTab === 'link' ? '💌' : '👥'}</span>
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">${currentGuestSubTab === 'salle' ? '🏛️' : (currentGuestSubTab === 'link' ? '💌' : '👥')}</span>
         <p>${emptyMsg}</p>
       </div>
     `;
@@ -1080,9 +1391,10 @@ function renderGuests(guests) {
       ? `<span class="status-pill status-active" title="Église : ${escapeHtml(g.church_name || 'Oui')}" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #059669;">⛪ Église</span>`
       : `<span class="status-pill" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(107, 93, 84, 0.1); color: var(--text-muted);">Sans église</span>`;
 
-    const sourceBadge = g.registration_source === 'link'
-      ? `<span class="status-pill status-active" title="Inscrit via le lien public" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`
-      : '';
+    const isLink = g.registration_source === 'link';
+    const sourceBadge = isLink
+      ? `<span class="status-pill status-active" title="Inscrit par lien ou créé par l'admin" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`
+      : `<span class="status-pill status-active" title="Invité en salle (QR code scanné)" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">🏛️ En salle</span>`;
 
     const coupleBadge = g.ticket_type === 'couple'
       ? `<span class="status-pill status-active" title="Billet en Couple" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(236, 72, 153, 0.15); color: #db2777; border: 1px solid rgba(236, 72, 153, 0.4); font-weight: 800;">👥 Couple</span>`
@@ -1154,16 +1466,25 @@ function renderGuests(guests) {
 
 window.filterGuests = (query) => {
   const searchInput = document.getElementById('admin-guest-search');
+  const hostSelect = document.getElementById('admin-guest-host-filter');
   const q = (query !== undefined ? query : (searchInput ? searchInput.value : '')).toLowerCase().trim();
+  const selectedHost = (hostSelect ? hostSelect.value : '').toLowerCase().trim();
   
   let list = AdminState.guests || [];
 
-  // Filtrage par sous-rubrique
-  if (currentGuestSubTab === 'link') {
+  // 1. Filtrage par les 2 catégories officielles (+ Tous)
+  if (currentGuestSubTab === 'salle') {
+    list = list.filter(g => g.registration_source !== 'link');
+  } else if (currentGuestSubTab === 'link') {
     list = list.filter(g => g.registration_source === 'link');
   }
 
-  // Filtrage par recherche textuelle
+  // 2. Filtrage par Hôte sélectionné (ex: Dr Sophie)
+  if (selectedHost) {
+    list = list.filter(g => (g.invited_by || '').toLowerCase().trim() === selectedHost);
+  }
+
+  // 3. Filtrage par recherche textuelle
   if (q) {
     list = list.filter(g => {
       return (g.name || '').toLowerCase().includes(q) ||
@@ -1171,6 +1492,8 @@ window.filterGuests = (query) => {
         (g.invited_by || '').toLowerCase().includes(q) ||
         (g.profession || '').toLowerCase().includes(q) ||
         (g.company || '').toLowerCase().includes(q) ||
+        (g.couple_name || '').toLowerCase().includes(q) ||
+        (g.partner_name || '').toLowerCase().includes(q) ||
         (g.residence_location || '').toLowerCase().includes(q) ||
         (g.phone || '').toLowerCase().includes(q) ||
         (g.church_name || '').toLowerCase().includes(q);
