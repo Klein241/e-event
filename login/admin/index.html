@@ -673,6 +673,29 @@
         </div>
       </div>
 
+      <!-- Configuration des Tables Autorisées du Gala (L'admin peut en créer d'autres) -->
+      <div class="admin-card" style="margin-bottom: 20px; padding: 14px 18px; border: 1.5px solid var(--border-color); border-radius: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h4 style="margin: 0; font-size: 0.96rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+              <span>🍽️</span> Tables Officielles Configurées (<span id="admin-tables-count">20</span>)
+            </h4>
+            <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+              Tables actuelles : A, D, F, G, H, I, J, K, L, M, O, P, Q, S, T, U, V, W, X, Z. Vous pouvez en créer de nouvelles ci-contre.
+            </p>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="text" id="admin-new-table-input" class="admin-input" placeholder="Ex: B, C, VIP..." style="width: 120px; padding: 6px 10px; text-transform: uppercase;">
+            <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 700; padding: 6px 12px; border-radius: 10px; cursor: pointer;" onclick="window.adminAddTable()">
+              ➕ Ajouter une table
+            </button>
+          </div>
+        </div>
+        <div id="admin-tables-pills" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px;">
+          <!-- Injecté dynamiquement par admin.js -->
+        </div>
+      </div>
+
       <div class="admin-card">
         <div class="admin-card-header" style="flex-wrap: wrap; gap: 12px;">
           <div>

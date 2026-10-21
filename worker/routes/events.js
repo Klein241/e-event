@@ -90,6 +90,19 @@ export async function handleEventRoutes(pathname, request, env) {
     });
   }
 
+    // 3a-0. Consultation de la liste des tables autorisées
+  if (pathname === "/api/tables" && method === "GET") {
+    const defaultTables = ['A','D','F','G','H','I','J','K','L','M','O','P','Q','S','T','U','V','W','X','Z'];
+    if (!db) return jsonResponse(defaultTables);
+    try {
+      const { results } = await db.prepare("SELECT table_code FROM event_tables ORDER BY table_code ASC").all();
+      const codes = (results || []).map(r => r.table_code.toUpperCase());
+      return jsonResponse(codes.length > 0 ? codes : defaultTables);
+    } catch(e) {
+      return jsonResponse(defaultTables);
+    }
+  }
+
   // 3a-bis. Inscription par lien d'invitation publique (2ème édition Gala)
   if (pathname === "/api/guests/invitation-register" && method === "POST") {
     let data = {};
@@ -101,9 +114,13 @@ export async function handleEventRoutes(pathname, request, env) {
 
     const name = (data.name || "").trim();
     const phone = (data.phone || data.whatsapp || "").trim();
-    const tableNumber = (data.table_number || "1").trim();
+    const rawTable = (data.table_number || "").trim();
     const invitedBy = (data.invited_by || "").trim();
-    const avatarEmoji = data.avatar_emoji || "🎉";
+    const gender = (data.gender || "M").toUpperCase().trim(); // 'M' or 'F'
+    const ticketType = (data.ticket_type || "seul").toLowerCase().trim(); // 'seul' or 'couple'
+    const partnerName = (data.partner_name || "").trim();
+    const coupleName = (data.couple_name || "").trim();
+    const avatarEmoji = data.avatar_emoji || (gender === "F" ? "👑" : "🎉");
 
     if (!name) {
       return errorResponse("Le nom et prénom sont obligatoires", 400);
@@ -111,11 +128,42 @@ export async function handleEventRoutes(pathname, request, env) {
     if (!phone) {
       return errorResponse("Le numéro WhatsApp est obligatoire", 400);
     }
-    if (!tableNumber) {
+    if (!rawTable) {
       return errorResponse("Le numéro de table est obligatoire", 400);
     }
     if (!invitedBy) {
       return errorResponse("Le champ 'Invité par' est obligatoire", 400);
+    }
+    if (ticketType === "couple") {
+      if (!partnerName) {
+        return errorResponse("Le nom du conjoint/partenaire est obligatoire pour un billet couple", 400);
+      }
+      if (!coupleName) {
+        return errorResponse("Le nom du couple est obligatoire (ex: Couple LEGRAND)", 400);
+      }
+    }
+
+    // Normalisation de la table (ex: 'Table A' -> 'A', 'a' -> 'A')
+    const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim();
+
+    // 1. Validation stricte de la table autorisée
+    const defaultTables = ['A','D','F','G','H','I','J','K','L','M','O','P','Q','S','T','U','V','W','X','Z'];
+    let validTables = defaultTables;
+    if (db) {
+      try {
+        const { results } = await db.prepare("SELECT table_code FROM event_tables").all();
+        if (results && results.length > 0) {
+          validTables = results.map(r => r.table_code.toUpperCase());
+        }
+      } catch(e) {}
+    }
+
+    if (!validTables.includes(cleanTable)) {
+      return jsonResponse({
+        error: "Table non valide",
+        invalid_table: true,
+        message: "Non valide, ne stressez pas ! Contactez la personne qui vous invite pour qu'elle vous fournisse votre Numéro de table, puis revenez compléter."
+      }, 400);
     }
 
     // Identifiant unique haute concurrence (supporte 500+ inscrits sans collision)
@@ -125,17 +173,23 @@ export async function handleEventRoutes(pathname, request, env) {
       try {
         await db.prepare(`
           INSERT INTO guests (
-            id, event_id, name, table_number, phone, invited_by, registration_source, avatar_emoji, role, created_at, last_active
-          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            id, event_id, name, table_number, phone, invited_by, registration_source,
+            gender, ticket_type, partner_name, couple_name,
+            avatar_emoji, role, created_at, last_active
+          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             table_number = excluded.table_number,
             phone = excluded.phone,
             invited_by = excluded.invited_by,
             registration_source = 'link',
+            gender = excluded.gender,
+            ticket_type = excluded.ticket_type,
+            partner_name = excluded.partner_name,
+            couple_name = excluded.couple_name,
             avatar_emoji = excluded.avatar_emoji,
             last_active = CURRENT_TIMESTAMP
-        `).bind(guestId, name, tableNumber, phone, invitedBy, avatarEmoji).run();
+        `).bind(guestId, name, cleanTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, avatarEmoji).run();
       } catch (err) {
         console.error("Erreur insertion invité par lien:", err);
         return errorResponse("Erreur base de données: " + err.message, 500);
@@ -145,10 +199,14 @@ export async function handleEventRoutes(pathname, request, env) {
     const guestObj = {
       id: guestId,
       name,
-      table_number: tableNumber,
+      table_number: cleanTable,
       phone,
       invited_by: invitedBy,
       registration_source: 'link',
+      gender,
+      ticket_type: ticketType,
+      partner_name: partnerName,
+      couple_name: coupleName,
       avatar_emoji: avatarEmoji,
       role: 'invite',
       token: `token-${guestId}`

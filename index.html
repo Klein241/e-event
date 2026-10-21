@@ -25,6 +25,11 @@
   <link rel="stylesheet" href="/src/styles/program.css">
   <link rel="stylesheet" href="/src/styles/ads.css">
   <link rel="stylesheet" href="/src/styles/invitation.css">
+
+  <!-- Polices Calligraphie & Prestige pour Billet Officiel et Titres -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
   
   <!-- Moteur Web 3D interactif Google model-viewer (Apple & Amazon WebGL Standard) -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
@@ -1016,55 +1021,131 @@
           </div>
         </div>
 
-        <!-- Formulaire d'enregistrement -->
+        <!-- Formulaire d'enregistrement avec sauvegarde automatique en local -->
         <form id="invitation-link-form" onsubmit="event.preventDefault(); window.submitInvitationRegistration();">
+          
+          <!-- Sexe M / F -->
+          <div class="inv-form-group">
+            <label class="inv-form-label">
+              <span>⚧️</span> Sexe <span style="color: #ef4444;">*</span>
+            </label>
+            <div class="inv-segmented-control">
+              <label class="inv-segment-item">
+                <input type="radio" name="inv-gender" value="M" checked onchange="window.onInvitationFieldChange()">
+                <span class="inv-segment-label">👨 Homme (M)</span>
+              </label>
+              <label class="inv-segment-item">
+                <input type="radio" name="inv-gender" value="F" onchange="window.onInvitationFieldChange()">
+                <span class="inv-segment-label">👩 Femme (F)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Type de Billet (Seul / Couple) -->
+          <div class="inv-form-group">
+            <label class="inv-form-label">
+              <span>🎟️</span> Type de Billet <span style="color: #ef4444;">*</span>
+            </label>
+            <div class="inv-segmented-control">
+              <label class="inv-segment-item">
+                <input type="radio" name="inv-ticket-type" value="seul" checked onchange="window.toggleCoupleFields(false); window.onInvitationFieldChange();">
+                <span class="inv-segment-label">👤 Billet Seul</span>
+              </label>
+              <label class="inv-segment-item">
+                <input type="radio" name="inv-ticket-type" value="couple" onchange="window.toggleCoupleFields(true); window.onInvitationFieldChange();">
+                <span class="inv-segment-label">👥 Billet en Couple</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Nom et prénom de la personne -->
           <div class="inv-form-group">
             <label class="inv-form-label" for="inv-input-name">
               <span>👤</span> Nom et prénom <span style="color: #ef4444;">*</span>
             </label>
-            <input type="text" id="inv-input-name" class="inv-form-input" placeholder="Ex: Pasteur Jean Mba / Estelle Ondo" required autocomplete="name">
+            <input type="text" id="inv-input-name" class="inv-form-input" placeholder="Ex: Marc LEGRAND" required autocomplete="name" oninput="window.onInvitationFieldChange()">
           </div>
 
+          <!-- Champs conditionnels Billet en Couple -->
+          <div id="inv-couple-fields" style="display: none; background: rgba(212, 175, 55, 0.08); border: 1.5px dashed rgba(212, 175, 55, 0.4); border-radius: 18px; padding: 14px; margin-bottom: 1rem;">
+            <div class="inv-form-group" style="margin-bottom: 0.75rem;">
+              <label class="inv-form-label" for="inv-input-partner">
+                <span>💍</span> Nom et prénom du conjoint (l'autre personne) <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="text" id="inv-input-partner" class="inv-form-input" placeholder="Ex: Sarah LEGRAND" oninput="window.onInvitationFieldChange()">
+            </div>
+
+            <div class="inv-form-group" style="margin-bottom: 0;">
+              <label class="inv-form-label" for="inv-input-couple-name">
+                <span>✨</span> Comment nommez-vous votre couple ? <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="text" id="inv-input-couple-name" class="inv-form-input" placeholder="Ex : Couple LEGRAND" oninput="window.onInvitationFieldChange()">
+              <div class="inv-form-hint">
+                💡 Ce nom sera élégamment calligraphié sur votre billet d'invitation officiel (ex: Couple LEGRAND).
+              </div>
+            </div>
+          </div>
+
+          <!-- Numéro WhatsApp -->
           <div class="inv-form-group">
             <label class="inv-form-label" for="inv-input-phone">
               <span>💬</span> Numéro WhatsApp <span style="color: #ef4444;">*</span>
             </label>
-            <input type="tel" id="inv-input-phone" class="inv-form-input" placeholder="Ex: +241 77 12 34 56" required autocomplete="tel">
+            <input type="tel" id="inv-input-phone" class="inv-form-input" placeholder="Ex: +241 77 12 34 56" required autocomplete="tel" oninput="window.onInvitationFieldChange()">
           </div>
 
+          <!-- Numéro de la TABLE -->
           <div class="inv-form-group">
             <label class="inv-form-label" for="inv-input-table">
               <span>🍽️</span> N° de la TABLE <span style="color: #ef4444;">*</span>
             </label>
-            <input type="text" id="inv-input-table" class="inv-form-input" placeholder="Ex: Table 7" required>
+            <input type="text" id="inv-input-table" class="inv-form-input" placeholder="Ex: A, D, F, G, H..." required style="text-transform: uppercase;" oninput="window.onInvitationFieldChange()">
             <div class="inv-form-hint">
-              💡 Ce N° reçu est celui que celui qui vous a invité vous a donné.
+              💡 Les tables officielles sont : <strong>A, D, F, G, H, I, J, K, L, M, O, P, Q, S, T, U, V, W, X, Z</strong>. Renseignez la lettre donnée par votre hôte.
             </div>
           </div>
 
+          <!-- Invité par -->
           <div class="inv-form-group">
             <label class="inv-form-label" for="inv-input-host">
               <span>👑</span> Invité par <span style="color: #ef4444;">*</span>
             </label>
-            <input type="text" id="inv-input-host" class="inv-form-input" placeholder="Ex: Pasteur Paul / Dr. Sophie" required>
+            <input type="text" id="inv-input-host" class="inv-form-input" placeholder="Ex: Pasteur Paul / Dr. Sophie" required oninput="window.onInvitationFieldChange()">
             <div class="inv-form-hint">
-              Indiquez le nom de l'hôte ou de la personne qui vous a transmis l'invitation.
+              Indiquez le nom de l'hôte qui vous a transmis l'invitation.
             </div>
           </div>
 
           <button type="submit" id="inv-btn-submit" class="inv-btn-submit">
-            <span>✨</span> Confirmer mon invitation & Entrer ➔
+            <span>✨</span> Confirmer mon invitation & Générer mon billet ➔
           </button>
         </form>
       </div>
 
-      <!-- Vue Confirmation / Succès -->
+      <!-- Vue Confirmation / Succès avec Billet Officiel Téléchargeable -->
       <div id="invitation-success-view" class="inv-success-card" style="display: none;">
         <div class="inv-success-badge">🎉</div>
-        <h2 style="font-size: 1.35rem; color: #ffd700; margin: 0 0 0.5rem 0;">Invitation Confirmée !</h2>
+        <h2 style="font-size: 1.35rem; color: #ffd700; margin: 0 0 0.5rem 0;">Votre Billet Officiel est Prêt !</h2>
         <p style="color: #f1f5f9; font-size: 0.92rem; margin: 0;">
-          Bienvenue au Dîner de Gala. Votre place est officiellement enregistrée.
+          Votre invitation nominative pour la 2ème édition du Dîner de Gala a été générée.
         </p>
+
+        <!-- Aperçu visuel du Billet officiel -->
+        <div class="inv-ticket-preview-container" id="inv-ticket-wrapper">
+          <img id="inv-ticket-preview-img" src="/billet-invitation-template.png" alt="Billet d'invitation officiel">
+        </div>
+
+        <!-- Canvas caché haute résolution pour le rendu 1024x921 -->
+        <canvas id="inv-ticket-canvas" width="1024" height="921" style="display: none;"></canvas>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin: 1.25rem 0;">
+          <button type="button" class="inv-btn-submit" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);" onclick="window.downloadInvitationTicket()">
+            📥 Télécharger mon invitation officielle (Image HD)
+          </button>
+          <button type="button" class="inv-btn-submit" style="background: #25D366; box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);" onclick="window.shareTicketOnWhatsApp()">
+            💬 Partager mon billet sur WhatsApp
+          </button>
+        </div>
 
         <div class="inv-summary-pill" id="inv-summary-details">
           <!-- Injecté dynamiquement -->
@@ -1075,6 +1156,25 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modale d'Alerte : Table non valide (Ne stressez pas !) -->
+  <div class="invitation-modal-overlay" id="invitation-invalid-table-modal" style="display: none; z-index: 10070;">
+    <div class="invitation-glass-card" style="max-width: 440px; text-align: center; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 30px 90px rgba(0,0,0,0.85), 0 0 40px rgba(239, 68, 68, 0.25);">
+      <div style="font-size: 3.2rem; margin-bottom: 0.6rem; animation: invCardPopIn 0.3s ease;">⚠️</div>
+      <h3 style="font-size: 1.3rem; color: #f87171; margin: 0 0 0.85rem 0; font-weight: 800;">
+        Numéro de Table non valide
+      </h3>
+      <div style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 18px; padding: 1.25rem 1rem; margin-bottom: 1.25rem; font-size: 0.95rem; line-height: 1.5; color: #fee2e2;">
+        <strong>Non valide, ne stressez pas !</strong> Contactez la personne qui vous invite pour qu'elle vous fournisse votre <strong>Numéro de table</strong>, puis revenez compléter.
+      </div>
+      <p style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 1.25rem; line-height: 1.4;">
+        🔒 Toutes vos informations déjà saisies (nom, WhatsApp, conjoint) sont automatiquement conservées sur votre appareil.
+      </p>
+      <button type="button" class="inv-btn-submit" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="window.closeInvalidTableModal()">
+        👍 J'ai compris, je contacte mon hôte
+      </button>
     </div>
   </div>
 

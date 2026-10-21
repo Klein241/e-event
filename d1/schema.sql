@@ -34,8 +34,21 @@ CREATE TABLE IF NOT EXISTS guests (
     church_duration TEXT,
     invited_by TEXT,
     registration_source TEXT DEFAULT 'direct', -- 'direct', 'link', 'admin'
+    gender TEXT, -- 'M', 'F'
+    ticket_type TEXT DEFAULT 'seul', -- 'seul', 'couple'
+    partner_name TEXT,
+    couple_name TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_active DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2b. Tables autorisées du Gala (A, D, F, G, etc.)
+CREATE TABLE IF NOT EXISTS event_tables (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL DEFAULT 'default',
+    table_code TEXT UNIQUE NOT NULL,
+    capacity INTEGER DEFAULT 10,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 3. Messages du Chat en Direct

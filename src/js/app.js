@@ -494,24 +494,106 @@ function updateInvitationCountdown() {
   if (secsEl) secsEl.textContent = String(seconds).padStart(2, '0');
 }
 
+// Valid tables officielles du Gala 2026
+const DEFAULT_GALA_TABLES = ['A','D','F','G','H','I','J','K','L','M','O','P','Q','S','T','U','V','W','X','Z'];
+let dynamicGalaTables = [...DEFAULT_GALA_TABLES];
+let currentGeneratedTicketDataUrl = null;
+let currentTicketGuest = null;
+
+// Synchronisation de la liste dynamique des tables depuis l'API
+async function fetchGalaTables() {
+  try {
+    const list = await Api.getValidTables();
+    if (Array.isArray(list) && list.length > 0) {
+      dynamicGalaTables = list.map(t => String(t).toUpperCase().replace(/^TABLE\s*/i, '').trim());
+    }
+  } catch(e) {}
+}
+
+window.toggleCoupleFields = (isCouple) => {
+  const coupleContainer = document.getElementById('inv-couple-fields');
+  const partnerInput = document.getElementById('inv-input-partner');
+  const coupleNameInput = document.getElementById('inv-input-couple-name');
+
+  if (coupleContainer) {
+    coupleContainer.style.display = isCouple ? 'block' : 'none';
+  }
+  if (partnerInput) {
+    partnerInput.required = !!isCouple;
+  }
+  if (coupleNameInput) {
+    coupleNameInput.required = !!isCouple;
+  }
+};
+
+window.onInvitationFieldChange = () => {
+  const gender = document.querySelector('input[name="inv-gender"]:checked')?.value || 'M';
+  const ticketType = document.querySelector('input[name="inv-ticket-type"]:checked')?.value || 'seul';
+  const name = document.getElementById('inv-input-name')?.value || '';
+  const partner = document.getElementById('inv-input-partner')?.value || '';
+  const coupleName = document.getElementById('inv-input-couple-name')?.value || '';
+  const phone = document.getElementById('inv-input-phone')?.value || '';
+  const table = document.getElementById('inv-input-table')?.value || '';
+  const host = document.getElementById('inv-input-host')?.value || '';
+
+  const draft = { gender, ticketType, name, partner, coupleName, phone, table, host };
+  try {
+    localStorage.setItem('compagnon_invite_draft', JSON.stringify(draft));
+  } catch(e) {}
+};
+
+window.closeInvalidTableModal = () => {
+  const modal = document.getElementById('invitation-invalid-table-modal');
+  if (modal) modal.style.display = 'none';
+  const tableInput = document.getElementById('inv-input-table');
+  if (tableInput) {
+    tableInput.focus();
+    tableInput.select();
+  }
+};
+
 window.openInvitationModal = () => {
   const modal = document.getElementById('invitation-link-modal');
   if (!modal) return;
+
+  fetchGalaTables();
 
   const formView = document.getElementById('invitation-form-view');
   const successView = document.getElementById('invitation-success-view');
   if (formView) formView.style.display = 'block';
   if (successView) successView.style.display = 'none';
 
-  // Si l'invité a déjà un nom dans AppState, le préremplir
-  if (AppState.guest) {
-    const nameInput = document.getElementById('inv-input-name');
-    const tableInput = document.getElementById('inv-input-table');
-    const phoneInput = document.getElementById('inv-input-phone');
-    if (nameInput && !nameInput.value) nameInput.value = AppState.guest.name || '';
-    if (tableInput && (!tableInput.value || tableInput.value === 'Table 1')) tableInput.value = AppState.guest.table_number || '';
-    if (phoneInput && !phoneInput.value) phoneInput.value = AppState.guest.phone || '';
-  }
+  // Restaurer les données sauvegardées en localStorage si disponibles
+  try {
+    const savedDraftStr = localStorage.getItem('compagnon_invite_draft');
+    if (savedDraftStr) {
+      const draft = JSON.parse(savedDraftStr);
+      if (draft.gender) {
+        const r = document.querySelector(`input[name="inv-gender"][value="${draft.gender}"]`);
+        if (r) r.checked = true;
+      }
+      if (draft.ticketType) {
+        const r = document.querySelector(`input[name="inv-ticket-type"][value="${draft.ticketType}"]`);
+        if (r) r.checked = true;
+        window.toggleCoupleFields(draft.ticketType === 'couple');
+      }
+      if (draft.name) document.getElementById('inv-input-name').value = draft.name;
+      if (draft.partner) document.getElementById('inv-input-partner').value = draft.partner;
+      if (draft.coupleName) document.getElementById('inv-input-couple-name').value = draft.coupleName;
+      if (draft.phone) document.getElementById('inv-input-phone').value = draft.phone;
+      if (draft.table) document.getElementById('inv-input-table').value = draft.table;
+      if (draft.host && !document.getElementById('inv-input-host')?.value) {
+        document.getElementById('inv-input-host').value = draft.host;
+      }
+    } else if (AppState.guest) {
+      const nameInput = document.getElementById('inv-input-name');
+      const tableInput = document.getElementById('inv-input-table');
+      const phoneInput = document.getElementById('inv-input-phone');
+      if (nameInput && !nameInput.value) nameInput.value = AppState.guest.name || '';
+      if (tableInput && (!tableInput.value || tableInput.value === 'Table 1')) tableInput.value = AppState.guest.table_number || '';
+      if (phoneInput && !phoneInput.value) phoneInput.value = AppState.guest.phone || '';
+    }
+  } catch(e) {}
 
   updateInvitationCountdown();
   if (invitationCountdownInterval) clearInterval(invitationCountdownInterval);
@@ -529,30 +611,169 @@ window.closeInvitationModal = () => {
   }
 };
 
+window.renderInvitationTicket = async (guest) => {
+  currentTicketGuest = guest;
+  const canvas = document.getElementById('inv-ticket-canvas');
+  const previewImg = document.getElementById('inv-ticket-preview-img');
+  if (!canvas) return;
+
+  try {
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+  } catch(e) {}
+
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  return new Promise((resolve) => {
+    img.onload = () => {
+      // 1. Dessiner le fond du billet officiel (1024 x 921)
+      canvas.width = 1024;
+      canvas.height = 921;
+      ctx.drawImage(img, 0, 0, 1024, 921);
+
+      // 2. Déterminer le texte calligraphié à poser sur la ligne en pointillés
+      let textToInscribe = '';
+      if (guest.ticket_type === 'couple') {
+        const rawCouple = (guest.couple_name || `Couple ${guest.name}`).trim();
+        if (/^couple\s+/i.test(rawCouple)) {
+          textToInscribe = 'Couple ' + rawCouple.replace(/^couple\s+/i, '').trim();
+        } else {
+          textToInscribe = rawCouple;
+        }
+      } else {
+        const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+        const cleanName = (guest.name || '').replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+        textToInscribe = `${prefix}${cleanName}`.trim();
+      }
+
+      // 3. Dessiner le nom avec calligraphie raffinée sur les pointillés (centre X=512, Y=94)
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Ombre portée subtile dorée/brun pour relief prestige
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.45)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+
+      // Déterminer la taille de police adaptée à la longueur du texte
+      let fontSize = 36;
+      if (textToInscribe.length > 34) fontSize = 24;
+      else if (textToInscribe.length > 26) fontSize = 28;
+      else if (textToInscribe.length > 18) fontSize = 32;
+
+      ctx.font = `700 ${fontSize}px "Playfair Display", Georgia, "Brush Script MT", cursive, serif`;
+      ctx.fillStyle = '#1c130d';
+      ctx.fillText(textToInscribe, 512, 94);
+
+      // Réinitialiser les ombres
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // 4. Mention élégante de la Table en haut à droite
+      const cleanTableNum = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim();
+      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#8B5A2B';
+      ctx.textAlign = 'right';
+      ctx.fillText(`TABLE ${cleanTableNum}`, 930, 48);
+
+      // 5. Générer le Data URL et mettre à jour l'image d'aperçu
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        currentGeneratedTicketDataUrl = dataUrl;
+        if (previewImg) previewImg.src = dataUrl;
+      } catch(err) {
+        console.warn("Export canvas to DataURL:", err);
+      }
+      resolve();
+    };
+
+    img.onerror = () => {
+      console.error("Impossible de charger le modèle de billet d'invitation");
+      resolve();
+    };
+
+    img.src = '/billet-invitation-template.png';
+  });
+};
+
+window.downloadInvitationTicket = () => {
+  if (!currentGeneratedTicketDataUrl) {
+    window.showToast("Génération du billet en cours...");
+    return;
+  }
+  const guest = currentTicketGuest || AppState.guest || {};
+  const filenameName = (guest.couple_name || guest.name || 'Invite').replace(/[^a-zA-Z0-9]/g, '_');
+  const a = document.createElement('a');
+  a.href = currentGeneratedTicketDataUrl;
+  a.download = `Billet-Gala-2026-${filenameName}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.showToast("Billet téléchargé avec succès ! 📥");
+};
+
+window.shareTicketOnWhatsApp = () => {
+  const guest = currentTicketGuest || AppState.guest || {};
+  const name = guest.couple_name || guest.name || 'Invité';
+  const table = guest.table_number || '';
+  const text = encodeURIComponent(
+    `✨ Invitation Confirmée pour la 2ème édition du Dîner de Gala ce 24 Octobre 2026 dès 15h !\n\n` +
+    `👤 Billet : ${name}\n` +
+    `🍽️ Table : Table ${table}\n` +
+    `📍 Lieu : La salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
+    `Rejoignez-nous via le lien de la cérémonie : ${window.location.origin}/?invite=gala2026`
+  );
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+};
+
 window.submitInvitationRegistration = async () => {
   const nameEl = document.getElementById('inv-input-name');
   const phoneEl = document.getElementById('inv-input-phone');
   const tableEl = document.getElementById('inv-input-table');
   const hostEl = document.getElementById('inv-input-host');
+  const partnerEl = document.getElementById('inv-input-partner');
+  const coupleNameEl = document.getElementById('inv-input-couple-name');
   const btn = document.getElementById('inv-btn-submit');
 
+  const gender = document.querySelector('input[name="inv-gender"]:checked')?.value || 'M';
+  const ticketType = document.querySelector('input[name="inv-ticket-type"]:checked')?.value || 'seul';
   const name = nameEl ? nameEl.value.trim() : '';
   const phone = phoneEl ? phoneEl.value.trim() : '';
-  const table = tableEl ? tableEl.value.trim() : '1';
+  const rawTable = tableEl ? tableEl.value.trim() : '';
   const host = hostEl ? hostEl.value.trim() : '';
+  const partnerName = partnerEl ? partnerEl.value.trim() : '';
+  const coupleName = coupleNameEl ? coupleNameEl.value.trim() : '';
 
   if (!name) {
     alert("Veuillez saisir votre nom et prénom.");
     nameEl?.focus();
     return;
   }
+  if (ticketType === 'couple') {
+    if (!partnerName) {
+      alert("Veuillez saisir le nom et prénom de votre conjoint.");
+      partnerEl?.focus();
+      return;
+    }
+    if (!coupleName) {
+      alert("Veuillez indiquer comment nommer votre couple (ex: Couple LEGRAND).");
+      coupleNameEl?.focus();
+      return;
+    }
+  }
   if (!phone) {
     alert("Veuillez saisir votre numéro WhatsApp.");
     phoneEl?.focus();
     return;
   }
-  if (!table) {
-    alert("Veuillez indiquer le numéro de table reçu de votre hôte.");
+  if (!rawTable) {
+    alert("Veuillez indiquer votre numéro de table.");
     tableEl?.focus();
     return;
   }
@@ -562,18 +783,39 @@ window.submitInvitationRegistration = async () => {
     return;
   }
 
+  // 1. Normalisation et vérification de la table : A, D, F, G, H, I, J, K, L, M, O, P, Q, S, T, U, V, W, X, Z
+  const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim();
+
+  // S'assurer d'avoir les dernières tables autorisées
+  const allowedTables = dynamicGalaTables.length > 0 ? dynamicGalaTables : DEFAULT_GALA_TABLES;
+
+  if (!allowedTables.includes(cleanTable)) {
+    // Affichage de la modale de réassurance demandée par le client
+    const invalidModal = document.getElementById('invitation-invalid-table-modal');
+    if (invalidModal) {
+      invalidModal.style.display = 'flex';
+    } else {
+      alert("Table non valide ! Ne stressez pas, contactez la personne qui vous invite pour qu'elle vous fournisse votre Numéro de table, puis revenez compléter.");
+    }
+    return;
+  }
+
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = `<span>⏳</span> Enregistrement en cours...`;
+    btn.innerHTML = `<span>⏳</span> Génération de votre billet officiel...`;
   }
 
   const payload = {
     id: AppState.guest?.id || `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     name,
+    gender,
+    ticket_type: ticketType,
+    partner_name: partnerName,
+    couple_name: coupleName,
     phone,
-    table_number: table,
+    table_number: cleanTable,
     invited_by: host,
-    avatar_emoji: '🎉'
+    avatar_emoji: gender === 'F' ? '👑' : '🎉'
   };
 
   try {
@@ -583,30 +825,49 @@ window.submitInvitationRegistration = async () => {
     AppState.setGuest(guestObj);
     updateGuestHeader();
 
-    // Afficher la vue de succès
+    // Rendu haute fidélité du Billet d'invitation sur Canvas avec le nom du couple ou le nom de l'invité
+    await window.renderInvitationTicket(guestObj);
+
+    // Mettre à jour les détails récapitulatifs
     const formView = document.getElementById('invitation-form-view');
     const successView = document.getElementById('invitation-success-view');
     const detailsEl = document.getElementById('inv-summary-details');
 
+    const displayName = ticketType === 'couple' 
+      ? `<strong>${escapeHtml(coupleName)}</strong> (${escapeHtml(name)} & ${escapeHtml(partnerName)})`
+      : `<strong>${escapeHtml(name)}</strong>`;
+
     if (detailsEl) {
       detailsEl.innerHTML = `
-        <div>👤 Invité : <strong>${escapeHtml(name)}</strong></div>
-        <div>🍽️ Table réservée : <strong>${escapeHtml(table)}</strong></div>
-        <div>💬 WhatsApp : <strong>${escapeHtml(phone)}</strong></div>
-        <div>👑 Invité par : <strong>${escapeHtml(host)}</strong></div>
-        <div style="margin-top: 6px; font-size: 0.78rem; color: #10b981;">✓ Enregistré avec succès dans la liste officielle du Gala 2026</div>
+        <div>🎟️ Billet : ${displayName}</div>
+        <div>🍽️ Table réservée : <strong>Table ${escapeHtml(cleanTable)}</strong></div>
+        <div>💬 Contact WhatsApp : <strong>${escapeHtml(phone)}</strong></div>
+        <div>👑 Invité(e) par : <strong>${escapeHtml(host)}</strong></div>
+        <div style="margin-top: 6px; font-size: 0.78rem; color: #10b981;">✓ Inscription enregistrée avec succès pour le 24 Octobre 2026</div>
       `;
     }
 
     if (formView) formView.style.display = 'none';
     if (successView) successView.style.display = 'block';
 
-    window.showToast(`Bienvenue ${name} ! Votre invitation est confirmée.`);
+    // Nettoyer le brouillon une fois validé
+    try { localStorage.removeItem('compagnon_invite_draft'); } catch(e) {}
+
+    window.showToast(`Félicitations ${name} ! Votre billet d'invitation est prêt.`);
   } catch (err) {
     console.error("Erreur enregistrement invitation link:", err);
-    // En cas d'indisponibilité réseau, on valide quand même en local pour ne pas bloquer l'invité
+
+    // Si l'erreur du serveur indique une table non valide
+    if (err && err.details && err.details.invalid_table) {
+      const invalidModal = document.getElementById('invitation-invalid-table-modal');
+      if (invalidModal) invalidModal.style.display = 'flex';
+      return;
+    }
+
+    // Sinon repli local avec rendu du billet
     AppState.setGuest(payload);
     updateGuestHeader();
+    await window.renderInvitationTicket(payload);
 
     const formView = document.getElementById('invitation-form-view');
     const successView = document.getElementById('invitation-success-view');
@@ -614,9 +875,9 @@ window.submitInvitationRegistration = async () => {
 
     if (detailsEl) {
       detailsEl.innerHTML = `
-        <div>👤 Invité : <strong>${escapeHtml(name)}</strong></div>
-        <div>🍽️ Table : <strong>${escapeHtml(table)}</strong></div>
-        <div>👑 Invité par : <strong>${escapeHtml(host)}</strong></div>
+        <div>🎟️ Billet : <strong>${escapeHtml(ticketType === 'couple' ? coupleName : name)}</strong></div>
+        <div>🍽️ Table : <strong>Table ${escapeHtml(cleanTable)}</strong></div>
+        <div>👑 Invité(e) par : <strong>${escapeHtml(host)}</strong></div>
         <div style="margin-top: 6px; font-size: 0.78rem; color: #10b981;">✓ Validé sur votre appareil (synchronisation automatique)</div>
       `;
     }
@@ -625,7 +886,7 @@ window.submitInvitationRegistration = async () => {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<span>✨</span> Confirmer mon invitation & Entrer ➔`;
+      btn.innerHTML = `<span>✨</span> Confirmer mon invitation & Générer mon billet ➔`;
     }
   }
 };

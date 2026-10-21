@@ -162,6 +162,17 @@ export const Api = {
     });
   },
 
+  // 2c. Liste des tables officielles autorisées
+  async getValidTables() {
+    const defaultTables = ['A','D','F','G','H','I','J','K','L','M','O','P','Q','S','T','U','V','W','X','Z'];
+    try {
+      const res = await request('/tables');
+      return Array.isArray(res) && res.length > 0 ? res : defaultTables;
+    } catch (e) {
+      return defaultTables;
+    }
+  },
+
   // 3. Messages du Chat
   async getChatMessages() {
     try {

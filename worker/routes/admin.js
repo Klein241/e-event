@@ -158,6 +158,10 @@ export async function handleAdminRoutes(pathname, request, env) {
         COALESCE(NULLIF(g.church_duration, ''), '') as church_duration,
         COALESCE(g.invited_by, '') as invited_by,
         COALESCE(g.registration_source, 'direct') as registration_source,
+        COALESCE(g.gender, 'M') as gender,
+        COALESCE(g.ticket_type, 'seul') as ticket_type,
+        COALESCE(g.partner_name, '') as partner_name,
+        COALESCE(g.couple_name, '') as couple_name,
         g.role,
         g.created_at,
         g.last_active,
@@ -202,6 +206,46 @@ export async function handleAdminRoutes(pathname, request, env) {
       await db.prepare("DELETE FROM guests WHERE id = ?").bind(id).run();
     }
     return jsonResponse({ success: true, id });
+  }
+
+  // 5b. Gestion des Tables de l'événement (Ajouter / Lister / Supprimer)
+  if (pathname === "/api/admin/tables" && method === "GET") {
+    if (!db) return jsonResponse([]);
+    try {
+      const { results } = await db.prepare(`
+        SELECT t.table_code, t.capacity, 
+          (SELECT COUNT(*) FROM guests g WHERE g.table_number = t.table_code) as guest_count
+        FROM event_tables t
+        ORDER BY t.table_code ASC
+      `).all();
+      return jsonResponse(results || []);
+    } catch(e) {
+      return jsonResponse([]);
+    }
+  }
+
+  if (pathname === "/api/admin/tables" && method === "POST") {
+    let data = {};
+    try { data = await request.json(); } catch(e) {}
+    const code = (data.table_code || "").toUpperCase().replace(/^TABLE\s*/i, '').trim();
+    if (!code) return errorResponse("Code de table requis", 400);
+
+    if (db) {
+      const id = `tbl-${code}`;
+      await db.prepare(`
+        INSERT INTO event_tables (id, table_code) VALUES (?, ?)
+        ON CONFLICT(table_code) DO NOTHING
+      `).bind(id, code).run();
+    }
+    return jsonResponse({ success: true, table_code: code });
+  }
+
+  if (pathname.startsWith("/api/admin/tables/") && method === "DELETE") {
+    const code = pathname.replace("/api/admin/tables/", "").toUpperCase().trim();
+    if (db && code) {
+      await db.prepare("DELETE FROM event_tables WHERE table_code = ?").bind(code).run();
+    }
+    return jsonResponse({ success: true, table_code: code });
   }
 
   // 6. Gestion du Quiz : Liste de toutes les questions

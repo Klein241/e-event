@@ -2,6 +2,8 @@
    MODALE D'INVITATION PUBLIQUE GALA 2026 - ULTRA PREMIUM
    Design : Glassmorphism poussé, reliefs 3D, bordures or, compte à rebours
    ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap');
+
 
 .invitation-modal-overlay {
   position: fixed;
@@ -285,3 +287,65 @@
 .inv-summary-pill strong {
   color: #ffd700;
 }
+
+/* Contrôles segmentés pour Sexe & Billet */
+.inv-segmented-control {
+  display: flex;
+  gap: 8px;
+  background: rgba(14, 10, 20, 0.65);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 16px;
+  padding: 4px;
+}
+
+.inv-segment-item {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+}
+
+.inv-segment-item input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.inv-segment-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.65rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.inv-segment-item input:checked + .inv-segment-label {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(180, 83, 9, 0.45));
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  color: #ffd700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+/* Aperçu et téléchargement du billet */
+.inv-ticket-preview-container {
+  margin: 1.25rem 0;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid rgba(212, 175, 55, 0.5);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.2);
+  background: #ffffff;
+}
+
+.inv-ticket-preview-container img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+

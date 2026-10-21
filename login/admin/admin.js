@@ -967,11 +967,61 @@ window.shareInvitationWhatsApp = () => {
   window.open(`https://wa.me/?text=${text}`, '_blank');
 };
 
+async function loadAdminTables() {
+  try {
+    const res = await adminFetch('/admin/tables');
+    const tables = Array.isArray(res) ? res : [];
+    const countEl = document.getElementById('admin-tables-count');
+    if (countEl) countEl.textContent = tables.length;
+    const container = document.getElementById('admin-tables-pills');
+    if (!container) return;
+    container.innerHTML = tables.map(t => `
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+        <span>🍽️ Table ${escapeHtml(t.table_code)}</span>
+        <span style="font-size: 0.7rem; color: var(--text-muted);">(${t.guest_count || 0})</span>
+        <button type="button" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 2px; font-weight: 800; font-size: 0.85rem;" title="Supprimer cette table" onclick="window.adminDeleteTable('${escapeHtml(t.table_code)}')">✕</button>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+window.adminAddTable = async () => {
+  const input = document.getElementById('admin-new-table-input');
+  const code = (input?.value || '').toUpperCase().replace(/^TABLE\s*/i, '').trim();
+  if (!code) {
+    showAdminToast("Veuillez saisir un code ou numéro de table (ex: B, C, VIP)", "warning");
+    return;
+  }
+  try {
+    await adminFetch('/admin/tables', {
+      method: 'POST',
+      body: JSON.stringify({ table_code: code })
+    });
+    if (input) input.value = '';
+    showAdminToast(`Table ${code} ajoutée avec succès !`, "success");
+    loadAdminTables();
+  } catch(e) {
+    showAdminToast("Erreur ajout table : " + e.message, "error");
+  }
+};
+
+window.adminDeleteTable = async (code) => {
+  if (!confirm(`Supprimer la table ${code} des tables autorisées pour l'invitation ?`)) return;
+  try {
+    await adminFetch(`/admin/tables/${code}`, { method: 'DELETE' });
+    showAdminToast(`Table ${code} supprimée`, "info");
+    loadAdminTables();
+  } catch(e) {
+    showAdminToast("Erreur suppression table : " + e.message, "error");
+  }
+};
+
 async function loadGuests() {
   try {
     const guests = await adminFetch('/admin/guests');
     AdminState.guests = Array.isArray(guests) ? guests : [];
     window.filterGuests();
+    loadAdminTables();
   } catch (err) {
     console.error("Erreur chargement invités admin:", err);
     showAdminToast("Impossible de charger les invités : " + err.message, "error");
@@ -1020,7 +1070,7 @@ function renderGuests(guests) {
     const hasPhoto = !!(g.photo_url && g.photo_url.length > 5);
     const photoHtml = hasPhoto
       ? `<img src="${g.photo_url}" alt="${escapeHtml(g.name)}" style="width: 52px; height: 52px; border-radius: 16px; object-fit: cover; border: 2px solid var(--terracotta-accent);">`
-      : `<div style="width: 52px; height: 52px; border-radius: 16px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1.5px solid var(--border-color);">${g.avatar_emoji || '🎉'}</div>`;
+      : `<div style="width: 52px; height: 52px; border-radius: 16px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1.5px solid var(--border-color);">${g.avatar_emoji || (g.gender === 'F' ? '👑' : '🎉')}</div>`;
 
     const prayersBadge = g.prayers_count > 0
       ? `<span class="status-pill status-active" title="${g.prayers_count} demande(s) de prière" style="font-size: 0.72rem; padding: 2px 8px;">🙏 ${g.prayers_count} prière(s)</span>`
@@ -1032,6 +1082,10 @@ function renderGuests(guests) {
 
     const sourceBadge = g.registration_source === 'link'
       ? `<span class="status-pill status-active" title="Inscrit via le lien public" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`
+      : '';
+
+    const coupleBadge = g.ticket_type === 'couple'
+      ? `<span class="status-pill status-active" title="Billet en Couple" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(236, 72, 153, 0.15); color: #db2777; border: 1px solid rgba(236, 72, 153, 0.4); font-weight: 800;">👥 Couple</span>`
       : '';
 
     const professionText = g.profession
@@ -1052,6 +1106,12 @@ function renderGuests(guests) {
          </div>`
       : '';
 
+    const coupleInfoHtml = g.ticket_type === 'couple' && g.couple_name
+      ? `<div style="font-size: 0.8rem; color: #db2777; font-weight: 700; margin-top: 2px; display: flex; align-items: center; gap: 4px;">
+           <span>💍</span> <strong>${escapeHtml(g.couple_name)}</strong> ${g.partner_name ? '(' + escapeHtml(g.partner_name) + ')' : ''}
+         </div>`
+      : '';
+
     return `
       <div class="guest-crm-card-item" onclick="window.openGuestCRM('${g.id}')" title="Cliquer pour voir la fiche complète">
         <div style="display: flex; gap: 12px; align-items: center;">
@@ -1066,6 +1126,7 @@ function renderGuests(guests) {
             <div style="font-size: 0.8rem; color: var(--terracotta-accent); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
               ${professionText}
             </div>
+            ${coupleInfoHtml}
             ${hostHtml}
           </div>
         </div>
@@ -1078,6 +1139,7 @@ function renderGuests(guests) {
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             ${sourceBadge}
+            ${coupleBadge}
             ${prayersBadge}
             ${churchBadge}
           </div>
@@ -1185,6 +1247,24 @@ window.openGuestCRM = (guestId) => {
         </div>
         <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
           N° de table attribué : <strong>Table ${escapeHtml(guest.table_number || '1')}</strong> (fourni par son hôte)
+        </div>
+      </div>
+    ` : ''}
+
+    ${guest.ticket_type === 'couple' ? `
+      <!-- Détails Billet Couple -->
+      <div style="background: rgba(236, 72, 153, 0.1); border: 1.5px solid rgba(236, 72, 153, 0.35); border-radius: 16px; padding: 14px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h4 style="margin: 0; font-size: 0.88rem; color: #db2777; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+            👥 Formule Billet en Couple
+          </h4>
+          <span class="status-pill status-active" style="background: rgba(236, 72, 153, 0.2); color: #db2777; font-weight: 800; font-size: 0.72rem;">2 Personnes</span>
+        </div>
+        <div style="font-size: 0.95rem; color: var(--text-main);">
+          Nom officiel du couple : <strong style="color: #db2777; font-size: 1.05rem;">${escapeHtml(guest.couple_name || 'Couple')}</strong>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-main); margin-top: 4px;">
+          Conjoint(e) : <strong>${escapeHtml(guest.partner_name || 'Non renseigné')}</strong>
         </div>
       </div>
     ` : ''}
