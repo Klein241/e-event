@@ -638,6 +638,41 @@
          ONGLET 7 : LISTE DES INVITÉS & GESTION DES TABLES (CRM COMPLET)
          ------------------------------------------------------------- -->
     <section id="tab-guests" class="admin-tab-content">
+      
+      <!-- Carte de Partage du Lien d'Invitation Public au Gala -->
+      <div class="admin-card" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(194, 65, 12, 0.08)); border: 1.5px solid rgba(212, 175, 55, 0.35); border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+        <div class="admin-card-header" style="flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.6rem;">🔗</span>
+            <div>
+              <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main);">
+                Lien d'Invitation Public au Dîner de Gala 2026
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
+                Ce lien unique ouvre l'invitation prestige avec décompteur. Prévu pour accueillir 500+ invités simultanés sans saturation.
+              </p>
+            </div>
+          </div>
+          <span class="status-pill status-active" style="font-weight: 800; background: rgba(16, 185, 129, 0.15); color: #059669;">
+            ⚡ 500+ Invités simultanés
+          </span>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
+          <input type="text" id="admin-invitation-link-input" class="admin-input" readonly style="flex: 1; min-width: 260px; font-weight: 600; background: var(--bg-card); cursor: copy;" onclick="this.select()">
+          
+          <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.copyInvitationLink()">
+            📋 Copier le lien
+          </button>
+          <button type="button" class="btn-table-action" style="background: #25D366; color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.shareInvitationWhatsApp()">
+            💬 Partager sur WhatsApp
+          </button>
+          <a id="admin-invitation-test-btn" href="/?invite=gala2026" target="_blank" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); font-weight: 700; padding: 8px 14px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            👁️ Tester l'invitation
+          </a>
+        </div>
+      </div>
+
       <div class="admin-card">
         <div class="admin-card-header" style="flex-wrap: wrap; gap: 12px;">
           <div>
@@ -649,9 +684,19 @@
           </div>
         </div>
 
+        <!-- Sous-rubriques Invités : Tous vs Invités par lien -->
+        <div style="display: flex; gap: 10px; margin: 12px 0 14px 0; flex-wrap: wrap; align-items: center;">
+          <button type="button" id="subtab-guests-all" class="btn-table-action subtab-guest-btn active" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--terracotta-gradient); color: #fff; cursor: pointer;" onclick="window.setGuestSubTab('all')">
+            👥 Tous les invités (<span id="subtab-count-all">0</span>)
+          </button>
+          <button type="button" id="subtab-guests-link" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: var(--text-main); cursor: pointer;" onclick="window.setGuestSubTab('link')">
+            💌 Invités par lien (<span id="subtab-count-link">0</span>)
+          </button>
+        </div>
+
         <!-- Barre de recherche rapide CRM -->
-        <div style="margin: 12px 0 18px 0;">
-          <input type="text" id="admin-guest-search" class="admin-input" placeholder="🔍 Rechercher un invité par nom, table, métier, résidence ou téléphone..." oninput="window.filterGuests(this.value)">
+        <div style="margin: 0 0 18px 0;">
+          <input type="text" id="admin-guest-search" class="admin-input" placeholder="🔍 Rechercher un invité par nom, table, invité par, métier, résidence ou téléphone..." oninput="window.filterGuests(this.value)">
         </div>
 
         <!-- Grille de fiches CRM interactives -->

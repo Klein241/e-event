@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="/src/styles/projector.css">
   <link rel="stylesheet" href="/src/styles/program.css">
   <link rel="stylesheet" href="/src/styles/ads.css">
+  <link rel="stylesheet" href="/src/styles/invitation.css">
   
   <!-- Moteur Web 3D interactif Google model-viewer (Apple & Amazon WebGL Standard) -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
@@ -970,6 +971,108 @@
             🎮 Rejoindre les Jeux & Duels
           </button>
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 0. Modale d'Invitation Publique Prestige (2ème Édition Gala 24 Octobre 2026) -->
+  <div class="invitation-modal-overlay" id="invitation-link-modal" style="display: none;">
+    <div class="invitation-glass-card">
+      <button type="button" class="btn-icon" style="position: absolute; top: 1rem; right: 1rem; width: 34px; height: 34px; background: rgba(255,255,255,0.12); border-radius: 50%; color: #fff; border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer;" onclick="window.closeInvitationModal()" title="Fermer">✕</button>
+      
+      <div id="invitation-form-view">
+        <div style="text-align: center;">
+          <div class="invitation-badge-top">
+            <span>✨</span> 2ÈME ÉDITION DU DÎNER DE GALA <span>✨</span>
+          </div>
+          <h2 class="invitation-title">
+            Vous êtes invité à la 2ème édition de notre Dîner de gala ce 24 Octobre 2026 dès 15h
+          </h2>
+        </div>
+
+        <!-- Décompteur Dynamique Plus que : J - H - M - S -->
+        <div class="invitation-countdown-box">
+          <div class="invitation-countdown-label">
+            <span>⏳</span> Plus que :
+          </div>
+          <div class="invitation-countdown-grid">
+            <div class="invitation-count-cell">
+              <span class="invitation-count-num" id="inv-count-days">00</span>
+              <span class="invitation-count-text">Jours</span>
+            </div>
+            <div class="invitation-count-cell">
+              <span class="invitation-count-num" id="inv-count-hours">00</span>
+              <span class="invitation-count-text">Heures</span>
+            </div>
+            <div class="invitation-count-cell">
+              <span class="invitation-count-num" id="inv-count-minutes">00</span>
+              <span class="invitation-count-text">Minutes</span>
+            </div>
+            <div class="invitation-count-cell">
+              <span class="invitation-count-num" id="inv-count-seconds">00</span>
+              <span class="invitation-count-text">Secondes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire d'enregistrement -->
+        <form id="invitation-link-form" onsubmit="event.preventDefault(); window.submitInvitationRegistration();">
+          <div class="inv-form-group">
+            <label class="inv-form-label" for="inv-input-name">
+              <span>👤</span> Nom et prénom <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="inv-input-name" class="inv-form-input" placeholder="Ex: Pasteur Jean Mba / Estelle Ondo" required autocomplete="name">
+          </div>
+
+          <div class="inv-form-group">
+            <label class="inv-form-label" for="inv-input-phone">
+              <span>💬</span> Numéro WhatsApp <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="tel" id="inv-input-phone" class="inv-form-input" placeholder="Ex: +241 77 12 34 56" required autocomplete="tel">
+          </div>
+
+          <div class="inv-form-group">
+            <label class="inv-form-label" for="inv-input-table">
+              <span>🍽️</span> N° de la TABLE <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="inv-input-table" class="inv-form-input" placeholder="Ex: Table 7" required>
+            <div class="inv-form-hint">
+              💡 Ce N° reçu est celui que celui qui vous a invité vous a donné.
+            </div>
+          </div>
+
+          <div class="inv-form-group">
+            <label class="inv-form-label" for="inv-input-host">
+              <span>👑</span> Invité par <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="inv-input-host" class="inv-form-input" placeholder="Ex: Pasteur Paul / Dr. Sophie" required>
+            <div class="inv-form-hint">
+              Indiquez le nom de l'hôte ou de la personne qui vous a transmis l'invitation.
+            </div>
+          </div>
+
+          <button type="submit" id="inv-btn-submit" class="inv-btn-submit">
+            <span>✨</span> Confirmer mon invitation & Entrer ➔
+          </button>
+        </form>
+      </div>
+
+      <!-- Vue Confirmation / Succès -->
+      <div id="invitation-success-view" class="inv-success-card" style="display: none;">
+        <div class="inv-success-badge">🎉</div>
+        <h2 style="font-size: 1.35rem; color: #ffd700; margin: 0 0 0.5rem 0;">Invitation Confirmée !</h2>
+        <p style="color: #f1f5f9; font-size: 0.92rem; margin: 0;">
+          Bienvenue au Dîner de Gala. Votre place est officiellement enregistrée.
+        </p>
+
+        <div class="inv-summary-pill" id="inv-summary-details">
+          <!-- Injecté dynamiquement -->
+        </div>
+
+        <button type="button" class="inv-btn-submit" onclick="window.enterAppFromInvitation()">
+          🚀 Accéder à l'application du Gala
+        </button>
       </div>
 
     </div>

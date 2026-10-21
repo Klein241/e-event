@@ -25,6 +25,15 @@ CREATE TABLE IF NOT EXISTS guests (
     avatar_emoji TEXT DEFAULT '🎉',
     photo_url TEXT,
     role TEXT DEFAULT 'invite', -- 'invite', 'hote', 'vip', 'temoin', 'animateur'
+    phone TEXT,
+    profession TEXT,
+    company TEXT,
+    residence_location TEXT,
+    has_church INTEGER DEFAULT 0,
+    church_name TEXT,
+    church_duration TEXT,
+    invited_by TEXT,
+    registration_source TEXT DEFAULT 'direct', -- 'direct', 'link', 'admin'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_active DATETIME DEFAULT CURRENT_TIMESTAMP
 );

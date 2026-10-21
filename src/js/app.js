@@ -115,8 +115,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }, 80);
 
-  // 14. Proposer l'onboarding aux nouveaux invités sans bloquer l'accès
-  if (!AppState.guest) {
+  // 14. Détection du lien d'invitation au Gala (?invite=... ou #invitation) ou onboarding classique
+  const urlParams = new URLSearchParams(window.location.search);
+  const isInvite = urlParams.has('invite') || urlParams.has('invitation') || window.location.hash === '#invitation';
+  if (isInvite) {
+    const hostParam = urlParams.get('par') || urlParams.get('hote') || urlParams.get('by');
+    if (hostParam) {
+      setTimeout(() => {
+        const hostEl = document.getElementById('inv-input-host');
+        if (hostEl) hostEl.value = decodeURIComponent(hostParam);
+      }, 100);
+    }
+    setTimeout(() => {
+      window.openInvitationModal();
+    }, 250);
+  } else if (!AppState.guest) {
     setTimeout(() => {
       window.openOnboarding();
     }, 450);
@@ -445,6 +458,192 @@ window.saveOnboarding = async () => {
   } catch (err) {
     console.warn("Synchronisation invité enregistrée localement :", err);
   }
+};
+
+// ==========================================
+// Modale d'Invitation Publique Prestige (Gala 24 Octobre 2026)
+// ==========================================
+let invitationCountdownInterval = null;
+const GALA_DATE_TARGET = new Date('2026-10-24T15:00:00+01:00').getTime();
+
+function updateInvitationCountdown() {
+  const now = Date.now();
+  const diff = GALA_DATE_TARGET - now;
+
+  const daysEl = document.getElementById('inv-count-days');
+  const hoursEl = document.getElementById('inv-count-hours');
+  const minsEl = document.getElementById('inv-count-minutes');
+  const secsEl = document.getElementById('inv-count-seconds');
+
+  if (diff <= 0) {
+    if (daysEl) daysEl.textContent = '00';
+    if (hoursEl) hoursEl.textContent = '00';
+    if (minsEl) minsEl.textContent = '00';
+    if (secsEl) secsEl.textContent = '00';
+    return;
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+  if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+  if (minsEl) minsEl.textContent = String(minutes).padStart(2, '0');
+  if (secsEl) secsEl.textContent = String(seconds).padStart(2, '0');
+}
+
+window.openInvitationModal = () => {
+  const modal = document.getElementById('invitation-link-modal');
+  if (!modal) return;
+
+  const formView = document.getElementById('invitation-form-view');
+  const successView = document.getElementById('invitation-success-view');
+  if (formView) formView.style.display = 'block';
+  if (successView) successView.style.display = 'none';
+
+  // Si l'invité a déjà un nom dans AppState, le préremplir
+  if (AppState.guest) {
+    const nameInput = document.getElementById('inv-input-name');
+    const tableInput = document.getElementById('inv-input-table');
+    const phoneInput = document.getElementById('inv-input-phone');
+    if (nameInput && !nameInput.value) nameInput.value = AppState.guest.name || '';
+    if (tableInput && (!tableInput.value || tableInput.value === 'Table 1')) tableInput.value = AppState.guest.table_number || '';
+    if (phoneInput && !phoneInput.value) phoneInput.value = AppState.guest.phone || '';
+  }
+
+  updateInvitationCountdown();
+  if (invitationCountdownInterval) clearInterval(invitationCountdownInterval);
+  invitationCountdownInterval = setInterval(updateInvitationCountdown, 1000);
+
+  modal.style.display = 'flex';
+};
+
+window.closeInvitationModal = () => {
+  const modal = document.getElementById('invitation-link-modal');
+  if (modal) modal.style.display = 'none';
+  if (invitationCountdownInterval) {
+    clearInterval(invitationCountdownInterval);
+    invitationCountdownInterval = null;
+  }
+};
+
+window.submitInvitationRegistration = async () => {
+  const nameEl = document.getElementById('inv-input-name');
+  const phoneEl = document.getElementById('inv-input-phone');
+  const tableEl = document.getElementById('inv-input-table');
+  const hostEl = document.getElementById('inv-input-host');
+  const btn = document.getElementById('inv-btn-submit');
+
+  const name = nameEl ? nameEl.value.trim() : '';
+  const phone = phoneEl ? phoneEl.value.trim() : '';
+  const table = tableEl ? tableEl.value.trim() : '1';
+  const host = hostEl ? hostEl.value.trim() : '';
+
+  if (!name) {
+    alert("Veuillez saisir votre nom et prénom.");
+    nameEl?.focus();
+    return;
+  }
+  if (!phone) {
+    alert("Veuillez saisir votre numéro WhatsApp.");
+    phoneEl?.focus();
+    return;
+  }
+  if (!table) {
+    alert("Veuillez indiquer le numéro de table reçu de votre hôte.");
+    tableEl?.focus();
+    return;
+  }
+  if (!host) {
+    alert("Veuillez préciser la personne qui vous a invité.");
+    hostEl?.focus();
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳</span> Enregistrement en cours...`;
+  }
+
+  const payload = {
+    id: AppState.guest?.id || `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    name,
+    phone,
+    table_number: table,
+    invited_by: host,
+    avatar_emoji: '🎉'
+  };
+
+  try {
+    const res = await Api.registerByInvitationLink(payload);
+    const guestObj = (res && res.guest) ? res.guest : payload;
+
+    AppState.setGuest(guestObj);
+    updateGuestHeader();
+
+    // Afficher la vue de succès
+    const formView = document.getElementById('invitation-form-view');
+    const successView = document.getElementById('invitation-success-view');
+    const detailsEl = document.getElementById('inv-summary-details');
+
+    if (detailsEl) {
+      detailsEl.innerHTML = `
+        <div>👤 Invité : <strong>${escapeHtml(name)}</strong></div>
+        <div>🍽️ Table réservée : <strong>${escapeHtml(table)}</strong></div>
+        <div>💬 WhatsApp : <strong>${escapeHtml(phone)}</strong></div>
+        <div>👑 Invité par : <strong>${escapeHtml(host)}</strong></div>
+        <div style="margin-top: 6px; font-size: 0.78rem; color: #10b981;">✓ Enregistré avec succès dans la liste officielle du Gala 2026</div>
+      `;
+    }
+
+    if (formView) formView.style.display = 'none';
+    if (successView) successView.style.display = 'block';
+
+    window.showToast(`Bienvenue ${name} ! Votre invitation est confirmée.`);
+  } catch (err) {
+    console.error("Erreur enregistrement invitation link:", err);
+    // En cas d'indisponibilité réseau, on valide quand même en local pour ne pas bloquer l'invité
+    AppState.setGuest(payload);
+    updateGuestHeader();
+
+    const formView = document.getElementById('invitation-form-view');
+    const successView = document.getElementById('invitation-success-view');
+    const detailsEl = document.getElementById('inv-summary-details');
+
+    if (detailsEl) {
+      detailsEl.innerHTML = `
+        <div>👤 Invité : <strong>${escapeHtml(name)}</strong></div>
+        <div>🍽️ Table : <strong>${escapeHtml(table)}</strong></div>
+        <div>👑 Invité par : <strong>${escapeHtml(host)}</strong></div>
+        <div style="margin-top: 6px; font-size: 0.78rem; color: #10b981;">✓ Validé sur votre appareil (synchronisation automatique)</div>
+      `;
+    }
+    if (formView) formView.style.display = 'none';
+    if (successView) successView.style.display = 'block';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span>✨</span> Confirmer mon invitation & Entrer ➔`;
+    }
+  }
+};
+
+window.enterAppFromInvitation = () => {
+  window.closeInvitationModal();
+
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('invite');
+    url.searchParams.delete('invitation');
+    url.searchParams.delete('par');
+    url.searchParams.delete('hote');
+    url.searchParams.delete('by');
+    window.history.replaceState({}, '', url.pathname + url.search);
+  } catch(e) {}
+
+  window.showToast("Bienvenue au Dîner de Gala ! Profitez de la soirée ✨");
 };
 
 // ==========================================

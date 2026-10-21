@@ -913,11 +913,65 @@ window.exportNetworkingCSV = () => {
 // -------------------------------------------------------------
 let currentCrmGuestId = null;
 
+let currentGuestSubTab = 'all'; // 'all' or 'link'
+
+window.setGuestSubTab = (tab) => {
+  currentGuestSubTab = tab;
+  const btnAll = document.getElementById('subtab-guests-all');
+  const btnLink = document.getElementById('subtab-guests-link');
+
+  if (tab === 'link') {
+    if (btnAll) {
+      btnAll.style.background = 'var(--bg-secondary)';
+      btnAll.style.color = 'var(--text-main)';
+      btnAll.classList.remove('active');
+    }
+    if (btnLink) {
+      btnLink.style.background = 'var(--terracotta-gradient)';
+      btnLink.style.color = '#fff';
+      btnLink.classList.add('active');
+    }
+  } else {
+    if (btnAll) {
+      btnAll.style.background = 'var(--terracotta-gradient)';
+      btnAll.style.color = '#fff';
+      btnAll.classList.add('active');
+    }
+    if (btnLink) {
+      btnLink.style.background = 'var(--bg-secondary)';
+      btnLink.style.color = 'var(--text-main)';
+      btnLink.classList.remove('active');
+    }
+  }
+
+  window.filterGuests();
+};
+
+window.copyInvitationLink = () => {
+  const input = document.getElementById('admin-invitation-link-input');
+  const url = input ? input.value : `${window.location.origin}/?invite=gala2026`;
+  navigator.clipboard.writeText(url).then(() => {
+    showAdminToast("Lien d'invitation copié dans le presse-papier !", "success");
+  }).catch(() => {
+    showAdminToast("Lien d'invitation : " + url, "info");
+  });
+};
+
+window.shareInvitationWhatsApp = () => {
+  const input = document.getElementById('admin-invitation-link-input');
+  const url = input ? input.value : `${window.location.origin}/?invite=gala2026`;
+  const text = encodeURIComponent(
+    "✨ Vous êtes invité à la 2ème édition de notre Dîner de Gala ce 24 Octobre 2026 dès 15h !\n\n" +
+    "Cliquez sur ce lien sécurisé pour confirmer votre présence et votre numéro de table :\n" + url
+  );
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+};
+
 async function loadGuests() {
   try {
     const guests = await adminFetch('/admin/guests');
     AdminState.guests = Array.isArray(guests) ? guests : [];
-    renderGuests(AdminState.guests);
+    window.filterGuests();
   } catch (err) {
     console.error("Erreur chargement invités admin:", err);
     showAdminToast("Impossible de charger les invités : " + err.message, "error");
@@ -929,13 +983,34 @@ function renderGuests(guests) {
   const countBadge = document.getElementById('admin-guests-count');
   if (countBadge) countBadge.textContent = `${guests ? guests.length : 0} invité(s)`;
 
+  // Mettre à jour les compteurs des sous-rubriques
+  const allCount = (AdminState.guests || []).length;
+  const linkCount = (AdminState.guests || []).filter(g => g.registration_source === 'link').length;
+  const countAllEl = document.getElementById('subtab-count-all');
+  const countLinkEl = document.getElementById('subtab-count-link');
+  if (countAllEl) countAllEl.textContent = allCount;
+  if (countLinkEl) countLinkEl.textContent = linkCount;
+
+  // Initialiser l'URL du lien d'invitation
+  const linkInput = document.getElementById('admin-invitation-link-input');
+  if (linkInput) {
+    linkInput.value = `${window.location.origin}/?invite=gala2026`;
+  }
+  const testBtn = document.getElementById('admin-invitation-test-btn');
+  if (testBtn) {
+    testBtn.href = `${window.location.origin}/?invite=gala2026`;
+  }
+
   if (!container) return;
 
   if (!guests || guests.length === 0) {
+    const emptyMsg = currentGuestSubTab === 'link'
+      ? "Aucun invité ne s'est encore inscrit via le lien public d'invitation."
+      : "Aucun invité ne correspond à votre recherche.";
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
-        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">👥</span>
-        <p>Aucun invité ne correspond à votre recherche ou aucun invité connecté.</p>
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">${currentGuestSubTab === 'link' ? '💌' : '👥'}</span>
+        <p>${emptyMsg}</p>
       </div>
     `;
     return;
@@ -955,6 +1030,10 @@ function renderGuests(guests) {
       ? `<span class="status-pill status-active" title="Église : ${escapeHtml(g.church_name || 'Oui')}" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #059669;">⛪ Église</span>`
       : `<span class="status-pill" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(107, 93, 84, 0.1); color: var(--text-muted);">Sans église</span>`;
 
+    const sourceBadge = g.registration_source === 'link'
+      ? `<span class="status-pill status-active" title="Inscrit via le lien public" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`
+      : '';
+
     const professionText = g.profession
       ? `${escapeHtml(g.profession)}${g.company ? ' • ' + escapeHtml(g.company) : ''}`
       : 'Profession non renseignée';
@@ -966,6 +1045,12 @@ function renderGuests(guests) {
     const phoneText = g.phone
       ? `📱 ${escapeHtml(g.phone)}`
       : '📱 Sans téléphone';
+
+    const hostHtml = g.invited_by
+      ? `<div style="font-size: 0.8rem; color: #b45309; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+           <span>👑</span> Invité par : <strong>${escapeHtml(g.invited_by)}</strong>
+         </div>`
+      : '';
 
     return `
       <div class="guest-crm-card-item" onclick="window.openGuestCRM('${g.id}')" title="Cliquer pour voir la fiche complète">
@@ -981,6 +1066,7 @@ function renderGuests(guests) {
             <div style="font-size: 0.8rem; color: var(--terracotta-accent); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
               ${professionText}
             </div>
+            ${hostHtml}
           </div>
         </div>
 
@@ -991,6 +1077,7 @@ function renderGuests(guests) {
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            ${sourceBadge}
             ${prayersBadge}
             ${churchBadge}
           </div>
@@ -1004,21 +1091,31 @@ function renderGuests(guests) {
 }
 
 window.filterGuests = (query) => {
-  const q = (query || '').toLowerCase().trim();
-  if (!q) {
-    renderGuests(AdminState.guests);
-    return;
+  const searchInput = document.getElementById('admin-guest-search');
+  const q = (query !== undefined ? query : (searchInput ? searchInput.value : '')).toLowerCase().trim();
+  
+  let list = AdminState.guests || [];
+
+  // Filtrage par sous-rubrique
+  if (currentGuestSubTab === 'link') {
+    list = list.filter(g => g.registration_source === 'link');
   }
-  const filtered = AdminState.guests.filter(g => {
-    return (g.name || '').toLowerCase().includes(q) ||
-      (g.table_number || '').toString().toLowerCase().includes(q) ||
-      (g.profession || '').toLowerCase().includes(q) ||
-      (g.company || '').toLowerCase().includes(q) ||
-      (g.residence_location || '').toLowerCase().includes(q) ||
-      (g.phone || '').toLowerCase().includes(q) ||
-      (g.church_name || '').toLowerCase().includes(q);
-  });
-  renderGuests(filtered);
+
+  // Filtrage par recherche textuelle
+  if (q) {
+    list = list.filter(g => {
+      return (g.name || '').toLowerCase().includes(q) ||
+        (g.table_number || '').toString().toLowerCase().includes(q) ||
+        (g.invited_by || '').toLowerCase().includes(q) ||
+        (g.profession || '').toLowerCase().includes(q) ||
+        (g.company || '').toLowerCase().includes(q) ||
+        (g.residence_location || '').toLowerCase().includes(q) ||
+        (g.phone || '').toLowerCase().includes(q) ||
+        (g.church_name || '').toLowerCase().includes(q);
+    });
+  }
+
+  renderGuests(list);
 };
 
 window.openGuestCRM = (guestId) => {
@@ -1073,6 +1170,24 @@ window.openGuestCRM = (guestId) => {
         </div>
       </div>
     </div>
+
+    ${guest.registration_source === 'link' ? `
+      <!-- Origine Inscription par Lien -->
+      <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(180, 83, 9, 0.15)); border: 1.5px solid rgba(212, 175, 55, 0.45); border-radius: 16px; padding: 14px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h4 style="margin: 0; font-size: 0.88rem; color: #b45309; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+            💌 Inscription par Lien d'Invitation Public
+          </h4>
+          <span class="status-pill status-active" style="background: rgba(212, 175, 55, 0.25); color: #b45309; font-weight: 800; font-size: 0.72rem;">2ème Édition Gala</span>
+        </div>
+        <div style="font-size: 0.92rem; color: var(--text-main);">
+          Invité(e) par : <strong style="color: var(--terracotta-accent); font-size: 1.05rem;">${escapeHtml(guest.invited_by || 'Non précisé')}</strong>
+        </div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+          N° de table attribué : <strong>Table ${escapeHtml(guest.table_number || '1')}</strong> (fourni par son hôte)
+        </div>
+      </div>
+    ` : ''}
 
     <!-- Section 1 : Coordonnées & Lieu de vie -->
     <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 14px; margin-bottom: 14px;">

@@ -154,6 +154,14 @@ export const Api = {
     });
   },
 
+  // 2b. Inscription par lien d'invitation (2ème édition Gala)
+  async registerByInvitationLink(data) {
+    return await request('/guests/invitation-register', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   // 3. Messages du Chat
   async getChatMessages() {
     try {

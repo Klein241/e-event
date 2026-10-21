@@ -90,6 +90,77 @@ export async function handleEventRoutes(pathname, request, env) {
     });
   }
 
+  // 3a-bis. Inscription par lien d'invitation publique (2ème édition Gala)
+  if (pathname === "/api/guests/invitation-register" && method === "POST") {
+    let data = {};
+    try {
+      data = await request.json();
+    } catch (e) {
+      return errorResponse("Données invalides", 400);
+    }
+
+    const name = (data.name || "").trim();
+    const phone = (data.phone || data.whatsapp || "").trim();
+    const tableNumber = (data.table_number || "1").trim();
+    const invitedBy = (data.invited_by || "").trim();
+    const avatarEmoji = data.avatar_emoji || "🎉";
+
+    if (!name) {
+      return errorResponse("Le nom et prénom sont obligatoires", 400);
+    }
+    if (!phone) {
+      return errorResponse("Le numéro WhatsApp est obligatoire", 400);
+    }
+    if (!tableNumber) {
+      return errorResponse("Le numéro de table est obligatoire", 400);
+    }
+    if (!invitedBy) {
+      return errorResponse("Le champ 'Invité par' est obligatoire", 400);
+    }
+
+    // Identifiant unique haute concurrence (supporte 500+ inscrits sans collision)
+    const guestId = data.id || `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
+    if (db) {
+      try {
+        await db.prepare(`
+          INSERT INTO guests (
+            id, event_id, name, table_number, phone, invited_by, registration_source, avatar_emoji, role, created_at, last_active
+          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            table_number = excluded.table_number,
+            phone = excluded.phone,
+            invited_by = excluded.invited_by,
+            registration_source = 'link',
+            avatar_emoji = excluded.avatar_emoji,
+            last_active = CURRENT_TIMESTAMP
+        `).bind(guestId, name, tableNumber, phone, invitedBy, avatarEmoji).run();
+      } catch (err) {
+        console.error("Erreur insertion invité par lien:", err);
+        return errorResponse("Erreur base de données: " + err.message, 500);
+      }
+    }
+
+    const guestObj = {
+      id: guestId,
+      name,
+      table_number: tableNumber,
+      phone,
+      invited_by: invitedBy,
+      registration_source: 'link',
+      avatar_emoji: avatarEmoji,
+      role: 'invite',
+      token: `token-${guestId}`
+    };
+
+    return jsonResponse({
+      success: true,
+      guest: guestObj,
+      message: `Bienvenue ${name} ! Votre invitation a été confirmée.`
+    });
+  }
+
   // 3b. Mise à jour directe du profil invité (Coordonnées & CRM)
   if (pathname === "/api/guests/profile" && method === "POST") {
     const data = await request.json();

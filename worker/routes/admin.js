@@ -156,6 +156,8 @@ export async function handleAdminRoutes(pathname, request, env) {
         COALESCE(g.has_church, 0) as has_church,
         COALESCE(NULLIF(g.church_name, ''), '') as church_name,
         COALESCE(NULLIF(g.church_duration, ''), '') as church_duration,
+        COALESCE(g.invited_by, '') as invited_by,
+        COALESCE(g.registration_source, 'direct') as registration_source,
         g.role,
         g.created_at,
         g.last_active,
