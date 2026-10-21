@@ -58,7 +58,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets statiques : cache d'abord avec rafraîchissement réseau
+  // 1. Navigation HTML : Réseau d'abord avec fallback cache hors-ligne immédiat
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then(cached => cached || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // 2. Assets statiques : cache d'abord avec rafraîchissement réseau
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

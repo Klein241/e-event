@@ -675,6 +675,19 @@
             </div>
           </div>
 
+          <!-- Filtres de présence & statut (Tous, En ligne, Déconnectés) -->
+          <div class="networking-presence-filter-row">
+            <button type="button" class="net-status-pill active" id="net-filter-all" onclick="NetworkingModule.setStatusFilter('all')">
+              👥 Tous (<span id="net-count-all">0</span>)
+            </button>
+            <button type="button" class="net-status-pill" id="net-filter-online" onclick="NetworkingModule.setStatusFilter('online')">
+              🟢 En ligne (<span id="net-count-online">0</span>)
+            </button>
+            <button type="button" class="net-status-pill" id="net-filter-offline" onclick="NetworkingModule.setStatusFilter('offline')">
+              ⚪ Déconnectés (<span id="net-count-offline">0</span>)
+            </button>
+          </div>
+
           <!-- Barre de recherche -->
           <div class="search-filter-box">
             <div class="search-input-wrapper">

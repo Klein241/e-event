@@ -403,6 +403,38 @@ export const Api = {
         body: JSON.stringify(data)
       }, 0);
     });
+  },
+
+  // 21. Profils de Réseautage & Statuts de présence
+  async getNetworkingProfiles(query = '') {
+    try {
+      const q = query ? `?q=${encodeURIComponent(query)}` : '';
+      return await request(`/networking${q}`);
+    } catch (e) {
+      if (isDemoMode()) return Mocks.getDemoNetworkingProfiles();
+      return [];
+    }
+  },
+
+  // 22. Messages Privés 1-à-1 réels
+  async getPrivateMessages(user1, user2) {
+    if (!user1 || !user2) return [];
+    try {
+      return await request(`/networking/messages?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`);
+    } catch (e) {
+      return [];
+    }
+  },
+
+  async sendPrivateMessage(data) {
+    return await sendWithOfflineFallback('private_chat', '/networking/messages', data);
+  },
+
+  async deletePrivateMessage(msgId, senderId) {
+    return await request(`/networking/messages/${msgId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ sender_id: senderId })
+    }, 0);
   }
 };
 

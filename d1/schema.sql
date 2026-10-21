@@ -182,6 +182,21 @@ CREATE TABLE IF NOT EXISTS push_notifications_log (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 14. Messages privés 1-à-1 (Réseautage)
+CREATE TABLE IF NOT EXISTS private_messages (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL DEFAULT 'default',
+    sender_id TEXT NOT NULL,
+    sender_name TEXT,
+    recipient_id TEXT NOT NULL,
+    recipient_name TEXT,
+    message TEXT,
+    media_url TEXT,
+    message_type TEXT DEFAULT 'text',
+    is_deleted INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Index pour accélérer les requêtes de direct
 CREATE INDEX IF NOT EXISTS idx_chat_event ON chat_messages(event_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_quiz_active ON quiz_questions(event_id, status);
@@ -189,4 +204,6 @@ CREATE INDEX IF NOT EXISTS idx_prayers_event ON prayer_requests(event_id, create
 CREATE INDEX IF NOT EXISTS idx_networking_event ON networking_profiles(event_id);
 CREATE INDEX IF NOT EXISTS idx_push_subs_event ON push_subscriptions(event_id, guest_id);
 CREATE INDEX IF NOT EXISTS idx_push_logs_event ON push_notifications_log(event_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_private_msgs_users ON private_messages(sender_id, recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_private_msgs_event ON private_messages(event_id, created_at DESC);
 

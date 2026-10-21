@@ -903,3 +903,175 @@ body.dark-mode .private-chat-input {
 .private-chat-input:focus {
   border-color: #E67A53;
 }
+
+/* ============================================================
+   FILTRES DE PRÉSENCE & STATUT DANS LE HUB RÉSEAUTAGE
+   ============================================================ */
+.networking-presence-filter-row {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.net-status-pill {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid rgba(215, 195, 180, 0.6);
+  background: #FAF4ED;
+  color: #6B5D54;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 2px 3px 6px rgba(195, 175, 155, 0.2);
+}
+
+body.dark-mode .net-status-pill {
+  background: #1e1917;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.net-status-pill.active {
+  background: var(--terracotta-gradient);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(220, 105, 65, 0.4);
+  transform: scale(1.04);
+}
+
+body.dark-mode .net-status-pill.active {
+  background: var(--gold-gradient);
+  color: #0b0f19;
+}
+
+/* Badge de statut de présence sur chaque carte invité */
+.clay-presence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-top: 0.25rem;
+}
+
+.clay-presence-badge.online {
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+body.dark-mode .clay-presence-badge.online {
+  color: #34d399;
+}
+
+.clay-presence-badge.offline {
+  background: rgba(148, 163, 184, 0.14);
+  color: #64748b;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+body.dark-mode .clay-presence-badge.offline {
+  color: #94a3b8;
+}
+
+.clay-presence-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: presencePulse 1.8s infinite;
+}
+
+/* ============================================================
+   PIÈCES JOINTES ET ACTIONS DANS LE CHAT PRIVÉ
+   ============================================================ */
+.btn-private-icon {
+  background: transparent;
+  border: 1px solid rgba(215, 195, 180, 0.6);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  color: #2D231E;
+}
+
+body.dark-mode .btn-private-icon {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+.btn-private-icon:hover {
+  transform: scale(1.1);
+  background: rgba(230, 122, 83, 0.15);
+  border-color: var(--terracotta-accent);
+}
+
+.private-chat-attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-bottom: 1.5px dashed #10b981;
+  font-size: 0.78rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.private-attached-img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-top: 0.4rem;
+  cursor: pointer;
+}
+
+.private-attached-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.btn-private-delete {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  padding: 0 4px;
+}
+
+.private-bubble:hover .btn-private-delete {
+  opacity: 1;
+}
+
+.private-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 4px;
+}
+

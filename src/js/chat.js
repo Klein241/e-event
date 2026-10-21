@@ -210,6 +210,28 @@ export const ChatModule = {
         }
         break;
       }
+      case 'new_private_message': {
+        const msg = event.payload || event.data;
+        if (msg) {
+          window.dispatchEvent(new CustomEvent('realtime-private-message', { detail: msg }));
+          const myId = AppState.guest ? AppState.guest.id : null;
+          if (myId && msg.recipient_id === myId) {
+            const privateModal = document.getElementById('private-chat-modal');
+            const isOpen = privateModal && privateModal.classList.contains('active');
+            if (!isOpen) {
+              window.showToast(`💬 Nouveau message privé de ${msg.sender_name || 'un invité'} !`, "info");
+            }
+          }
+        }
+        break;
+      }
+      case 'delete_private_message': {
+        const data = event.payload || event.data;
+        if (data) {
+          window.dispatchEvent(new CustomEvent('realtime-delete-private-message', { detail: data }));
+        }
+        break;
+      }
     }
   },
 
