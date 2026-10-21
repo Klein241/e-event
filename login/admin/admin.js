@@ -1213,6 +1213,27 @@ window.adminDeleteTable = async (code) => {
   }
 };
 
+async function loadInvitationStats() {
+  try {
+    const res = await adminFetch('/admin/invitation-stats');
+    if (res && res.success && res.data) {
+      const d = res.data;
+      const elClicks = document.getElementById('admin-stats-total-clicks');
+      const elUniq = document.getElementById('admin-stats-unique-visitors');
+      const elReg = document.getElementById('admin-stats-link-registrations');
+      const elRate = document.getElementById('admin-stats-conversion-rate');
+
+      if (elClicks) elClicks.textContent = d.total_clicks ?? 0;
+      if (elUniq) elUniq.textContent = d.unique_visitors ?? 0;
+      if (elReg) elReg.textContent = d.link_registrations ?? 0;
+      if (elRate) elRate.textContent = (d.conversion_rate ?? 0) + '%';
+    }
+  } catch (e) {
+    console.warn("Erreur chargement stats invitation:", e);
+  }
+}
+window.loadInvitationStats = loadInvitationStats;
+
 async function loadGuests() {
   try {
     const guests = await adminFetch('/admin/guests');
@@ -1220,6 +1241,7 @@ async function loadGuests() {
     updateHostsDropdownAndDatalist();
     window.filterGuests();
     loadAdminTables();
+    loadInvitationStats();
   } catch (err) {
     console.error("Erreur chargement invités admin:", err);
     showAdminToast("Impossible de charger les invités : " + err.message, "error");

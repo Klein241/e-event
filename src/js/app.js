@@ -119,6 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const isInvite = urlParams.has('invite') || urlParams.has('invitation') || window.location.hash === '#invitation';
   if (isInvite) {
+    trackInvitationClick();
     const hostParam = urlParams.get('par') || urlParams.get('hote') || urlParams.get('by');
     if (hostParam) {
       setTimeout(() => {
@@ -584,7 +585,7 @@ window.handleInvitationPhotoSelect = (e) => {
   reader.readAsDataURL(file);
 };
 
-window.removeInvitationPhoto = () => {
+window.removeInvitationPhoto = (saveDraft = true) => {
   currentInvitationPhotoBase64 = null;
   const input = document.getElementById('inv-photo-input');
   if (input) input.value = '';
@@ -600,8 +601,25 @@ window.removeInvitationPhoto = () => {
   if (emojiEl) emojiEl.style.display = 'block';
   if (removeBtn) removeBtn.style.display = 'none';
 
-  window.onInvitationFieldChange();
+  if (saveDraft) window.onInvitationFieldChange();
 };
+
+function trackInvitationClick() {
+  try {
+    if (!sessionStorage.getItem('compagnon_invite_tracked')) {
+      sessionStorage.setItem('compagnon_invite_tracked', '1');
+      fetch('/api/invitation-link/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'link',
+          referrer: document.referrer || '',
+          url: window.location.href
+        })
+      }).catch(() => {});
+    }
+  } catch(e) {}
+}
 
 window.onInvitationFieldChange = () => {
   const gender = document.querySelector('input[name="inv-gender"]:checked')?.value || 'M';
@@ -636,6 +654,7 @@ window.openInvitationModal = () => {
   const modal = document.getElementById('invitation-link-modal');
   if (!modal) return;
 
+  trackInvitationClick();
   fetchGalaTables();
 
   const formView = document.getElementById('invitation-form-view');
@@ -643,7 +662,7 @@ window.openInvitationModal = () => {
   if (formView) formView.style.display = 'block';
   if (successView) successView.style.display = 'none';
 
-  // Restaurer les données sauvegardées en localStorage si disponibles
+  // Restaurer les données sauvegardées en localStorage UNIQUEMENT s'il y a un brouillon non achevé
   try {
     const savedDraftStr = localStorage.getItem('compagnon_invite_draft');
     if (savedDraftStr) {
@@ -677,13 +696,37 @@ window.openInvitationModal = () => {
         if (emojiEl) emojiEl.style.display = 'none';
         if (removeBtn) removeBtn.style.display = 'inline-block';
       }
-    } else if (AppState.guest) {
+    } else {
+      // Aucun brouillon inachevé : formulaire totalement vierge
       const nameInput = document.getElementById('inv-input-name');
-      const tableInput = document.getElementById('inv-input-table');
+      const partnerInput = document.getElementById('inv-input-partner');
+      const coupleNameInput = document.getElementById('inv-input-couple-name');
       const phoneInput = document.getElementById('inv-input-phone');
-      if (nameInput && !nameInput.value) nameInput.value = AppState.guest.name || '';
-      if (tableInput && (!tableInput.value || tableInput.value === 'Table 1')) tableInput.value = AppState.guest.table_number || '';
-      if (phoneInput && !phoneInput.value) phoneInput.value = AppState.guest.phone || '';
+      const tableInput = document.getElementById('inv-input-table');
+      const hostInput = document.getElementById('inv-input-host');
+
+      if (nameInput) nameInput.value = '';
+      if (partnerInput) partnerInput.value = '';
+      if (coupleNameInput) coupleNameInput.value = '';
+      if (phoneInput) phoneInput.value = '';
+      if (tableInput) tableInput.value = '';
+
+      const hostParam = new URLSearchParams(window.location.search).get('par') || 
+                        new URLSearchParams(window.location.search).get('hote') || 
+                        new URLSearchParams(window.location.search).get('by');
+      if (hostInput) {
+        hostInput.value = hostParam ? decodeURIComponent(hostParam) : '';
+      }
+
+      const rSingle = document.querySelector('input[name="inv-ticket-type"][value="seul"]') ||
+                      document.querySelector('input[name="inv-ticket-type"][value="solo"]');
+      if (rSingle) rSingle.checked = true;
+      window.toggleCoupleFields(false);
+
+      const rMale = document.querySelector('input[name="inv-gender"][value="M"]');
+      if (rMale) rMale.checked = true;
+
+      window.removeInvitationPhoto(false);
     }
   } catch(e) {}
 
@@ -976,6 +1019,9 @@ window.submitInvitationRegistration = async () => {
     }
     if (formView) formView.style.display = 'none';
     if (successView) successView.style.display = 'block';
+
+    // Nettoyer le brouillon une fois validé
+    try { localStorage.removeItem('compagnon_invite_draft'); } catch(e) {}
   } finally {
     if (btn) {
       btn.disabled = false;

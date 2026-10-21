@@ -226,6 +226,15 @@ CREATE INDEX IF NOT EXISTS idx_prayers_event ON prayer_requests(event_id, create
 CREATE INDEX IF NOT EXISTS idx_networking_event ON networking_profiles(event_id);
 CREATE INDEX IF NOT EXISTS idx_push_subs_event ON push_subscriptions(event_id, guest_id);
 CREATE INDEX IF NOT EXISTS idx_push_logs_event ON push_notifications_log(event_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_private_msgs_users ON private_messages(sender_id, recipient_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_private_msgs_event ON private_messages(event_id, created_at DESC);
+-- 15. Suivi réel des clics et visiteurs uniques sur le lien d'invitation (par IP)
+CREATE TABLE IF NOT EXISTS invitation_link_clicks (
+    id TEXT PRIMARY KEY,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT,
+    referer TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_clicks_ip ON invitation_link_clicks(ip_address);
+CREATE INDEX IF NOT EXISTS idx_clicks_date ON invitation_link_clicks(created_at);
 

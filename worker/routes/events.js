@@ -103,6 +103,30 @@ export async function handleEventRoutes(pathname, request, env) {
     }
   }
 
+  // 3a-00. Suivi réel des clics et visiteurs uniques sur le lien d'invitation (détection IP Cloudflare)
+  if (pathname === "/api/invitation-link/track" && method === "POST") {
+    if (!db) return jsonResponse({ success: true, tracking: false });
+
+    const clientIp = request.headers.get("CF-Connecting-IP") ||
+      request.headers.get("x-real-ip") ||
+      (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+      "127.0.0.1";
+    const userAgent = (request.headers.get("User-Agent") || "").substring(0, 255);
+    const referer = (request.headers.get("Referer") || "").substring(0, 255);
+    const clickId = `clk-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    try {
+      await db.prepare(`
+        INSERT INTO invitation_link_clicks (id, ip_address, user_agent, referer, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).bind(clickId, clientIp, userAgent, referer).run();
+      return jsonResponse({ success: true, id: clickId });
+    } catch(e) {
+      console.warn("Erreur enregistrement clic invitation:", e);
+      return jsonResponse({ success: true, error: e.message });
+    }
+  }
+
   // 3a-bis. Inscription par lien d'invitation publique (2ème édition Gala)
   if (pathname === "/api/guests/invitation-register" && method === "POST") {
     let data = {};

@@ -315,6 +315,59 @@ export async function handleAdminRoutes(pathname, request, env) {
     return jsonResponse({ success: true, table_code: code });
   }
 
+  // 5c. Statistiques réelles des clics sur le lien d'invitation (par IP et inscrits réels)
+  if (pathname === "/api/admin/invitation-stats" && method === "GET") {
+    if (!db) {
+      return jsonResponse({
+        total_clicks: 0,
+        unique_visitors: 0,
+        link_registrations: 0,
+        conversion_rate: 0,
+        last_click_at: null
+      });
+    }
+
+    try {
+      const clickStats = await db.prepare(`
+        SELECT 
+          COUNT(*) as total_clicks,
+          COUNT(DISTINCT ip_address) as unique_visitors,
+          MAX(created_at) as last_click_at
+        FROM invitation_link_clicks
+      `).first();
+
+      const regStats = await db.prepare(`
+        SELECT COUNT(*) as link_registrations
+        FROM guests
+        WHERE registration_source = 'link'
+      `).first();
+
+      const totalClicks = clickStats?.total_clicks || 0;
+      const uniqueVisitors = clickStats?.unique_visitors || 0;
+      const linkRegistrations = regStats?.link_registrations || 0;
+      const conversionRate = uniqueVisitors > 0 
+        ? parseFloat(((linkRegistrations / uniqueVisitors) * 100).toFixed(1))
+        : (totalClicks > 0 ? parseFloat(((linkRegistrations / totalClicks) * 100).toFixed(1)) : 0);
+
+      return jsonResponse({
+        total_clicks: totalClicks,
+        unique_visitors: uniqueVisitors,
+        link_registrations: linkRegistrations,
+        conversion_rate: conversionRate,
+        last_click_at: clickStats?.last_click_at || null
+      });
+    } catch(e) {
+      return jsonResponse({
+        total_clicks: 0,
+        unique_visitors: 0,
+        link_registrations: 0,
+        conversion_rate: 0,
+        last_click_at: null,
+        error: e.message
+      });
+    }
+  }
+
   // 6. Gestion du Quiz : Liste de toutes les questions
   if (pathname === "/api/admin/quiz/questions" && method === "GET") {
     if (!db) return jsonResponse([]);
