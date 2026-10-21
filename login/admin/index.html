@@ -670,6 +670,9 @@
           <a id="admin-invitation-test-btn" href="/?invite=gala2026" target="_blank" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); font-weight: 700; padding: 8px 14px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
             👁️ Tester l'invitation
           </a>
+          <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #7d773c, #9d9247); color: #fff; font-weight: 800; padding: 8px 16px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 12px rgba(125, 119, 60, 0.35);" onclick="window.exportGuestsReceptionSheet('link')" title="Imprimer ou enregistrer en PDF la fiche d'accueil officielle des invités par lien">
+            📋 Fiche d'Accueil (PDF)
+          </button>
         </div>
 
         <!-- Statistiques réelles des clics & conversions -->
@@ -723,6 +726,9 @@
             <p>Consultez, filtrez par parrain/hôte et gérez les participants (en salle ou par lien)</p>
           </div>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-table-action" onclick="window.exportGuestsReceptionSheet('link')" style="background: linear-gradient(135deg, #7d773c, #9d9247); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(125, 119, 60, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;" title="Exporter la fiche d'accueil officielle imprimable pour la réception">
+              <span>📋</span> Fiche d'Accueil (PDF)
+            </button>
             <button type="button" class="btn-table-action" onclick="window.openCreateGuestModal()" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
               <span>➕</span> Créer un invité
             </button>

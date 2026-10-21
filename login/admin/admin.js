@@ -1805,6 +1805,442 @@ window.exportGuestPDF = (guestId) => {
   printWindow.document.close();
 };
 
+window.exportGuestsReceptionSheet = (filterMode = 'link') => {
+  // 1. Filtrer les invités
+  let guests = AdminState.guests || [];
+  if (filterMode === 'link') {
+    guests = guests.filter(g => g.registration_source === 'link');
+  } else if (filterMode === 'salle') {
+    guests = guests.filter(g => g.registration_source !== 'link');
+  }
+
+  // Respecter le filtre d'hôte s'il est actif dans l'admin
+  const hostFilter = document.getElementById('admin-guest-host-filter')?.value;
+  if (hostFilter) {
+    guests = guests.filter(g => (g.invited_by || '').trim() === hostFilter.trim());
+  }
+
+  // Si aucun invité n'est encore enregistré
+  if (guests.length === 0) {
+    const confirmBlank = confirm(
+      "Aucun invité par lien n'est encore enregistré avec ces critères.\n\nSouhaitez-vous générer le gabarit officiel vierge des Tables (A, D, F, G, H...) pour que l'équipe d'accueil puisse noter les présences manuellement sur papier ?"
+    );
+    if (!confirmBlank) return;
+    
+    // Gabarit de tables officielles vierges
+    const sampleTables = ['A', 'D', 'F', 'G', 'H', 'I', 'J', 'K'];
+    guests = sampleTables.map(t => ({
+      name: '',
+      table_number: t,
+      invited_by: hostFilter || 'Hôte Officiel',
+      phone: '',
+      is_placeholder: true
+    }));
+  }
+
+  // 2. Regrouper par Table puis par Hôte (exactement comme sur le gabarit)
+  const groupMap = {};
+  guests.forEach(g => {
+    const rawTable = (g.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+    const rawHost = (g.invited_by || '').trim() || 'Hôte non spécifié';
+    const key = `${rawTable}___${rawHost}`;
+    if (!groupMap[key]) {
+      groupMap[key] = {
+        table: rawTable,
+        host: rawHost,
+        items: []
+      };
+    }
+    if (!g.is_placeholder) {
+      groupMap[key].items.push(g);
+    }
+  });
+
+  // Trier les groupes par Table (A, B, C...) puis par Hôte
+  const groups = Object.values(groupMap).sort((a, b) => {
+    const cmp = a.table.localeCompare(b.table, undefined, { numeric: true });
+    if (cmp !== 0) return cmp;
+    return a.host.localeCompare(b.host);
+  });
+
+  // 3. Découper en blocs de 10 places
+  const blocks = [];
+  groups.forEach(grp => {
+    if (grp.items.length === 0) {
+      blocks.push({
+        table: grp.table,
+        host: grp.host,
+        items: []
+      });
+    } else {
+      for (let i = 0; i < grp.items.length; i += 10) {
+        const slice = grp.items.slice(i, i + 10);
+        const isFollowUp = i > 0;
+        blocks.push({
+          table: grp.table,
+          host: isFollowUp ? `${grp.host} (suite)` : grp.host,
+          items: slice
+        });
+      }
+    }
+  });
+
+  // 4. Découper en pages de 4 blocs par page (Gabarit A4 officiel)
+  const BLOCKS_PER_PAGE = 4;
+  const pages = [];
+  for (let i = 0; i < blocks.length; i += BLOCKS_PER_PAGE) {
+    pages.push(blocks.slice(i, i + BLOCKS_PER_PAGE));
+  }
+
+  // 5. Ouvrir la fenêtre d'impression
+  const printWindow = window.open('', '_blank', 'width=1150,height=960');
+  if (!printWindow) {
+    alert("Veuillez autoriser les fenêtres pop-up de votre navigateur pour imprimer ou enregistrer en PDF la fiche d'accueil.");
+    return;
+  }
+
+  // 6. Rendu HTML de chaque page A4
+  const pagesHtml = pages.map((pageBlocks, pageIndex) => {
+    const blocksHtml = pageBlocks.map(block => {
+      // 10 lignes par bloc
+      let rowsHtml = '';
+      for (let rowIdx = 1; rowIdx <= 10; rowIdx++) {
+        const guest = block.items[rowIdx - 1];
+        let guestName = '';
+        let guestPhone = '';
+
+        if (guest) {
+          if (guest.ticket_type === 'couple') {
+            const cName = guest.couple_name ? `Couple ${guest.couple_name}` : `Couple ${guest.name}`;
+            const details = (guest.name && guest.partner_name) ? ` (${guest.name} & ${guest.partner_name})` : '';
+            guestName = `<strong>${escapeHtml(cName)}</strong>${escapeHtml(details)}`;
+          } else {
+            const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+            guestName = `${prefix}<strong>${escapeHtml(guest.name)}</strong>`;
+          }
+          guestPhone = escapeHtml(guest.phone || '');
+        }
+
+        // Ligne 1 : inclut les cellules fusionnées (Hôte à gauche, Table à droite)
+        if (rowIdx === 1) {
+          rowsHtml += `
+            <tr>
+              <td rowspan="10" class="col-host">
+                <div class="host-name-box">
+                  <div class="host-name-label">Invité par :</div>
+                  <div class="host-name-text">${escapeHtml(block.host)}</div>
+                </div>
+              </td>
+              <td class="col-num">${rowIdx}</td>
+              <td class="col-name">${guestName}</td>
+              <td class="col-phone">${guestPhone}</td>
+              <td rowspan="10" class="col-table">
+                <div class="table-name-text">TABLE ${escapeHtml(block.table)}</div>
+              </td>
+            </tr>
+          `;
+        } else {
+          rowsHtml += `
+            <tr>
+              <td class="col-num">${rowIdx}</td>
+              <td class="col-name">${guestName}</td>
+              <td class="col-phone">${guestPhone}</td>
+            </tr>
+          `;
+        }
+      }
+
+      return `
+        <div class="block-wrapper">
+          <table class="block-table">
+            <thead>
+              <tr class="header-band-row">
+                <th colspan="5" class="header-band"></th>
+              </tr>
+              <tr class="header-labels-row">
+                <th class="th-host">Inviter par</th>
+                <th class="th-num">N°</th>
+                <th class="th-name">Nom de l'invité</th>
+                <th class="th-phone">N° TEL</th>
+                <th class="th-table-blank">TABLE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="sheet-page">
+        <div class="sheet-main-content">
+          ${blocksHtml}
+        </div>
+        <div class="sheet-vertical-banner">
+          <div class="vertical-title">LISTE DES INVITES</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+      <meta charset="UTF-8">
+      <title>Fiche d'Accueil Officielle - Liste des Invités</title>
+      <style>
+        @page {
+          size: A4 portrait;
+          margin: 4mm 6mm;
+        }
+        * { box-sizing: border-box; }
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background: #f1f5f9;
+          color: #111;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        /* Barre d'action supérieure (masquée à l'impression) */
+        .top-action-bar {
+          background: #1e293b;
+          color: #fff;
+          padding: 12px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          position: sticky;
+          top: 0;
+          z-index: 999;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+        .top-action-bar button {
+          font-size: 14px;
+          font-weight: 700;
+          padding: 8px 18px;
+          border-radius: 8px;
+          border: none;
+          cursor: pointer;
+        }
+        .btn-print {
+          background: #f59e0b;
+          color: #1e293b;
+          margin-right: 8px;
+        }
+        .btn-close {
+          background: #475569;
+          color: #fff;
+        }
+
+        /* Structure de Page A4 */
+        .sheet-page {
+          width: 210mm;
+          min-height: 292mm;
+          max-height: 295mm;
+          margin: 12px auto;
+          background: #fff;
+          display: flex;
+          flex-direction: row;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+          page-break-after: always;
+          break-after: page;
+          overflow: hidden;
+        }
+        .sheet-page:last-child {
+          page-break-after: auto;
+          break-after: auto;
+        }
+
+        /* Zone Principale gauche (Tables) */
+        .sheet-main-content {
+          flex: 1;
+          padding: 6px 8px 6px 6px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        /* Bloc individuel (Table + Hôte) */
+        .block-wrapper {
+          margin-bottom: 4px;
+        }
+        .block-wrapper:last-child {
+          margin-bottom: 0;
+        }
+
+        .block-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          border: 1.5px solid #222;
+        }
+
+        /* Bande supérieure verte olive / bronze */
+        .header-band {
+          background-color: #7d773c !important;
+          height: 12px;
+          border: 1.5px solid #222;
+        }
+        .header-labels-row th {
+          border: 1px solid #222;
+          font-size: 10.5px;
+          font-weight: 800;
+          padding: 3px 4px;
+          text-align: center;
+          background-color: #fff;
+          color: #1c130d;
+        }
+        .th-host { width: 22%; }
+        .th-num { width: 6%; }
+        .th-name { width: 44%; }
+        .th-phone { width: 16%; }
+        .th-table-blank { width: 12%; background: #ded9c8 !important; border: 1px solid #222; font-size: 10px; }
+
+        /* Lignes de contenu */
+        .block-table td {
+          border: 1px solid #333;
+          height: 17.5px;
+          padding: 1px 4px;
+          font-size: 10px;
+          vertical-align: middle;
+        }
+
+        /* Cellule Hôte fusionnée (gauche) */
+        .col-host {
+          text-align: center;
+          vertical-align: middle;
+          background: #fff;
+          font-weight: 700;
+          font-size: 11px;
+          color: #1c130d;
+          padding: 4px !important;
+        }
+        .host-name-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+        }
+        .host-name-label {
+          font-size: 8.5px;
+          color: #64748b;
+          text-transform: uppercase;
+          margin-bottom: 2px;
+        }
+        .host-name-text {
+          max-width: 125px;
+          word-break: break-word;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        /* Numéro */
+        .col-num {
+          text-align: center;
+          font-weight: 700;
+          font-size: 10px;
+          color: #222;
+          background: #fafafa;
+        }
+
+        /* Nom invité */
+        .col-name {
+          text-align: left;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* Téléphone */
+        .col-phone {
+          text-align: center;
+          font-size: 9.5px;
+          color: #222;
+          white-space: nowrap;
+        }
+
+        /* Cellule Table fusionnée (droite) */
+        .col-table {
+          background-color: #ded9c8 !important;
+          text-align: center;
+          vertical-align: middle;
+          font-weight: 900;
+          font-size: 12.5px;
+          letter-spacing: 0.5px;
+          color: #111;
+        }
+        .table-name-text {
+          font-family: Arial, Helvetica, sans-serif;
+          font-weight: 800;
+        }
+
+        /* Bannière verticale droite */
+        .sheet-vertical-banner {
+          width: 36mm;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff;
+          border-left: 2px solid #222;
+          padding: 8px 0;
+        }
+        .vertical-title {
+          writing-mode: vertical-rl;
+          text-orientation: upright;
+          font-family: Impact, "Arial Black", sans-serif;
+          font-weight: 900;
+          font-size: 26px;
+          letter-spacing: 5px;
+          text-transform: uppercase;
+          background: linear-gradient(180deg, #f97316 0%, #facc15 50%, #ea580c 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          filter: drop-shadow(0 2px 2px rgba(234, 88, 12, 0.25));
+          user-select: none;
+        }
+
+        /* Règles d'impression */
+        @media print {
+          body { background: #fff; }
+          .top-action-bar { display: none !important; }
+          .sheet-page {
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            min-height: 285mm !important;
+            max-height: 288mm !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="top-action-bar">
+        <div>
+          <span style="font-size: 16px; font-weight: 800; color: #f59e0b;">📋 Fiche d'Accueil Officielle • Dîner de Gala 2026</span>
+          <span style="font-size: 12px; margin-left: 12px; opacity: 0.85;">(${blocks.length} bloc(s) sur ${pages.length} page(s) A4 • 4 tables/hôtes par page)</span>
+        </div>
+        <div>
+          <button class="btn-print" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+          <button class="btn-close" onclick="window.close()">✖ Fermer</button>
+        </div>
+      </div>
+
+      ${pagesHtml}
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
 window.deleteGuest = async (guestId) => {
   if (!confirm("Retirer cet invité de la cérémonie ?")) return;
   try {
