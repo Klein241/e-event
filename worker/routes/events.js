@@ -214,29 +214,24 @@ export async function handleEventRoutes(pathname, request, env) {
     if (db) {
       try {
         const { results: existingGuests } = await db.prepare(`
-          SELECT table_number, ticket_type
+          SELECT table_number
           FROM guests
+          WHERE registration_source = 'link' AND invited_by IS NOT NULL AND TRIM(invited_by) != ''
         `).all();
 
-        // Calculer l'occupation réelle par code de table normalisé
+        // Calculer l'occupation réelle par table (10 personnes par table)
         const occupancyMap = {};
         (existingGuests || []).forEach(g => {
           const t = (g.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim();
-          const seats = g.ticket_type === 'couple' ? 2 : 1;
-          occupancyMap[t] = (occupancyMap[t] || 0) + seats;
+          occupancyMap[t] = (occupancyMap[t] || 0) + 1;
         });
 
-        // Chercher la première variante de table disponible (base, base', base'', etc.)
-        let primeCount = 0;
-        let candidate = baseTableLetter;
-        while (true) {
-          const currentOccupancy = occupancyMap[candidate] || 0;
-          if (currentOccupancy + seatsNeeded <= 10) {
-            assignedTable = candidate;
-            break;
-          }
-          primeCount++;
-          candidate = `${baseTableLetter}${Array(primeCount).fill("'").join("")}`;
+        // Règle officielle : on quitte de la table A à la table A' si la table A = 10 personnes
+        const currentBaseCount = occupancyMap[baseTableLetter] || 0;
+        if (currentBaseCount >= 10) {
+          assignedTable = `${baseTableLetter}'`;
+        } else {
+          assignedTable = baseTableLetter;
         }
 
         // Si une table overflow a été créée (ex: A'), s'assurer qu'elle existe dans event_tables

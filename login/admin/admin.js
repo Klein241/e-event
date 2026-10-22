@@ -2252,6 +2252,12 @@ window.exportGuestsReceptionSheet = (filterMode = 'current') => {
       guests = guests.filter(g => g.registration_source !== 'link');
     }
 
+    // Filtrer impérativement les résidus sans hôte (ex: hôte non spécifié ou sans parrain)
+    guests = guests.filter(g => {
+      const h = (g.invited_by || '').trim();
+      return h && h.toLowerCase() !== 'hôte non spécifié' && h.toLowerCase() !== 'hote non specifie';
+    });
+
     // Respecter le filtre d'hôte s'il est actif dans l'admin (normalisation canonique)
     const hostFilter = document.getElementById('admin-guest-host-filter')?.value;
     if (hostFilter) {
