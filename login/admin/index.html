@@ -1249,6 +1249,151 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       MODALE DE MODIFICATION D'UN INVITÉ (COORDONNÉES, ORTHOGRAPHE & TABLE / MIGRATION)
+       ============================================================ -->
+  <div class="admin-modal-overlay" id="modal-edit-guest" style="display: none;" onclick="if(event.target === this) window.closeEditGuestModal()">
+    <div class="admin-modal-card animate-scale-up" style="max-width: 580px; width: 94%; max-height: 92vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">✏️</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">Modifier les coordonnées de l'invité</h3>
+            <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Correction d'orthographe, mise à jour contact ou migration de table</p>
+          </div>
+        </div>
+        <button type="button" class="btn-table-action" onclick="window.closeEditGuestModal()" style="background: var(--bg-card); font-size: 1.1rem; padding: 4px 10px;">
+          ✕
+        </button>
+      </div>
+
+      <form id="admin-edit-guest-form" onsubmit="event.preventDefault(); window.saveEditedGuest();">
+        <input type="hidden" id="admin-edit-guest-id">
+
+        <!-- Sexe M / F -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            ⚧️ Sexe <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-edit-gender" value="M" id="admin-edit-gender-m">
+              <span style="font-weight: 700; font-size: 0.88rem;">👨 Homme (M)</span>
+            </label>
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-edit-gender" value="F" id="admin-edit-gender-f">
+              <span style="font-weight: 700; font-size: 0.88rem;">👩 Femme (F)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Formule Billet (Seul / Couple) -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            🎟️ Formule de Billet <span style="color: #ef4444;">*</span>
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-edit-ticket-type" value="seul" id="admin-edit-ticket-seul" onchange="window.toggleAdminEditCoupleFields(false)">
+              <span style="font-weight: 700; font-size: 0.88rem;">👤 Billet Seul</span>
+            </label>
+            <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-secondary);">
+              <input type="radio" name="admin-edit-ticket-type" value="couple" id="admin-edit-ticket-couple" onchange="window.toggleAdminEditCoupleFields(true)">
+              <span style="font-weight: 700; font-size: 0.88rem;">👥 Billet Couple</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Nom et prénom -->
+        <div style="margin-bottom: 14px;">
+          <label for="admin-edit-name" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            👤 Nom et prénom de l'invité <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="text" id="admin-edit-name" class="admin-input" required placeholder="Nom complet">
+        </div>
+
+        <!-- Champs Couple Conditionnels -->
+        <div id="admin-edit-couple-fields" style="display: none; background: rgba(236, 72, 153, 0.08); border: 1.5px dashed rgba(236, 72, 153, 0.35); border-radius: 14px; padding: 12px; margin-bottom: 14px;">
+          <div style="margin-bottom: 10px;">
+            <label for="admin-edit-partner" style="font-size: 0.82rem; font-weight: 700; color: #db2777; display: block; margin-bottom: 4px;">
+              💍 Nom du conjoint(e) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-edit-partner" class="admin-input" placeholder="Ex: Sarah LEGRAND">
+          </div>
+          <div>
+            <label for="admin-edit-couple-name" style="font-size: 0.82rem; font-weight: 700; color: #db2777; display: block; margin-bottom: 4px;">
+              ✨ Nom officiel du couple <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-edit-couple-name" class="admin-input" placeholder="Ex: Couple LEGRAND">
+          </div>
+        </div>
+
+        <!-- N° Table & Invité par -->
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 140px;">
+            <label for="admin-edit-table" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+              🍽️ N° de Table / Attribution <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-edit-table" class="admin-input" placeholder="Ex: A, A', B..." required style="text-transform: uppercase;" list="admin-tables-datalist">
+            <datalist id="admin-tables-datalist">
+              <!-- Injecté dynamiquement avec les tables connues -->
+            </datalist>
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 3px;">
+              💡 Pour migrer vers une autre table, saisissez simplement le nouveau code (ex: B, C, A')
+            </span>
+          </div>
+          <div style="flex: 1.5; min-width: 180px;">
+            <label for="admin-edit-host" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+              👑 Invité par (Hôte) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="admin-edit-host" class="admin-input" placeholder="Nom de l'hôte" list="admin-hosts-datalist" required>
+          </div>
+        </div>
+
+        <!-- WhatsApp -->
+        <div style="margin-bottom: 14px;">
+          <label for="admin-edit-phone" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            💬 Numéro WhatsApp / Téléphone
+          </label>
+          <input type="tel" id="admin-edit-phone" class="admin-input" placeholder="Ex: +241 77 12 34 56">
+        </div>
+
+        <!-- Coordonnées professionnelles & Résidence -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+          <div>
+            <label for="admin-edit-profession" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 4px;">
+              💼 Profession
+            </label>
+            <input type="text" id="admin-edit-profession" class="admin-input" placeholder="Profession">
+          </div>
+          <div>
+            <label for="admin-edit-company" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 4px;">
+              🏢 Entreprise / Organisation
+            </label>
+            <input type="text" id="admin-edit-company" class="admin-input" placeholder="Entreprise">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label for="admin-edit-residence" style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 4px;">
+            📍 Lieu de résidence (Quartier / Ville)
+          </label>
+          <input type="text" id="admin-edit-residence" class="admin-input" placeholder="Ex: Akanda, Libreville">
+        </div>
+
+        <!-- Boutons d'action -->
+        <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 14px;">
+          <button type="button" class="btn-table-action" onclick="window.closeEditGuestModal()" style="background: var(--bg-secondary); color: var(--text-main); padding: 8px 16px;">
+            Annuler
+          </button>
+          <button type="submit" id="btn-admin-update-guest" class="btn-table-action" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; padding: 8px 20px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+            💾 Enregistrer les modifications
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- SCRIPT DU BACKOFFICE RÉGIE -->
   <script type="module" src="./admin.js"></script>
 </body>

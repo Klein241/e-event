@@ -275,7 +275,79 @@ export async function handleAdminRoutes(pathname, request, env) {
     return jsonResponse({ success: true, id });
   }
 
-  // 5b. Gestion des Tables de l'événement (Ajouter / Lister / Supprimer)
+  // 5c. Modifier un invité existant (Correction orthographe, coordonnées, table & migration)
+  if (pathname.startsWith("/api/admin/guests/") && method === "PUT") {
+    const id = pathname.replace("/api/admin/guests/", "").trim();
+    if (!id) return errorResponse("ID invité requis", 400);
+
+    let data = {};
+    try { data = await request.json(); } catch(e) {}
+
+    const name = (data.name || "").trim();
+    if (!name) return errorResponse("Le nom est obligatoire", 400);
+
+    const gender = (data.gender || "M").toUpperCase().trim();
+    const ticketType = (data.ticket_type || "seul").toLowerCase().trim();
+    const partnerName = (data.partner_name || "").trim();
+    const coupleName = (data.couple_name || "").trim();
+    const phone = (data.phone || data.whatsapp || "").trim();
+    const rawTable = (data.table_number || "A").trim();
+    const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+    const invitedBy = (data.invited_by || "Admin").trim();
+    const profession = (data.profession || "").trim();
+    const company = (data.company || "").trim();
+    const residenceLocation = (data.residence_location || "").trim();
+
+    if (db) {
+      await db.prepare(`
+        UPDATE guests SET
+          name = ?,
+          gender = ?,
+          ticket_type = ?,
+          partner_name = ?,
+          couple_name = ?,
+          phone = ?,
+          table_number = ?,
+          invited_by = ?,
+          profession = COALESCE(NULLIF(?, ''), profession),
+          company = COALESCE(NULLIF(?, ''), company),
+          residence_location = COALESCE(NULLIF(?, ''), residence_location),
+          last_active = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        name, gender, ticketType, partnerName, coupleName, phone,
+        cleanTable, invitedBy, profession, company, residenceLocation, id
+      ).run();
+
+      // S'assurer que si la table renseignée (ex: A', B) n'est pas encore déclarée, elle est créée
+      try {
+        await db.prepare(`
+          INSERT OR IGNORE INTO event_tables (id, table_code, capacity)
+          VALUES (?, ?, 10)
+        `).bind(`tbl-${cleanTable}`, cleanTable).run();
+      } catch(e) {}
+    }
+
+    return jsonResponse({
+      success: true,
+      guest: {
+        id,
+        name,
+        gender,
+        ticket_type: ticketType,
+        partner_name: partnerName,
+        couple_name: coupleName,
+        phone,
+        table_number: cleanTable,
+        invited_by: invitedBy,
+        profession,
+        company,
+        residence_location: residenceLocation
+      }
+    });
+  }
+
+  // 5d. Gestion des Tables de l'événement (Ajouter / Lister / Supprimer)
   if (pathname === "/api/admin/tables" && method === "GET") {
     if (!db) return jsonResponse([]);
     try {
@@ -315,15 +387,20 @@ export async function handleAdminRoutes(pathname, request, env) {
     return jsonResponse({ success: true, table_code: code });
   }
 
-  // 5c. Statistiques réelles des clics sur le lien d'invitation (par IP et inscrits réels)
+  // 5e. Statistiques réelles des clics sur le lien d'invitation (par IP et inscrits réels)
   if (pathname === "/api/admin/invitation-stats" && method === "GET") {
     if (!db) {
-      return jsonResponse({
+      const zeroStats = {
         total_clicks: 0,
         unique_visitors: 0,
         link_registrations: 0,
         conversion_rate: 0,
         last_click_at: null
+      };
+      return jsonResponse({
+        success: true,
+        data: zeroStats,
+        ...zeroStats
       });
     }
 
@@ -349,21 +426,32 @@ export async function handleAdminRoutes(pathname, request, env) {
         ? parseFloat(((linkRegistrations / uniqueVisitors) * 100).toFixed(1))
         : (totalClicks > 0 ? parseFloat(((linkRegistrations / totalClicks) * 100).toFixed(1)) : 0);
 
-      return jsonResponse({
+      const statsData = {
         total_clicks: totalClicks,
         unique_visitors: uniqueVisitors,
         link_registrations: linkRegistrations,
         conversion_rate: conversionRate,
         last_click_at: clickStats?.last_click_at || null
+      };
+
+      return jsonResponse({
+        success: true,
+        data: statsData,
+        ...statsData
       });
     } catch(e) {
-      return jsonResponse({
+      const errStats = {
         total_clicks: 0,
         unique_visitors: 0,
         link_registrations: 0,
         conversion_rate: 0,
         last_click_at: null,
         error: e.message
+      };
+      return jsonResponse({
+        success: false,
+        data: errStats,
+        ...errStats
       });
     }
   }

@@ -55,10 +55,18 @@ async function adminFetch(endpoint, options = {}) {
   return await res.json();
 }
 
-// Notifications Toasts
+// Notifications Toasts avec déduplication anti-spam (3.5s)
+const _lastAdminToasts = new Map();
 function showAdminToast(message, type = 'info') {
   const container = document.getElementById('admin-toast-container');
   if (!container) return;
+
+  const now = Date.now();
+  const key = `${type}:${message}`;
+  if (_lastAdminToasts.has(key) && (now - _lastAdminToasts.get(key) < 3500)) {
+    return; // Évite d'inonder l'écran en boucle de polling
+  }
+  _lastAdminToasts.set(key, now);
 
   const toast = document.createElement('div');
   toast.className = `admin-toast ${type}`;
@@ -975,34 +983,69 @@ window.setGuestViewMode = (mode) => {
   window.filterGuests();
 };
 
+// Normalisation canonique des hôtes pour éviter les faux doublons (ex: Micky vs micky vs Pasteur Micky)
+function getHostKey(rawHost) {
+  if (!rawHost) return 'hote-non-specifie';
+  let clean = String(rawHost).trim().toLowerCase();
+  clean = clean.replace(/^(pasteur|m\.|mr|mme|dr|monsieur|madame)\s+/i, '').trim();
+  return clean || 'hote-non-specifie';
+}
+
+function getHostDisplayName(rawHost) {
+  if (!rawHost) return 'Hôte non spécifié';
+  const trimmed = String(rawHost).trim();
+  if (!trimmed) return 'Hôte non spécifié';
+  if (trimmed === trimmed.toLowerCase()) {
+    return trimmed.replace(/\b\w/g, l => l.toUpperCase());
+  }
+  return trimmed;
+}
+
 function updateHostsDropdownAndDatalist() {
   const hostSelect = document.getElementById('admin-guest-host-filter');
   const hostDatalist = document.getElementById('admin-hosts-datalist');
   const guests = AdminState.guests || [];
 
-  const hostCounts = {};
+  // Regrouper par hostKey canonique pour unifier la casse et les préfixes (Micky vs micky)
+  const hostGroups = {};
   guests.forEach(g => {
-    const h = (g.invited_by || '').trim();
-    if (h) {
-      hostCounts[h] = (hostCounts[h] || 0) + 1;
+    const raw = (g.invited_by || '').trim();
+    if (raw) {
+      const key = getHostKey(raw);
+      if (!hostGroups[key]) {
+        hostGroups[key] = {
+          key,
+          displayName: getHostDisplayName(raw),
+          count: 0
+        };
+      }
+      if (raw.length > hostGroups[key].displayName.length || (raw !== raw.toLowerCase() && hostGroups[key].displayName === hostGroups[key].displayName.toLowerCase())) {
+        hostGroups[key].displayName = getHostDisplayName(raw);
+      }
+      hostGroups[key].count++;
     }
   });
 
-  const sortedHosts = Object.keys(hostCounts).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+  const sortedKeys = Object.keys(hostGroups).sort((a, b) => {
+    return hostGroups[a].displayName.localeCompare(hostGroups[b].displayName, 'fr', { sensitivity: 'base' });
+  });
 
   if (hostSelect) {
     const currentVal = hostSelect.value;
     hostSelect.innerHTML = `
       <option value="">👑 Tous les hôtes / Parrains (Tous)</option>
-      ${sortedHosts.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)} (${hostCounts[h]} invité${hostCounts[h] > 1 ? 's' : ''})</option>`).join('')}
+      ${sortedKeys.map(k => {
+        const item = hostGroups[k];
+        return `<option value="${escapeHtml(item.key)}">${escapeHtml(item.displayName)} (${item.count} invité${item.count > 1 ? 's' : ''})</option>`;
+      }).join('')}
     `;
-    if (currentVal && sortedHosts.includes(currentVal)) {
+    if (currentVal && (sortedKeys.includes(currentVal) || sortedKeys.some(k => hostGroups[k].displayName === currentVal))) {
       hostSelect.value = currentVal;
     }
   }
 
   if (hostDatalist) {
-    hostDatalist.innerHTML = sortedHosts.map(h => `<option value="${escapeHtml(h)}">`).join('');
+    hostDatalist.innerHTML = sortedKeys.map(k => `<option value="${escapeHtml(hostGroups[k].displayName)}">`).join('');
   }
 }
 
@@ -1157,11 +1200,12 @@ window.copyInvitationLink = () => {
 window.shareInvitationWhatsApp = () => {
   const input = document.getElementById('admin-invitation-link-input');
   const url = input ? input.value : `${window.location.origin}/?invite=gala2026`;
-  const text = encodeURIComponent(
-    "✨ Vous êtes invité à la 2ème édition de notre Dîner de Gala ce 24 Octobre 2026 dès 15h !\n\n" +
-    "Cliquez sur ce lien sécurisé pour confirmer votre présence et votre numéro de table :\n" + url
-  );
-  window.open(`https://wa.me/?text=${text}`, '_blank');
+  const text =
+    `*INVITATION OFFICIELLE - 2ÈME ÉDITION DU DÎNER DE GALA*\n\n` +
+    `⭐ Vous êtes chaleureusement invité(e) à la 2ème édition de notre prestigieux Dîner de Gala le *Samedi 24 Octobre 2026 dès 15h00* !\n\n` +
+    `📍 *Lieu :* Salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
+    `🎟️ Cliquez sur ce lien sécurisé pour confirmer votre présence et réserver votre table :\n${url}`;
+  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 };
 
 async function loadAdminTables() {
@@ -1216,18 +1260,16 @@ window.adminDeleteTable = async (code) => {
 async function loadInvitationStats() {
   try {
     const res = await adminFetch('/admin/invitation-stats');
-    if (res && res.success && res.data) {
-      const d = res.data;
-      const elClicks = document.getElementById('admin-stats-total-clicks');
-      const elUniq = document.getElementById('admin-stats-unique-visitors');
-      const elReg = document.getElementById('admin-stats-link-registrations');
-      const elRate = document.getElementById('admin-stats-conversion-rate');
+    const d = (res && res.data) ? res.data : (res || {});
+    const elClicks = document.getElementById('admin-stats-total-clicks');
+    const elUniq = document.getElementById('admin-stats-unique-visitors');
+    const elReg = document.getElementById('admin-stats-link-registrations');
+    const elRate = document.getElementById('admin-stats-conversion-rate');
 
-      if (elClicks) elClicks.textContent = d.total_clicks ?? 0;
-      if (elUniq) elUniq.textContent = d.unique_visitors ?? 0;
-      if (elReg) elReg.textContent = d.link_registrations ?? 0;
-      if (elRate) elRate.textContent = (d.conversion_rate ?? 0) + '%';
-    }
+    if (elClicks) elClicks.textContent = d.total_clicks ?? 0;
+    if (elUniq) elUniq.textContent = d.unique_visitors ?? 0;
+    if (elReg) elReg.textContent = d.link_registrations ?? 0;
+    if (elRate) elRate.textContent = (d.conversion_rate ?? 0) + '%';
   } catch (e) {
     console.warn("Erreur chargement stats invitation:", e);
   }
@@ -1259,24 +1301,36 @@ function renderGroupedByHostView(guests, container) {
     return;
   }
 
-  // Regrouper par hôte
+  // Regrouper par hôte (normalisation canonique insensible à la casse et aux préfixes Micky vs micky)
   const hostGroups = {};
   guests.forEach(g => {
-    const hostName = (g.invited_by || '').trim() || 'Hôte non spécifié';
-    if (!hostGroups[hostName]) hostGroups[hostName] = [];
-    hostGroups[hostName].push(g);
+    const rawHost = (g.invited_by || '').trim();
+    const hostKey = getHostKey(rawHost);
+    if (!hostGroups[hostKey]) {
+      hostGroups[hostKey] = {
+        key: hostKey,
+        displayName: getHostDisplayName(rawHost),
+        items: []
+      };
+    }
+    if (rawHost.length > hostGroups[hostKey].displayName.length || (rawHost !== rawHost.toLowerCase() && hostGroups[hostKey].displayName === hostGroups[hostKey].displayName.toLowerCase())) {
+      hostGroups[hostKey].displayName = getHostDisplayName(rawHost);
+    }
+    hostGroups[hostKey].items.push(g);
   });
 
-  const sortedHostNames = Object.keys(hostGroups).sort((a, b) => {
-    if (a === 'Hôte non spécifié') return 1;
-    if (b === 'Hôte non spécifié') return -1;
-    return a.localeCompare(b, 'fr', { sensitivity: 'base' });
+  const sortedHostKeys = Object.keys(hostGroups).sort((a, b) => {
+    if (a === 'hote-non-specifie') return 1;
+    if (b === 'hote-non-specifie') return -1;
+    return hostGroups[a].displayName.localeCompare(hostGroups[b].displayName, 'fr', { sensitivity: 'base' });
   });
 
   container.innerHTML = `
     <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 20px;">
-      ${sortedHostNames.map(hostName => {
-        const list = hostGroups[hostName];
+      ${sortedHostKeys.map(key => {
+        const group = hostGroups[key];
+        const hostName = group.displayName;
+        const list = group.items;
         
         // Calcul des tables uniques occupées par les invités de cet hôte
         const tablesCount = {};
@@ -1501,9 +1555,9 @@ window.filterGuests = (query) => {
     list = list.filter(g => g.registration_source === 'link');
   }
 
-  // 2. Filtrage par Hôte sélectionné (ex: Dr Sophie)
+  // 2. Filtrage par Hôte sélectionné (normalisation canonique insensible à la casse et aux préfixes)
   if (selectedHost) {
-    list = list.filter(g => (g.invited_by || '').toLowerCase().trim() === selectedHost);
+    list = list.filter(g => getHostKey(g.invited_by) === selectedHost || (g.invited_by || '').toLowerCase().trim() === selectedHost.toLowerCase());
   }
 
   // 3. Filtrage par recherche textuelle
@@ -1691,10 +1745,42 @@ window.openGuestCRM = (guestId) => {
       ${prayersHtml}
     </div>
 
+    <!-- Traçabilité & Enregistrement -->
+    <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 14px; margin-bottom: 14px;">
+      <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+        📱 Traçabilité & Enregistrement
+      </h4>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.84rem;">
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Canal d'inscription :</span>
+          <strong style="color: ${guest.registration_source === 'link' ? '#b45309' : '#059669'};">
+            ${guest.registration_source === 'link' ? '🔗 Lien Public (Smartphone / WhatsApp)' : '🏛️ Saisie Régie / En Salle'}
+          </strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Date & Heure d'inscription :</span>
+          <strong>${new Date(guest.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Identifiant Unique du Billet :</span>
+          <code style="font-size: 0.74rem; background: var(--bg-secondary); padding: 2px 6px; border-radius: 6px; word-break: break-all;">${escapeHtml(guest.id)}</code>
+        </div>
+      </div>
+    </div>
+
     <!-- Actions régie -->
-    <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+    <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
       <button type="button" class="btn-table-action danger" onclick="window.deleteGuest('${guest.id}'); window.closeGuestCRM();">
         🗑️ Retirer cet invité
+      </button>
+      <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; padding: 10px 18px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;" onclick="window.openEditGuestModal('${guest.id}')">
+        ✏️ Modifier Coordonnées & Table
+      </button>
+      <a href="/?ticket=${encodeURIComponent(guest.id)}" target="_blank" class="btn-table-action" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; font-weight: 800; padding: 10px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px;">
+        🎟️ Voir Billet 3D
+      </a>
+      <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; font-weight: 800; padding: 10px 16px;" onclick="window.adminShareGuestTicketWhatsApp('${guest.id}')">
+        💬 Envoyer WhatsApp
       </button>
       <button type="button" class="btn-table-action" style="background: var(--honey-gradient); color: var(--honey-dark); font-weight: 800; padding: 10px 18px;" onclick="window.exportCurrentGuestPDF()">
         🖨️ Exporter Fiche Imprimable (PDF)
@@ -1705,10 +1791,178 @@ window.openGuestCRM = (guestId) => {
   modal.style.display = 'flex';
 };
 
+window.adminShareGuestTicketWhatsApp = (guestId) => {
+  const guest = (AdminState.guests || []).find(g => g.id === guestId);
+  if (!guest) return;
+
+  let displayName = '';
+  if (guest.ticket_type === 'couple') {
+    let rawCouple = (guest.couple_name || guest.name || '').trim().replace(/^couple\s+/i, '').trim();
+    displayName = `Couple ${rawCouple}`;
+    if (guest.name && guest.partner_name && !rawCouple.toLowerCase().includes(guest.partner_name.toLowerCase())) {
+      displayName += ` (${guest.name} & ${guest.partner_name})`;
+    }
+  } else {
+    const cleanName = (guest.name || 'Invité').replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+    const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+    displayName = `${prefix}${cleanName}`;
+  }
+
+  const cleanTable = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+  const ticketUrl = `${window.location.origin}/?ticket=${encodeURIComponent(guest.id)}`;
+
+  const cleanMessage =
+    `*INVITATION OFFICIELLE - 2ÈME ÉDITION DU DÎNER DE GALA*\n\n` +
+    `⭐ *Événement :* 2ème édition du Dîner de Gala 2026\n` +
+    `📅 *Date :* Samedi 24 Octobre 2026 dès 15h00\n` +
+    `🎟️ *Billet officiel :* ${displayName}\n` +
+    `🍽️ *Table réservée :* Table ${cleanTable}\n` +
+    `📍 *Lieu :* Salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
+    `🎟️ *Voir mon Billet Officiel en 3D & Accéder à la Cérémonie :*\n${ticketUrl}`;
+
+  let waPhone = (guest.phone || '').replace(/[^0-9]/g, '');
+  const waUrl = waPhone
+    ? `https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(cleanMessage)}`
+    : `https://api.whatsapp.com/send?text=${encodeURIComponent(cleanMessage)}`;
+
+  window.open(waUrl, '_blank');
+  showAdminToast("Lien du billet officiel 3D préparé pour WhatsApp ! 💬", "success");
+};
+
 window.closeGuestCRM = () => {
   const modal = document.getElementById('modal-guest-crm');
   if (modal) modal.style.display = 'none';
   currentCrmGuestId = null;
+};
+
+// -------------------------------------------------------------
+// MODIFICATION D'UN INVITÉ (COORDONNÉES, ORTHOGRAPHE & TABLE)
+// -------------------------------------------------------------
+window.openEditGuestModal = (guestId) => {
+  const guest = (AdminState.guests || []).find(g => g.id === guestId);
+  if (!guest) return;
+
+  const modal = document.getElementById('modal-edit-guest');
+  if (!modal) return;
+
+  document.getElementById('admin-edit-guest-id').value = guest.id;
+  document.getElementById('admin-edit-name').value = guest.name || '';
+  document.getElementById('admin-edit-phone').value = guest.phone || '';
+  document.getElementById('admin-edit-table').value = (guest.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim();
+  document.getElementById('admin-edit-host').value = guest.invited_by || '';
+  document.getElementById('admin-edit-profession').value = guest.profession || '';
+  document.getElementById('admin-edit-company').value = guest.company || '';
+  document.getElementById('admin-edit-residence').value = guest.residence_location || '';
+
+  // Sexe M / F
+  if (guest.gender === 'F') {
+    document.getElementById('admin-edit-gender-f').checked = true;
+  } else {
+    document.getElementById('admin-edit-gender-m').checked = true;
+  }
+
+  // Type billet (seul / couple)
+  const isCouple = guest.ticket_type === 'couple';
+  if (isCouple) {
+    document.getElementById('admin-edit-ticket-couple').checked = true;
+  } else {
+    document.getElementById('admin-edit-ticket-seul').checked = true;
+  }
+  window.toggleAdminEditCoupleFields(isCouple);
+
+  document.getElementById('admin-edit-partner').value = guest.partner_name || '';
+  document.getElementById('admin-edit-couple-name').value = guest.couple_name || '';
+
+  // Remplir la liste des tables disponibles dans le datalist
+  const tablesDatalist = document.getElementById('admin-tables-datalist');
+  if (tablesDatalist) {
+    const knownTables = ['A', "A'", 'D', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'O', 'P', 'Q', 'S', 'T', 'U', 'V', 'W', 'X', 'Z'];
+    tablesDatalist.innerHTML = knownTables.map(t => `<option value="${t}">Table ${t}</option>`).join('');
+  }
+
+  modal.style.display = 'flex';
+};
+
+window.closeEditGuestModal = () => {
+  const modal = document.getElementById('modal-edit-guest');
+  if (modal) modal.style.display = 'none';
+};
+
+window.toggleAdminEditCoupleFields = (isCouple) => {
+  const container = document.getElementById('admin-edit-couple-fields');
+  const partnerInput = document.getElementById('admin-edit-partner');
+  const coupleInput = document.getElementById('admin-edit-couple-name');
+  if (container) container.style.display = isCouple ? 'block' : 'none';
+  if (partnerInput) partnerInput.required = isCouple;
+  if (coupleInput) coupleInput.required = isCouple;
+};
+
+window.saveEditedGuest = async () => {
+  const guestId = document.getElementById('admin-edit-guest-id').value;
+  if (!guestId) return;
+
+  const btn = document.getElementById('btn-admin-update-guest');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+  }
+
+  const name = document.getElementById('admin-edit-name').value.trim();
+  const gender = document.querySelector('input[name="admin-edit-gender"]:checked')?.value || 'M';
+  const ticketType = document.querySelector('input[name="admin-edit-ticket-type"]:checked')?.value || 'seul';
+  const partnerName = document.getElementById('admin-edit-partner').value.trim();
+  const coupleName = document.getElementById('admin-edit-couple-name').value.trim();
+  const rawTable = document.getElementById('admin-edit-table').value.trim();
+  const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+  const host = document.getElementById('admin-edit-host').value.trim();
+  const phone = document.getElementById('admin-edit-phone').value.trim();
+  const profession = document.getElementById('admin-edit-profession').value.trim();
+  const company = document.getElementById('admin-edit-company').value.trim();
+  const residence = document.getElementById('admin-edit-residence').value.trim();
+
+  if (!name) {
+    alert("Veuillez saisir le nom de l'invité.");
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Enregistrer les modifications'; }
+    return;
+  }
+
+  if (ticketType === 'couple' && (!partnerName || !coupleName)) {
+    alert("Pour un billet couple, veuillez renseigner le nom du conjoint et le nom officiel du couple.");
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Enregistrer les modifications'; }
+    return;
+  }
+
+  try {
+    await adminFetch(`/admin/guests/${guestId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name,
+        gender,
+        ticket_type: ticketType,
+        partner_name: partnerName,
+        couple_name: coupleName,
+        table_number: cleanTable,
+        invited_by: host,
+        phone,
+        profession,
+        company,
+        residence_location: residence
+      })
+    });
+
+    showAdminToast("Coordonnées et table mises à jour avec succès !", "success");
+    window.closeEditGuestModal();
+    window.closeGuestCRM();
+    await loadGuests();
+    await loadOverview();
+  } catch (err) {
+    showAdminToast("Erreur modification : " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '💾 Enregistrer les modifications';
+    }
+  }
 };
 
 window.exportCurrentGuestPDF = () => {
@@ -1814,10 +2068,10 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
     guests = guests.filter(g => g.registration_source !== 'link');
   }
 
-  // Respecter le filtre d'hôte s'il est actif dans l'admin
+  // Respecter le filtre d'hôte s'il est actif dans l'admin (normalisation canonique)
   const hostFilter = document.getElementById('admin-guest-host-filter')?.value;
   if (hostFilter) {
-    guests = guests.filter(g => (g.invited_by || '').trim() === hostFilter.trim());
+    guests = guests.filter(g => getHostKey(g.invited_by) === hostFilter || (g.invited_by || '').toLowerCase().trim() === hostFilter.toLowerCase());
   }
 
   // Si aucun invité n'est encore enregistré
@@ -1828,7 +2082,7 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
     if (!confirmBlank) return;
     
     // Gabarit de tables officielles vierges
-    const sampleTables = ['A', 'D', 'F', 'G', 'H', 'I', 'J', 'K'];
+    const sampleTables = ['A', 'D', 'F', 'G', 'H', 'I'];
     guests = sampleTables.map(t => ({
       name: '',
       table_number: t,
@@ -1838,25 +2092,29 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
     }));
   }
 
-  // 2. Regrouper par Table puis par Hôte (exactement comme sur le gabarit)
+  // 2. Regrouper par Table puis par Hôte (normalisation canonique insensible à la casse Micky vs micky)
   const groupMap = {};
   guests.forEach(g => {
     const rawTable = (g.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
-    const rawHost = (g.invited_by || '').trim() || 'Hôte non spécifié';
-    const key = `${rawTable}___${rawHost}`;
+    const rawHost = (g.invited_by || '').trim();
+    const hostKey = getHostKey(rawHost);
+    const key = `${rawTable}___${hostKey}`;
     if (!groupMap[key]) {
       groupMap[key] = {
         table: rawTable,
-        host: rawHost,
+        host: getHostDisplayName(rawHost),
         items: []
       };
+    }
+    if (rawHost.length > groupMap[key].host.length || (rawHost !== rawHost.toLowerCase() && groupMap[key].host === groupMap[key].host.toLowerCase())) {
+      groupMap[key].host = getHostDisplayName(rawHost);
     }
     if (!g.is_placeholder) {
       groupMap[key].items.push(g);
     }
   });
 
-  // Trier les groupes par Table (A, B, C...) puis par Hôte
+  // Trier les groupes par Table (A, A', B, C...) puis par Hôte
   const groups = Object.values(groupMap).sort((a, b) => {
     const cmp = a.table.localeCompare(b.table, undefined, { numeric: true });
     if (cmp !== 0) return cmp;
@@ -1885,11 +2143,14 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
     }
   });
 
-  // 4. Découper en pages de 4 blocs par page (Gabarit A4 officiel)
-  const BLOCKS_PER_PAGE = 4;
+  // 4. Découper en pages de MAXIMUM 3 tables par page A4 (Adaptabilité dynamique demandée par le client)
+  // Une table a 10 places. Avec 3 tables par page, même avec des noms longs (ex: M. KENFACK TONFACK GUIVIS HOUSTONE),
+  // aucune table n'est coupée à la cellule 5 !
+  const BLOCKS_PER_PAGE = 3;
   const pages = [];
   for (let i = 0; i < blocks.length; i += BLOCKS_PER_PAGE) {
-    pages.push(blocks.slice(i, i + BLOCKS_PER_PAGE));
+    const pageSlice = blocks.slice(i, i + BLOCKS_PER_PAGE);
+    pages.push(pageSlice);
   }
 
   // 5. Ouvrir la fenêtre d'impression
@@ -1911,12 +2172,22 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
 
         if (guest) {
           if (guest.ticket_type === 'couple') {
-            const cName = guest.couple_name ? `Couple ${guest.couple_name}` : `Couple ${guest.name}`;
-            const details = (guest.name && guest.partner_name) ? ` (${guest.name} & ${guest.partner_name})` : '';
+            let rawCouple = (guest.couple_name || guest.name || '').trim();
+            // Nettoyer pour éviter la répétition "Couple couple ..."
+            rawCouple = rawCouple.replace(/^couple\s+/i, '').trim();
+            let cName = `Couple ${rawCouple}`;
+            let details = '';
+            if (guest.name && guest.partner_name) {
+              const cleanP1 = (guest.name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
+              const cleanP2 = (guest.partner_name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
+              details = ` (${cleanP1} & ${cleanP2})`;
+            }
             guestName = `<strong>${escapeHtml(cName)}</strong>${escapeHtml(details)}`;
           } else {
+            let cleanN = (guest.name || '').trim();
+            cleanN = cleanN.replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
             const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
-            guestName = `${prefix}<strong>${escapeHtml(guest.name)}</strong>`;
+            guestName = `${prefix}<strong>${escapeHtml(cleanN)}</strong>`;
           }
           guestPhone = escapeHtml(guest.phone || '');
         }
@@ -1981,6 +2252,10 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
         <div class="sheet-vertical-banner">
           <div class="vertical-title">LISTE DES INVITES</div>
         </div>
+        <div style="position: absolute; bottom: 2mm; left: 8mm; right: 40mm; font-size: 8.5px; color: #64748b; display: flex; justify-content: space-between;">
+          <span>2ème Édition Dîner de Gala 2026 • Fiche d'Accueil Officielle</span>
+          <span><strong>Page ${pageIndex + 1} / ${pages.length}</strong></span>
+        </div>
       </div>
     `;
   }).join('');
@@ -1990,19 +2265,21 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
     <html lang="fr">
     <head>
       <meta charset="UTF-8">
-      <title>Fiche d'Accueil Officielle - Liste des Invités</title>
+      <title>Fiche d'Accueil Officielle - Liste des Invités (${pages.length} page${pages.length > 1 ? 's' : ''})</title>
       <style>
         @page {
           size: A4 portrait;
           margin: 4mm 6mm;
         }
         * { box-sizing: border-box; }
-        body {
+        html, body {
           font-family: 'Segoe UI', Arial, sans-serif;
-          margin: 0;
-          padding: 0;
+          margin: 0 !important;
+          padding: 0 !important;
           background: #f1f5f9;
           color: #111;
+          height: auto !important;
+          overflow: visible !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
@@ -2040,10 +2317,9 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
 
         /* Structure de Page A4 */
         .sheet-page {
-          width: 210mm;
-          min-height: 292mm;
-          max-height: 295mm;
-          margin: 12px auto;
+          width: 198mm;
+          min-height: 280mm;
+          margin: 15px auto;
           background: #fff;
           display: flex;
           flex-direction: row;
@@ -2051,7 +2327,11 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
           box-shadow: 0 8px 24px rgba(0,0,0,0.1);
           page-break-after: always;
           break-after: page;
-          overflow: hidden;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          box-sizing: border-box;
+          overflow: visible;
+          position: relative;
         }
         .sheet-page:last-child {
           page-break-after: auto;
@@ -2061,18 +2341,18 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
         /* Zone Principale gauche (Tables) */
         .sheet-main-content {
           flex: 1;
-          padding: 6px 8px 6px 6px;
+          padding: 5mm 4mm 8mm 5mm;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          justify-content: flex-start;
+          gap: 5mm;
         }
 
         /* Bloc individuel (Table + Hôte) */
         .block-wrapper {
-          margin-bottom: 4px;
-        }
-        .block-wrapper:last-child {
           margin-bottom: 0;
+          page-break-inside: avoid;
+          break-inside: avoid;
         }
 
         .block-table {
@@ -2089,7 +2369,7 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
           border: 1.5px solid #222;
         }
         .header-labels-row th {
-          border: 1px solid #222;
+          border: 1.5px solid #222;
           font-size: 10.5px;
           font-weight: 800;
           padding: 3px 4px;
@@ -2097,18 +2377,18 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
           background-color: #fff;
           color: #1c130d;
         }
-        .th-host { width: 22%; }
-        .th-num { width: 6%; }
-        .th-name { width: 44%; }
-        .th-phone { width: 16%; }
-        .th-table-blank { width: 12%; background: #ded9c8 !important; border: 1px solid #222; font-size: 10px; }
+        .th-host { width: 17%; }
+        .th-num { width: 4.5%; }
+        .th-name { width: 52%; }
+        .th-phone { width: 15%; }
+        .th-table-blank { width: 11.5%; background: #ded9c8 !important; border: 1.5px solid #222; font-size: 10.5px; }
 
         /* Lignes de contenu */
         .block-table td {
-          border: 1px solid #333;
-          height: 17.5px;
-          padding: 1px 4px;
-          font-size: 10px;
+          border: 1.5px solid #222;
+          height: 22px;
+          padding: 2px 4px;
+          font-size: 11px;
           vertical-align: middle;
         }
 
@@ -2136,7 +2416,7 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
           margin-bottom: 2px;
         }
         .host-name-text {
-          max-width: 125px;
+          max-width: 110px;
           word-break: break-word;
           font-size: 11px;
           font-weight: 800;
@@ -2146,25 +2426,29 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
         .col-num {
           text-align: center;
           font-weight: 700;
-          font-size: 10px;
+          font-size: 10.5px;
           color: #222;
           background: #fafafa;
         }
 
-        /* Nom invité */
+        /* Nom invité : Pleine largeur, adaptation dynamique multi-lignes */
         .col-name {
           text-align: left;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal !important;
+          word-break: normal;
+          overflow-wrap: break-word;
+          line-height: 1.25;
+          font-size: 11px;
+          padding: 2px 6px !important;
         }
 
         /* Téléphone */
         .col-phone {
           text-align: center;
-          font-size: 9.5px;
+          font-size: 10px;
           color: #222;
           white-space: nowrap;
+          font-family: Consolas, "Segoe UI Mono", monospace, sans-serif;
         }
 
         /* Cellule Table fusionnée (droite) */
@@ -2173,7 +2457,7 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
           text-align: center;
           vertical-align: middle;
           font-weight: 900;
-          font-size: 12.5px;
+          font-size: 13px;
           letter-spacing: 0.5px;
           color: #111;
         }
@@ -2207,17 +2491,37 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
           user-select: none;
         }
 
-        /* Règles d'impression */
+        /* Règles d'impression pour exporter TOUTES les pages sans coupure */
         @media print {
-          body { background: #fff; }
+          html, body {
+            background: #fff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
           .top-action-bar { display: none !important; }
           .sheet-page {
             margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
             width: 100% !important;
-            min-height: 285mm !important;
-            max-height: 288mm !important;
+            min-height: 275mm !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .sheet-page:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          .block-wrapper {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       </style>
@@ -2226,7 +2530,7 @@ window.exportGuestsReceptionSheet = (filterMode = 'link') => {
       <div class="top-action-bar">
         <div>
           <span style="font-size: 16px; font-weight: 800; color: #f59e0b;">📋 Fiche d'Accueil Officielle • Dîner de Gala 2026</span>
-          <span style="font-size: 12px; margin-left: 12px; opacity: 0.85;">(${blocks.length} bloc(s) sur ${pages.length} page(s) A4 • 4 tables/hôtes par page)</span>
+          <span style="font-size: 12px; margin-left: 12px; opacity: 0.85;">(${blocks.length} table(s) • Max 3 tables par feuille A4 • ${pages.length} page(s) à imprimer)</span>
         </div>
         <div>
           <button class="btn-print" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>

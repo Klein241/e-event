@@ -170,19 +170,20 @@ export async function handleEventRoutes(pathname, request, env) {
     // Normalisation de la table (ex: 'Table A' -> 'A', 'a' -> 'A')
     const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim();
 
-    // 1. Validation stricte de la table autorisée
+    // 1. Validation de base de la table (autorise les tables officielles de base et leurs variantes primes)
+    const baseTableLetter = cleanTable.replace(/['’]+/g, '').toUpperCase();
     const defaultTables = ['A','D','F','G','H','I','J','K','L','M','O','P','Q','S','T','U','V','W','X','Z'];
     let validTables = defaultTables;
     if (db) {
       try {
         const { results } = await db.prepare("SELECT table_code FROM event_tables").all();
         if (results && results.length > 0) {
-          validTables = results.map(r => r.table_code.toUpperCase());
+          validTables = results.map(r => r.table_code.toUpperCase().replace(/['’]+/g, ''));
         }
       } catch(e) {}
     }
 
-    if (!validTables.includes(cleanTable)) {
+    if (!validTables.includes(baseTableLetter)) {
       return jsonResponse({
         error: "Table non valide",
         invalid_table: true,
@@ -190,10 +191,70 @@ export async function handleEventRoutes(pathname, request, env) {
       }, 400);
     }
 
+    // 2. Attribution intelligente avec capacité maximale de 10 places par table
+    // (Billet 'seul' = 1 place, Billet 'couple' = 2 places).
+    // Si la table de base (ex: A) atteint 10 places, déborde automatiquement vers A' (A prime), puis A'', etc.
+    const seatsNeeded = ticketType === "couple" ? 2 : 1;
+    let assignedTable = cleanTable;
+
+    if (db) {
+      try {
+        const { results: existingGuests } = await db.prepare(`
+          SELECT table_number, ticket_type
+          FROM guests
+        `).all();
+
+        // Calculer l'occupation réelle par code de table normalisé
+        const occupancyMap = {};
+        (existingGuests || []).forEach(g => {
+          const t = (g.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim();
+          const seats = g.ticket_type === 'couple' ? 2 : 1;
+          occupancyMap[t] = (occupancyMap[t] || 0) + seats;
+        });
+
+        // Chercher la première variante de table disponible (base, base', base'', etc.)
+        let primeCount = 0;
+        let candidate = baseTableLetter;
+        while (true) {
+          const currentOccupancy = occupancyMap[candidate] || 0;
+          if (currentOccupancy + seatsNeeded <= 10) {
+            assignedTable = candidate;
+            break;
+          }
+          primeCount++;
+          candidate = `${baseTableLetter}${Array(primeCount).fill("'").join("")}`;
+        }
+
+        // Si une table overflow a été créée (ex: A'), s'assurer qu'elle existe dans event_tables
+        try {
+          await db.prepare(`
+            INSERT OR IGNORE INTO event_tables (id, table_code, capacity)
+            VALUES (?, ?, 10)
+          `).bind(`tbl-${assignedTable}`, assignedTable).run();
+        } catch(e) {}
+      } catch (err) {
+        console.warn("Erreur calcul débordement table:", err);
+      }
+    }
+
     const photoUrl = (data.photo_url || "").trim();
 
-    // Identifiant unique haute concurrence (supporte 500+ inscrits sans collision)
-    const guestId = data.id || `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    // 3. Détermination d'un identifiant TOUJOURS UNIQUE pour chaque nouvel inscrit.
+    // Si l'ID envoyé existe déjà en base (cas d'un smartphone partagé ou réutilisé),
+    // on force la génération d'un NOUVEL identifiant pour ne JAMAIS écraser un invité précédent !
+    let guestId = (data.id || "").trim();
+    if (db && guestId) {
+      try {
+        const existing = await db.prepare("SELECT id FROM guests WHERE id = ?").bind(guestId).first();
+        if (existing) {
+          guestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+        }
+      } catch (e) {
+        guestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      }
+    } else {
+      guestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    }
 
     if (db) {
       try {
@@ -203,20 +264,7 @@ export async function handleEventRoutes(pathname, request, env) {
             gender, ticket_type, partner_name, couple_name, photo_url,
             avatar_emoji, role, created_at, last_active
           ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          ON CONFLICT(id) DO UPDATE SET
-            name = excluded.name,
-            table_number = excluded.table_number,
-            phone = excluded.phone,
-            invited_by = excluded.invited_by,
-            registration_source = 'link',
-            gender = excluded.gender,
-            ticket_type = excluded.ticket_type,
-            partner_name = excluded.partner_name,
-            couple_name = excluded.couple_name,
-            photo_url = COALESCE(NULLIF(excluded.photo_url, ''), guests.photo_url),
-            avatar_emoji = excluded.avatar_emoji,
-            last_active = CURRENT_TIMESTAMP
-        `).bind(guestId, name, cleanTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji).run();
+        `).bind(guestId, name, assignedTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji).run();
       } catch (err) {
         console.error("Erreur insertion invité par lien:", err);
         return errorResponse("Erreur base de données: " + err.message, 500);
@@ -226,7 +274,7 @@ export async function handleEventRoutes(pathname, request, env) {
     const guestObj = {
       id: guestId,
       name,
-      table_number: cleanTable,
+      table_number: assignedTable,
       phone,
       invited_by: invitedBy,
       registration_source: 'link',

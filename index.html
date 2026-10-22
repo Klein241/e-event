@@ -581,6 +581,39 @@
       <section class="tab-view" id="program-tab">
         <div class="program-container animate-fade-in">
 
+          <!-- Barre supérieure avec Retour Accueil & Date officielle -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; gap: 8px;">
+            <button type="button" class="btn-3d" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); cursor: pointer;" onclick="window.switchTab('home')">
+              <span>← Retour à l'accueil</span>
+            </button>
+            <span style="font-size: 0.78rem; font-weight: 700; color: #D4AF37;">📅 Samedi 24 Octobre 2026</span>
+          </div>
+
+          <!-- Décompteur Dynamique Plus que : J - H - M - S (Compte à rebours identique au formulaire d'invitation) -->
+          <div class="invitation-countdown-box" style="margin-bottom: 0.85rem;">
+            <div class="invitation-countdown-label">
+              <span>⏳</span> Début de la cérémonie dans :
+            </div>
+            <div class="invitation-countdown-grid">
+              <div class="invitation-count-cell">
+                <span class="invitation-count-num" id="prog-count-days">00</span>
+                <span class="invitation-count-text">Jours</span>
+              </div>
+              <div class="invitation-count-cell">
+                <span class="invitation-count-num" id="prog-count-hours">00</span>
+                <span class="invitation-count-text">Heures</span>
+              </div>
+              <div class="invitation-count-cell">
+                <span class="invitation-count-num" id="prog-count-minutes">00</span>
+                <span class="invitation-count-text">Minutes</span>
+              </div>
+              <div class="invitation-count-cell">
+                <span class="invitation-count-num" id="prog-count-seconds">00</span>
+                <span class="invitation-count-text">Secondes</span>
+              </div>
+            </div>
+          </div>
+
           <!-- En-tête avec horloge neumorphique synchronisée au téléphone -->
           <div class="program-hero-header">
             <div class="program-header-top">
@@ -1157,9 +1190,12 @@
           Votre invitation nominative pour la 2ème édition du Dîner de Gala a été générée.
         </p>
 
-        <!-- Aperçu visuel du Billet officiel -->
-        <div class="inv-ticket-preview-container" id="inv-ticket-wrapper">
+        <!-- Aperçu visuel du Billet officiel (Cliquer pour plein écran & zoom) -->
+        <div class="inv-ticket-preview-container" id="inv-ticket-wrapper" onclick="window.openTicketFullscreen()" style="cursor: zoom-in;" title="Cliquez pour afficher en plein écran avec zoom et rotation">
           <img id="inv-ticket-preview-img" src="/billet-invitation-template.png" alt="Billet d'invitation officiel">
+          <div class="clay-ticket-fullscreen-badge" onclick="event.stopPropagation(); window.openTicketFullscreen();" title="Afficher en plein écran">
+            <span>🔍 Plein écran</span>
+          </div>
         </div>
 
         <!-- Canvas caché haute résolution pour le rendu 1024x921 -->
@@ -1203,6 +1239,163 @@
         👍 J'ai compris, je contacte mon hôte
       </button>
     </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODALE 3D CLAYMORPHIC DU BILLET OFFICIEL DU GALA            -->
+  <!-- ============================================================ -->
+  <div class="clay-ticket-overlay" id="modal-ticket-claymorphic" style="display: none;" onclick="if(event.target === this) window.closeClaymorphicTicketModal()">
+    <div class="clay-ticket-wrapper">
+      <!-- Bouton de fermeture tactile 3D Clay -->
+      <button type="button" class="clay-close-btn" onclick="window.closeClaymorphicTicketModal()" title="Fermer la vue billet">
+        <span>✕</span>
+      </button>
+
+      <!-- Carte Principale Claymorphic 3D -->
+      <div class="clay-ticket-card" id="clay-ticket-card-3d">
+        <!-- Badge statut supérieur clay -->
+        <div class="clay-header-pill">
+          <span class="clay-pill-icon">✨</span>
+          <span class="clay-pill-text">Billet Officiel Validé • 2ème Édition</span>
+          <span class="clay-pill-tag">CONFIRMÉ</span>
+        </div>
+
+        <h2 class="clay-title-gold" id="clay-guest-display-title">
+          Votre Billet d'Exception
+        </h2>
+        
+        <p class="clay-subtitle" id="clay-event-date-hint">
+          Samedi 24 Octobre 2026 • Dès 15h00 • Le Rocher des Âges
+        </p>
+
+        <!-- Rangée de badges 3D Claymorphic (Table, Hôte, Formule) -->
+        <div class="clay-badges-row">
+          <div class="clay-badge-item clay-badge-gold" id="clay-badge-table">
+            <span class="clay-badge-icon">🍽️</span>
+            <div class="clay-badge-content">
+              <span class="clay-badge-label">Table Réservée</span>
+              <strong class="clay-badge-val" id="clay-val-table">TABLE A</strong>
+            </div>
+          </div>
+
+          <div class="clay-badge-item clay-badge-purple" id="clay-badge-host">
+            <span class="clay-badge-icon">👑</span>
+            <div class="clay-badge-content">
+              <span class="clay-badge-label">Invité(e) par</span>
+              <strong class="clay-badge-val" id="clay-val-host">Pasteur Micky</strong>
+            </div>
+          </div>
+
+          <div class="clay-badge-item clay-badge-blue" id="clay-badge-type">
+            <span class="clay-badge-icon" id="clay-icon-type">🎟️</span>
+            <div class="clay-badge-content">
+              <span class="clay-badge-label">Formule</span>
+              <strong class="clay-badge-val" id="clay-val-type">Billet Seul</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteneur 3D interactif du Billet avec Effet Tilt & Ombre portée douce (Cliquer pour Plein Écran) -->
+        <div class="clay-ticket-3d-scene" id="clay-ticket-scene" onclick="window.openTicketFullscreen()" style="cursor: zoom-in;" title="Cliquez pour afficher en plein écran avec zoom et rotation">
+          <div class="clay-ticket-3d-object" id="clay-ticket-object">
+            <div class="clay-ticket-frame">
+              <img id="clay-ticket-img-preview" src="/billet-invitation-template.png" alt="Billet officiel 3D" class="clay-ticket-img">
+              <div class="clay-ticket-fullscreen-badge" onclick="event.stopPropagation(); window.openTicketFullscreen();" title="Afficher en plein écran">
+                <span>🔍 Plein écran</span>
+              </div>
+              <div class="clay-ticket-gloss"></div>
+            </div>
+            <!-- Reflet 3D sous le billet -->
+            <div class="clay-ticket-shadow-floor"></div>
+          </div>
+        </div>
+
+        <!-- Canvas haute résolution caché pour rendu et export direct -->
+        <canvas id="clay-ticket-render-canvas" width="1024" height="921" style="display: none;"></canvas>
+
+        <!-- Actions Claymorphic 3D tactiles -->
+        <div class="clay-actions-group">
+          <button type="button" class="clay-btn clay-btn-emerald" onclick="window.downloadClayTicket()">
+            <span class="clay-btn-icon">📥</span>
+            <span class="clay-btn-text">Télécharger le Billet (HD)</span>
+          </button>
+
+          <button type="button" class="clay-btn clay-btn-whatsapp" onclick="window.shareClayTicketWhatsApp()">
+            <span class="clay-btn-icon">💬</span>
+            <span class="clay-btn-text">Partager sur WhatsApp</span>
+          </button>
+
+          <button type="button" class="clay-btn clay-btn-gold" onclick="window.goToProgramFromTicket()">
+            <span class="clay-btn-icon">📜</span>
+            <span class="clay-btn-text">Accéder au programme</span>
+          </button>
+        </div>
+
+        <!-- Détails & Consignes pratiques de l'accueil -->
+        <div class="clay-info-box">
+          <div class="clay-info-row">
+            <span class="clay-info-icon">📍</span>
+            <div class="clay-info-text">
+              <strong>Lieu de prestige :</strong> Salle de fête Le Rocher des Âges sise Rond point Entraco.
+            </div>
+          </div>
+          <div class="clay-info-row">
+            <span class="clay-info-icon">💡</span>
+            <div class="clay-info-text">
+              <strong>Présentation à l'accueil :</strong> Présentez cette image sur votre téléphone ou indiquez votre nom et celui de votre hôte pour votre accueil immédiat.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODALE PLEIN ÉCRAN POUR LE BILLET (ZOOM & ROTATION AUTO)
+       ======================================================== -->
+  <div id="ticket-fullscreen-modal" class="ticket-fs-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Aperçu Plein Écran du Billet">
+    <!-- Barre de contrôle supérieure flottante -->
+    <header class="ticket-fs-header">
+      <div class="ticket-fs-actions-left">
+        <button type="button" class="ticket-fs-btn" id="ticket-fs-rot-btn" onclick="window.toggleTicketFsRotation()" title="Faire pivoter le billet">
+          <span class="ticket-fs-icon">🔄</span>
+          <span class="ticket-fs-label">Rotation <b id="ticket-fs-rot-text">90°</b></span>
+        </button>
+      </div>
+
+      <div class="ticket-fs-actions-center">
+        <button type="button" class="ticket-fs-btn ticket-fs-circle" onclick="window.adjustTicketFsZoom(-0.25)" title="Dézoomer">
+          <span>−</span>
+        </button>
+        <button type="button" class="ticket-fs-btn ticket-fs-pill" onclick="window.resetTicketFsZoom()" title="Réinitialiser l'affichage">
+          <span id="ticket-fs-zoom-text">100%</span>
+        </button>
+        <button type="button" class="ticket-fs-btn ticket-fs-circle" onclick="window.adjustTicketFsZoom(0.25)" title="Zoomer">
+          <span>+</span>
+        </button>
+      </div>
+
+      <div class="ticket-fs-actions-right">
+        <button type="button" class="ticket-fs-btn ticket-fs-close" onclick="window.closeTicketFullscreen()" title="Fermer le plein écran">
+          ✕ <span class="ticket-fs-close-lbl">Fermer</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Zone d'affichage et de manipulation tactile (Viewport) -->
+    <div class="ticket-fs-viewport" id="ticket-fs-viewport">
+      <div class="ticket-fs-canvas-layer" id="ticket-fs-layer">
+        <img id="ticket-fs-img" src="/billet-invitation-template.png" alt="Billet officiel Plein Écran" draggable="false">
+      </div>
+    </div>
+
+    <!-- Info-bulle d'aide discrète -->
+    <footer class="ticket-fs-footer">
+      <div class="ticket-fs-tip">
+        <span>💡 Pincez pour zoomer • Glissez pour déplacer • Double-clic pour agrandir</span>
+      </div>
+    </footer>
   </div>
 
   <!-- 1. Modale Onboarding Express (15 secondes) -->

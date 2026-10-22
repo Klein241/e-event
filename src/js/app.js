@@ -108,6 +108,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     refreshCurrentView();
   }, 5000);
 
+  // 12bis. Compte à rebours officiel du Gala (Formulaire d'invitation + Onglet Programme)
+  updateInvitationCountdown();
+  setInterval(updateInvitationCountdown, 1000);
+
+  // 12ter. Gestes tactiles et contrôles de la visionneuse plein écran du billet
+  setupTicketFullscreenGestures();
+
   // 13. Retrait fluide de l'écran de chargement anti-flash
   setTimeout(() => {
     if (typeof window.dismissSplash === 'function') {
@@ -115,10 +122,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }, 80);
 
-  // 14. Détection du lien d'invitation au Gala (?invite=... ou #invitation) ou onboarding classique
+  // 14. Détection du Billet Officiel 3D Claymorphic (?ticket=... ou ?billet=...) ou invitation (?invite=...)
   const urlParams = new URLSearchParams(window.location.search);
+  const ticketParam = urlParams.get('ticket') || urlParams.get('billet');
   const isInvite = urlParams.has('invite') || urlParams.has('invitation') || window.location.hash === '#invitation';
-  if (isInvite) {
+
+  if (ticketParam) {
+    setTimeout(() => {
+      window.openClaymorphicTicketModalById(ticketParam);
+    }, 120);
+  } else if (isInvite) {
     trackInvitationClick();
     const hostParam = urlParams.get('par') || urlParams.get('hote') || urlParams.get('by');
     if (hostParam) {
@@ -162,8 +175,6 @@ function setupNavigation() {
     // Si l'utilisateur clique sur chat ou direct mais que la régie l'a remplacé par le programme
     if (targetTab === 'chat' && AppState.direct_feature_enabled === 0) {
       targetTab = 'program';
-    } else if (targetTab === 'program' && AppState.direct_feature_enabled === 1) {
-      targetTab = 'chat';
     }
 
     navItems.forEach(n => {
@@ -471,16 +482,16 @@ function updateInvitationCountdown() {
   const now = Date.now();
   const diff = GALA_DATE_TARGET - now;
 
-  const daysEl = document.getElementById('inv-count-days');
-  const hoursEl = document.getElementById('inv-count-hours');
-  const minsEl = document.getElementById('inv-count-minutes');
-  const secsEl = document.getElementById('inv-count-seconds');
+  const daysEls = [document.getElementById('inv-count-days'), document.getElementById('prog-count-days')].filter(Boolean);
+  const hoursEls = [document.getElementById('inv-count-hours'), document.getElementById('prog-count-hours')].filter(Boolean);
+  const minsEls = [document.getElementById('inv-count-minutes'), document.getElementById('prog-count-minutes')].filter(Boolean);
+  const secsEls = [document.getElementById('inv-count-seconds'), document.getElementById('prog-count-seconds')].filter(Boolean);
 
   if (diff <= 0) {
-    if (daysEl) daysEl.textContent = '00';
-    if (hoursEl) hoursEl.textContent = '00';
-    if (minsEl) minsEl.textContent = '00';
-    if (secsEl) secsEl.textContent = '00';
+    daysEls.forEach(el => { el.textContent = '00'; });
+    hoursEls.forEach(el => { el.textContent = '00'; });
+    minsEls.forEach(el => { el.textContent = '00'; });
+    secsEls.forEach(el => { el.textContent = '00'; });
     return;
   }
 
@@ -489,10 +500,15 @@ function updateInvitationCountdown() {
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-  if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
-  if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
-  if (minsEl) minsEl.textContent = String(minutes).padStart(2, '0');
-  if (secsEl) secsEl.textContent = String(seconds).padStart(2, '0');
+  const dStr = String(days).padStart(2, '0');
+  const hStr = String(hours).padStart(2, '0');
+  const mStr = String(minutes).padStart(2, '0');
+  const sStr = String(seconds).padStart(2, '0');
+
+  daysEls.forEach(el => { el.textContent = dStr; });
+  hoursEls.forEach(el => { el.textContent = hStr; });
+  minsEls.forEach(el => { el.textContent = mStr; });
+  secsEls.forEach(el => { el.textContent = sStr; });
 }
 
 // Valid tables officielles du Gala 2026
@@ -731,19 +747,12 @@ window.openInvitationModal = () => {
   } catch(e) {}
 
   updateInvitationCountdown();
-  if (invitationCountdownInterval) clearInterval(invitationCountdownInterval);
-  invitationCountdownInterval = setInterval(updateInvitationCountdown, 1000);
-
   modal.style.display = 'flex';
 };
 
 window.closeInvitationModal = () => {
   const modal = document.getElementById('invitation-link-modal');
   if (modal) modal.style.display = 'none';
-  if (invitationCountdownInterval) {
-    clearInterval(invitationCountdownInterval);
-    invitationCountdownInterval = null;
-  }
 };
 
 window.renderInvitationTicket = async (guest) => {
@@ -822,6 +831,8 @@ window.renderInvitationTicket = async (guest) => {
         const dataUrl = canvas.toDataURL('image/png');
         currentGeneratedTicketDataUrl = dataUrl;
         if (previewImg) previewImg.src = dataUrl;
+        const clayImg = document.getElementById('clay-ticket-img-preview');
+        if (clayImg) clayImg.src = dataUrl;
       } catch(err) {
         console.warn("Export canvas to DataURL:", err);
       }
@@ -850,22 +861,473 @@ window.downloadInvitationTicket = () => {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  window.showToast("Billet téléchargé avec succès ! 📥");
+  window.showToast("Billet officiel téléchargé avec succès ! 📥");
 };
 
-window.shareTicketOnWhatsApp = () => {
+window.shareTicketOnWhatsApp = async () => {
   const guest = currentTicketGuest || AppState.guest || {};
-  const name = guest.couple_name || guest.name || 'Invité';
-  const table = guest.table_number || '';
-  const text = encodeURIComponent(
-    `✨ Invitation Confirmée pour la 2ème édition du Dîner de Gala ce 24 Octobre 2026 dès 15h !\n\n` +
-    `👤 Billet : ${name}\n` +
-    `🍽️ Table : Table ${table}\n` +
-    `📍 Lieu : La salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
-    `Rejoignez-nous via le lien de la cérémonie : ${window.location.origin}/?invite=gala2026`
-  );
-  window.open(`https://wa.me/?text=${text}`, '_blank');
+  let displayName = '';
+  if (guest.ticket_type === 'couple') {
+    let rawCouple = (guest.couple_name || guest.name || '').trim().replace(/^couple\s+/i, '').trim();
+    displayName = `Couple ${rawCouple}`;
+    if (guest.name && guest.partner_name && !rawCouple.toLowerCase().includes(guest.partner_name.toLowerCase())) {
+      displayName += ` (${guest.name} & ${guest.partner_name})`;
+    }
+  } else {
+    const cleanName = (guest.name || 'Invité').replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+    const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+    displayName = `${prefix}${cleanName}`;
+  }
+
+  const cleanTable = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+  const ticketUrl = guest.id
+    ? `${window.location.origin}/?ticket=${encodeURIComponent(guest.id)}`
+    : `${window.location.origin}/?invite=gala2026`;
+
+  // Texte formaté WhatsApp sans caractères UTF-16 corrompus pour un rendu parfait sur iOS & Android
+  const cleanMessage =
+    `*INVITATION OFFICIELLE - 2ÈME ÉDITION DU DÎNER DE GALA*\n\n` +
+    `⭐ *Événement :* 2ème édition du Dîner de Gala 2026\n` +
+    `📅 *Date :* Samedi 24 Octobre 2026 dès 15h00\n` +
+    `🎟️ *Billet officiel :* ${displayName}\n` +
+    `🍽️ *Table réservée :* Table ${cleanTable}\n` +
+    `📍 *Lieu :* Salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
+    `🎟️ *Voir mon Billet Officiel en 3D & Accéder à la Cérémonie :*\n${ticketUrl}`;
+
+  const canvas = document.getElementById('inv-ticket-canvas') || document.getElementById('clay-ticket-render-canvas');
+  const filenameSafe = (guest.couple_name || guest.name || 'Billet').replace(/[^a-zA-Z0-9]/g, '_');
+
+  // 1. Partage direct natif avec l'IMAGE du billet (Android, iPhone, navigateurs compatibles)
+  if (canvas && navigator.canShare) {
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (blob) {
+        const ticketFile = new File([blob], `Billet-Gala-2026-${filenameSafe}.png`, { type: 'image/png' });
+        if (navigator.canShare({ files: [ticketFile] })) {
+          try {
+            await navigator.share({
+              title: 'Mon Billet d\'Invitation - Dîner de Gala 2026',
+              text: cleanMessage,
+              files: [ticketFile]
+            });
+            window.showToast("Billet et invitation partagés avec succès ! ✨");
+            return;
+          } catch (err) {
+            if (err.name === 'AbortError') return;
+            console.warn("Échec partage fichier natif, bascule vers WhatsApp Web:", err);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Erreur préparation image billet pour partage:", e);
+    }
+  }
+
+  // 2. Repli pour Desktop / WhatsApp Web : Copier l'image dans le presse-papier + Téléchargement auto
+  try {
+    if (canvas && navigator.clipboard && window.ClipboardItem) {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (blob) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+      }
+    }
+  } catch (e) {}
+
+  window.downloadInvitationTicket();
+  const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(cleanMessage)}`;
+  window.open(whatsappUrl, '_blank');
+  window.showToast("Billet téléchargé et copié ! Collez l'image (Ctrl+V) dans votre message WhatsApp.");
 };
+
+// ============================================================
+// LOGIQUE MODALE 3D CLAYMORPHIC DU BILLET OFFICIEL
+// ============================================================
+
+window.openClaymorphicTicketModal = async (guest) => {
+  if (!guest) return;
+  currentTicketGuest = guest;
+
+  const modal = document.getElementById('modal-ticket-claymorphic');
+  if (!modal) return;
+
+  // Formatage du nom d'affichage
+  let titleName = '';
+  if (guest.ticket_type === 'couple') {
+    let rawCouple = (guest.couple_name || guest.name || '').trim().replace(/^couple\s+/i, '').trim();
+    titleName = `Couple ${rawCouple}`;
+    if (guest.name && guest.partner_name && !rawCouple.toLowerCase().includes(guest.partner_name.toLowerCase())) {
+      titleName += ` (${guest.name} & ${guest.partner_name})`;
+    }
+  } else {
+    const cleanName = (guest.name || 'Invité').replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+    const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+    titleName = `${prefix}${cleanName}`;
+  }
+
+  const titleEl = document.getElementById('clay-guest-display-title');
+  if (titleEl) titleEl.textContent = titleName;
+
+  const cleanTable = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+  const tableValEl = document.getElementById('clay-val-table');
+  if (tableValEl) tableValEl.textContent = `TABLE ${cleanTable}`;
+
+  const hostValEl = document.getElementById('clay-val-host');
+  if (hostValEl) hostValEl.textContent = guest.invited_by ? guest.invited_by.trim() : 'Organisateurs';
+
+  const typeValEl = document.getElementById('clay-val-type');
+  const typeIconEl = document.getElementById('clay-icon-type');
+  if (typeValEl) {
+    typeValEl.textContent = guest.ticket_type === 'couple' ? 'Billet Couple (2p)' : 'Billet Seul';
+  }
+  if (typeIconEl) {
+    typeIconEl.textContent = guest.ticket_type === 'couple' ? '👥' : '👤';
+  }
+
+  modal.style.display = 'flex';
+  setupClaymorphicTicketTilt();
+
+  // Rendu graphique du billet officiel
+  await window.renderInvitationTicket(guest);
+
+  const clayImg = document.getElementById('clay-ticket-img-preview');
+  if (clayImg && currentGeneratedTicketDataUrl) {
+    clayImg.src = currentGeneratedTicketDataUrl;
+  }
+};
+
+window.openClaymorphicTicketModalById = async (guestId) => {
+  if (!guestId) return;
+
+  // 1. Vérifier si l'invité est déjà dans AppState
+  if (AppState.guest && (AppState.guest.id === guestId || AppState.guest.phone === guestId)) {
+    window.openClaymorphicTicketModal(AppState.guest);
+    return;
+  }
+
+  // 2. Afficher la modale temporaire avec indicateur
+  const modal = document.getElementById('modal-ticket-claymorphic');
+  if (modal) modal.style.display = 'flex';
+  const titleEl = document.getElementById('clay-guest-display-title');
+  if (titleEl) titleEl.textContent = "Chargement de votre billet...";
+
+  try {
+    const res = await Api.request(`/guests/detail?id=${encodeURIComponent(guestId)}`);
+    if (res && res.guest) {
+      AppState.setGuest(res.guest);
+      updateGuestHeader();
+      window.openClaymorphicTicketModal(res.guest);
+    } else {
+      window.showToast("Billet introuvable ou lien expiré.", "error");
+      if (modal) modal.style.display = 'none';
+      if (!AppState.guest) window.openOnboarding();
+    }
+  } catch (err) {
+    console.error("Erreur récupération billet 3D:", err);
+    window.showToast("Impossible de charger le billet pour le moment.", "error");
+    if (modal) modal.style.display = 'none';
+  }
+};
+
+window.closeClaymorphicTicketModal = () => {
+  const modal = document.getElementById('modal-ticket-claymorphic');
+  if (modal) modal.style.display = 'none';
+};
+
+window.downloadClayTicket = () => {
+  window.downloadInvitationTicket();
+};
+
+window.shareClayTicketWhatsApp = () => {
+  window.shareTicketOnWhatsApp();
+};
+
+window.enterAppFromClayTicket = () => {
+  window.closeClaymorphicTicketModal();
+  const guest = currentTicketGuest || AppState.guest;
+  if (guest && !AppState.guest) {
+    AppState.setGuest(guest);
+    updateGuestHeader();
+  }
+  window.showToast("Bienvenue à la 2ème édition du Dîner de Gala ! 🥂", "success");
+};
+
+window.goToProgramFromTicket = () => {
+  window.closeClaymorphicTicketModal();
+  const guest = currentTicketGuest || AppState.guest;
+  if (guest && !AppState.guest) {
+    AppState.setGuest(guest);
+    updateGuestHeader();
+  }
+  window.switchTab('program');
+  window.showToast("Bienvenue au programme officiel de la soirée ! 📜", "success");
+};
+
+// ========================================================
+// VISIONNEUSE PLEIN ÉCRAN DU BILLET AVEC ZOOM & ROTATION AUTO
+// ========================================================
+const fsTicketState = {
+  rotation: 0,
+  userZoom: 1.0,
+  panX: 0,
+  panY: 0,
+  naturalW: 1024,
+  naturalH: 921,
+  isOpen: false,
+  isDragging: false,
+  startX: 0,
+  startY: 0,
+  isPinching: false,
+  initialPinchDist: 0,
+  initialPinchZoom: 1.0,
+  lastTapTime: 0
+};
+
+function applyTicketFsTransform(animate = true) {
+  const layer = document.getElementById('ticket-fs-layer');
+  const zoomText = document.getElementById('ticket-fs-zoom-text');
+  const rotText = document.getElementById('ticket-fs-rot-text');
+  if (!layer) return;
+
+  if (rotText) rotText.textContent = `${fsTicketState.rotation}°`;
+  if (zoomText) zoomText.textContent = `${Math.round(fsTicketState.userZoom * 100)}%`;
+
+  const vpW = window.innerWidth;
+  const vpH = Math.max(300, window.innerHeight - 80);
+  const isSideways = fsTicketState.rotation % 180 !== 0;
+
+  const effectiveW = isSideways ? fsTicketState.naturalH : fsTicketState.naturalW;
+  const effectiveH = isSideways ? fsTicketState.naturalW : fsTicketState.naturalH;
+
+  const fitScale = Math.min((vpW * 0.94) / effectiveW, (vpH * 0.94) / effectiveH);
+  const totalScale = fitScale * fsTicketState.userZoom;
+
+  layer.style.transition = animate ? 'transform 0.18s cubic-bezier(0.2, 0, 0.2, 1)' : 'none';
+  layer.style.transform = `translate3d(${fsTicketState.panX}px, ${fsTicketState.panY}px, 0) rotate(${fsTicketState.rotation}deg) scale(${totalScale.toFixed(4)})`;
+}
+
+window.openTicketFullscreen = () => {
+  const modal = document.getElementById('ticket-fullscreen-modal');
+  const fsImg = document.getElementById('ticket-fs-img');
+  if (!modal || !fsImg) return;
+
+  // Récupérer l'image source du billet (canvas généré en priorité, puis aperçu, puis fallback)
+  const clayImg = document.getElementById('clay-ticket-img-preview');
+  const invImg = document.getElementById('inv-ticket-preview-img');
+  const ticketSrc = currentGeneratedTicketDataUrl || clayImg?.src || invImg?.src || '/billet-invitation-template.png';
+  fsImg.src = ticketSrc;
+
+  // Détection automatique de l'orientation de l'écran du smartphone :
+  // Sur smartphone vertical (portrait), le billet horizontal pivote à 90° automatiquement pour occuper toute la hauteur de l'écran !
+  const isPortrait = window.innerHeight > window.innerWidth;
+  fsTicketState.rotation = isPortrait ? 90 : 0;
+  fsTicketState.userZoom = 1.0;
+  fsTicketState.panX = 0;
+  fsTicketState.panY = 0;
+  fsTicketState.isOpen = true;
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  applyTicketFsTransform(false);
+  if (fsImg.naturalWidth && fsImg.naturalHeight) {
+    fsTicketState.naturalW = fsImg.naturalWidth;
+    fsTicketState.naturalH = fsImg.naturalHeight;
+    applyTicketFsTransform(false);
+  } else {
+    fsImg.onload = () => {
+      fsTicketState.naturalW = fsImg.naturalWidth || 1024;
+      fsTicketState.naturalH = fsImg.naturalHeight || 921;
+      applyTicketFsTransform(false);
+    };
+  }
+};
+
+window.closeTicketFullscreen = () => {
+  const modal = document.getElementById('ticket-fullscreen-modal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+  fsTicketState.isOpen = false;
+  fsTicketState.isDragging = false;
+  fsTicketState.isPinching = false;
+};
+
+window.toggleTicketFsRotation = () => {
+  fsTicketState.rotation = (fsTicketState.rotation + 90) % 360;
+  applyTicketFsTransform(true);
+};
+
+window.adjustTicketFsZoom = (delta) => {
+  fsTicketState.userZoom = Math.max(0.6, Math.min(4.0, fsTicketState.userZoom + delta));
+  applyTicketFsTransform(true);
+};
+
+window.resetTicketFsZoom = () => {
+  fsTicketState.userZoom = 1.0;
+  fsTicketState.panX = 0;
+  fsTicketState.panY = 0;
+  applyTicketFsTransform(true);
+};
+
+function setupTicketFullscreenGestures() {
+  const viewport = document.getElementById('ticket-fs-viewport');
+  if (!viewport) return;
+
+  // Gestion tactile Mobile (Pinch to zoom, pan, double-tap)
+  viewport.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      fsTicketState.isPinching = true;
+      fsTicketState.isDragging = false;
+      fsTicketState.initialPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      fsTicketState.initialPinchZoom = fsTicketState.userZoom;
+    } else if (e.touches.length === 1) {
+      fsTicketState.isDragging = true;
+      fsTicketState.startX = e.touches[0].clientX;
+      fsTicketState.startY = e.touches[0].clientY;
+
+      // Double tap pour basculer le zoom
+      const now = Date.now();
+      if (now - fsTicketState.lastTapTime < 300) {
+        if (fsTicketState.userZoom > 1.15) {
+          window.resetTicketFsZoom();
+        } else {
+          fsTicketState.userZoom = 2.2;
+          applyTicketFsTransform(true);
+        }
+      }
+      fsTicketState.lastTapTime = now;
+    }
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', (e) => {
+    if (fsTicketState.isPinching && e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (fsTicketState.initialPinchDist > 0) {
+        const factor = dist / fsTicketState.initialPinchDist;
+        fsTicketState.userZoom = Math.max(0.6, Math.min(4.0, fsTicketState.initialPinchZoom * factor));
+        applyTicketFsTransform(false);
+      }
+    } else if (fsTicketState.isDragging && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - fsTicketState.startX;
+      const dy = e.touches[0].clientY - fsTicketState.startY;
+      fsTicketState.panX += dx;
+      fsTicketState.panY += dy;
+      fsTicketState.startX = e.touches[0].clientX;
+      fsTicketState.startY = e.touches[0].clientY;
+      applyTicketFsTransform(false);
+    }
+  }, { passive: true });
+
+  const endTouch = () => {
+    fsTicketState.isDragging = false;
+    fsTicketState.isPinching = false;
+  };
+  viewport.addEventListener('touchend', endTouch);
+  viewport.addEventListener('touchcancel', endTouch);
+
+  // Gestion Souris Desktop (Drag & Wheel Zoom)
+  let isMouseDown = false;
+  let mouseStartX = 0;
+  let mouseStartY = 0;
+
+  viewport.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isMouseDown = true;
+    mouseStartX = e.clientX;
+    mouseStartY = e.clientY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isMouseDown || !fsTicketState.isOpen) return;
+    const dx = e.clientX - mouseStartX;
+    const dy = e.clientY - mouseStartY;
+    fsTicketState.panX += dx;
+    fsTicketState.panY += dy;
+    mouseStartX = e.clientX;
+    mouseStartY = e.clientY;
+    applyTicketFsTransform(false);
+  });
+
+  window.addEventListener('mouseup', () => {
+    isMouseDown = false;
+  });
+
+  viewport.addEventListener('wheel', (e) => {
+    if (!fsTicketState.isOpen) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.2 : -0.2;
+    fsTicketState.userZoom = Math.max(0.6, Math.min(4.0, fsTicketState.userZoom + delta));
+    applyTicketFsTransform(true);
+  }, { passive: false });
+
+  // Double-clic souris
+  viewport.addEventListener('dblclick', () => {
+    if (fsTicketState.userZoom > 1.15) {
+      window.resetTicketFsZoom();
+    } else {
+      fsTicketState.userZoom = 2.2;
+      applyTicketFsTransform(true);
+    }
+  });
+
+  // Rotation automatique si le téléphone pivote physiquement
+  window.addEventListener('resize', () => {
+    if (fsTicketState.isOpen) {
+      const isPortrait = window.innerHeight > window.innerWidth;
+      if (fsTicketState.rotation === 0 || fsTicketState.rotation === 90) {
+        fsTicketState.rotation = isPortrait ? 90 : 0;
+      }
+      applyTicketFsTransform(true);
+    }
+  });
+
+  // Fermeture par touche Echap
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fsTicketState.isOpen) {
+      window.closeTicketFullscreen();
+    }
+  });
+}
+
+// Effet 3D Tilt interactif sur le billet au survol / toucher
+let _clayTiltBound = false;
+function setupClaymorphicTicketTilt() {
+  if (_clayTiltBound) return;
+  const scene = document.getElementById('clay-ticket-scene');
+  const card = document.getElementById('clay-ticket-object');
+  if (!scene || !card) return;
+  _clayTiltBound = true;
+
+  const handleMove = (clientX, clientY) => {
+    const rect = scene.getBoundingClientRect();
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
+    const rotX = -(y / (rect.height / 2)) * 10;
+    const rotY = (x / (rect.width / 2)) * 10;
+    card.style.transform = `perspective(1000px) rotateX(${rotX.toFixed(1)}deg) rotateY(${rotY.toFixed(1)}deg) scale3d(1.02, 1.02, 1.02)`;
+  };
+
+  scene.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+  scene.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches[0]) {
+      handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  const resetTilt = () => {
+    card.style.transform = `perspective(1000px) rotateX(3deg) rotateY(-1deg) scale3d(1, 1, 1)`;
+  };
+  scene.addEventListener('mouseleave', resetTilt);
+  scene.addEventListener('touchend', resetTilt);
+}
+
 
 window.submitInvitationRegistration = async () => {
   const nameEl = document.getElementById('inv-input-name');
@@ -940,8 +1402,12 @@ window.submitInvitationRegistration = async () => {
     btn.innerHTML = `<span>⏳</span> Génération de votre billet officiel...`;
   }
 
+  // Toujours générer un identifiant unique dédié pour chaque nouvel invité enregistré par lien
+  // (Empêche qu'un appareil ayant déjà un profil invité en mémoire écrase l'enregistrement précédent)
+  const freshGuestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
   const payload = {
-    id: AppState.guest?.id || `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    id: freshGuestId,
     name,
     gender,
     ticket_type: ticketType,
@@ -986,10 +1452,17 @@ window.submitInvitationRegistration = async () => {
     if (formView) formView.style.display = 'none';
     if (successView) successView.style.display = 'block';
 
-    // Nettoyer le brouillon une fois validé
+    // Nettoyer le brouillon et la photo une fois validé
+    currentInvitationPhotoBase64 = null;
     try { localStorage.removeItem('compagnon_invite_draft'); } catch(e) {}
 
-    window.showToast(`Félicitations ${name} ! Votre billet d'invitation est prêt.`);
+    window.showToast(`Félicitations ${name} ! Votre billet officiel 3D est prêt.`, "success");
+
+    // Fermer l'ancienne modale d'inscription et ouvrir directement la modale 3D Claymorphic
+    setTimeout(() => {
+      window.closeInvitationModal();
+      window.openClaymorphicTicketModal(guestObj);
+    }, 350);
   } catch (err) {
     console.error("Erreur enregistrement invitation link:", err);
 
@@ -1022,6 +1495,11 @@ window.submitInvitationRegistration = async () => {
 
     // Nettoyer le brouillon une fois validé
     try { localStorage.removeItem('compagnon_invite_draft'); } catch(e) {}
+
+    setTimeout(() => {
+      window.closeInvitationModal();
+      window.openClaymorphicTicketModal(payload);
+    }, 350);
   } finally {
     if (btn) {
       btn.disabled = false;
