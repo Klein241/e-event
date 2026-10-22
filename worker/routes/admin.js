@@ -219,6 +219,7 @@ export async function handleAdminRoutes(pathname, request, env) {
     const photoUrl = (data.photo_url || "").trim();
     const avatarEmoji = data.avatar_emoji || (gender === "F" ? "👑" : "🎉");
     const registrationSource = data.registration_source || "link"; // invité par lien ou manuel
+    const role = (data.role || data.rank || "Invitée de Marque").trim();
 
     const guestId = (data.id && data.id.trim()) || buildPersonalizedGuestTicketId(name, coupleName, ticketType);
 
@@ -228,7 +229,7 @@ export async function handleAdminRoutes(pathname, request, env) {
           id, event_id, name, table_number, phone, invited_by, registration_source,
           gender, ticket_type, partner_name, couple_name, photo_url,
           avatar_emoji, role, created_at, last_active
-        ) VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name,
           table_number = excluded.table_number,
@@ -241,10 +242,11 @@ export async function handleAdminRoutes(pathname, request, env) {
           couple_name = excluded.couple_name,
           photo_url = COALESCE(NULLIF(excluded.photo_url, ''), guests.photo_url),
           avatar_emoji = excluded.avatar_emoji,
+          role = COALESCE(NULLIF(excluded.role, ''), guests.role),
           last_active = CURRENT_TIMESTAMP
       `).bind(
         guestId, name, cleanTable, phone, invitedBy, registrationSource,
-        gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji
+        gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji, role
       ).run();
     }
 
@@ -261,7 +263,7 @@ export async function handleAdminRoutes(pathname, request, env) {
       couple_name: coupleName,
       photo_url: photoUrl,
       avatar_emoji: avatarEmoji,
-      role: 'invite'
+      role: role
     };
 
     return jsonResponse({ success: true, guest: createdGuest });
@@ -295,6 +297,7 @@ export async function handleAdminRoutes(pathname, request, env) {
     const rawTable = (data.table_number || "A").trim();
     const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
     const invitedBy = (data.invited_by || "Admin").trim();
+    const role = (data.role || data.rank || "").trim();
     const profession = (data.profession || "").trim();
     const company = (data.company || "").trim();
     const residenceLocation = (data.residence_location || "").trim();
@@ -310,6 +313,7 @@ export async function handleAdminRoutes(pathname, request, env) {
           phone = ?,
           table_number = ?,
           invited_by = ?,
+          role = COALESCE(NULLIF(?, ''), role),
           profession = COALESCE(NULLIF(?, ''), profession),
           company = COALESCE(NULLIF(?, ''), company),
           residence_location = COALESCE(NULLIF(?, ''), residence_location),
@@ -317,7 +321,7 @@ export async function handleAdminRoutes(pathname, request, env) {
         WHERE id = ?
       `).bind(
         name, gender, ticketType, partnerName, coupleName, phone,
-        cleanTable, invitedBy, profession, company, residenceLocation, id
+        cleanTable, invitedBy, role, profession, company, residenceLocation, id
       ).run();
 
       // S'assurer que si la table renseignée (ex: A', B) n'est pas encore déclarée, elle est créée

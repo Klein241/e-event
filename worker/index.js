@@ -65,6 +65,20 @@ export default {
       return Response.redirect(canonicalUrl.toString(), 301);
     }
 
+    // 1c. Rétrocompatibilité : Redirection des liens gala historiques (?invite= ou ?ticket=) vers /dinedegala2026/
+    if (pathname === "/" && (url.searchParams.has("invite") || url.searchParams.has("ticket") || url.searchParams.has("billet"))) {
+      const galaRedirectUrl = new URL(request.url);
+      galaRedirectUrl.pathname = "/dinedegala2026/";
+      return Response.redirect(galaRedirectUrl.toString(), 302);
+    }
+
+    // Normalisation du chemin /dinedegala2026 sans slash
+    if (pathname === "/dinedegala2026") {
+      const slashUrl = new URL(request.url);
+      slashUrl.pathname = "/dinedegala2026/";
+      return Response.redirect(slashUrl.toString(), 301);
+    }
+
     // 2. Routage API modulaire
     if (pathname.startsWith("/api/")) {
       try {
@@ -102,15 +116,7 @@ export default {
       }
     }
 
-    // 3. Servir le Backoffice Administrateur pour /login/admin
-    if (pathname === "/login/admin" || pathname === "/login/admin/") {
-      if (env.ASSETS) {
-        const adminAssetUrl = new URL("/login/admin/index.html", request.url);
-        return env.ASSETS.fetch(new Request(adminAssetUrl, request));
-      }
-    }
-
-    // 4. Servir les fichiers frontend SPA / PWA depuis Cloudflare Assets
+    // 3. Servir les fichiers frontend SPA / PWA depuis Cloudflare Assets
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }

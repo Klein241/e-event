@@ -48,13 +48,13 @@ export function buildGuestTicketId(name, coupleName, ticketType) {
 window.buildGuestTicketId = buildGuestTicketId;
 
 export function getCanonicalTicketUrl(guest) {
-  if (!guest) return `${getCanonicalOrigin()}/?invite=gala2026`;
+  if (!guest) return `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;
   const origin = getCanonicalOrigin();
   const ticketId = encodeURIComponent(guest.id || '');
   const guestName = (guest.ticket_type === 'couple' && guest.couple_name) ? guest.couple_name : (guest.name || '');
   const cleanName = guestName.replace(/^(m\.|mme|mr|monsieur|madame)\s+/i, '').trim();
   const nameParam = cleanName ? `&nom=${encodeURIComponent(cleanName)}` : '';
-  return `${origin}/?ticket=${ticketId}${nameParam}`;
+  return `${origin}/dinedegala2026/?ticket=${ticketId}${nameParam}`;
 }
 window.getCanonicalTicketUrl = getCanonicalTicketUrl;
 
@@ -694,10 +694,11 @@ window.onInvitationFieldChange = () => {
   const coupleName = document.getElementById('inv-input-couple-name')?.value || '';
   const phone = document.getElementById('inv-input-phone')?.value || '';
   const table = document.getElementById('inv-input-table')?.value || '';
+  const rank = document.getElementById('inv-input-rank')?.value || '';
   const host = document.getElementById('inv-input-host')?.value || '';
 
   const draft = { 
-    gender, ticketType, name, partner, coupleName, phone, table, host,
+    gender, ticketType, name, partner, coupleName, phone, table, rank, host,
     photoUrl: currentInvitationPhotoBase64 
   };
   try {
@@ -746,6 +747,9 @@ window.openInvitationModal = () => {
       if (draft.coupleName) document.getElementById('inv-input-couple-name').value = draft.coupleName;
       if (draft.phone) document.getElementById('inv-input-phone').value = draft.phone;
       if (draft.table) document.getElementById('inv-input-table').value = draft.table;
+      if (draft.rank && document.getElementById('inv-input-rank')) {
+        document.getElementById('inv-input-rank').value = draft.rank;
+      }
       if (draft.host && !document.getElementById('inv-input-host')?.value) {
         document.getElementById('inv-input-host').value = draft.host;
       }
@@ -768,6 +772,7 @@ window.openInvitationModal = () => {
       const coupleNameInput = document.getElementById('inv-input-couple-name');
       const phoneInput = document.getElementById('inv-input-phone');
       const tableInput = document.getElementById('inv-input-table');
+      const rankInput = document.getElementById('inv-input-rank');
       const hostInput = document.getElementById('inv-input-host');
 
       if (nameInput) nameInput.value = '';
@@ -775,6 +780,7 @@ window.openInvitationModal = () => {
       if (coupleNameInput) coupleNameInput.value = '';
       if (phoneInput) phoneInput.value = '';
       if (tableInput) tableInput.value = '';
+      if (rankInput) rankInput.value = '';
 
       const hostParam = new URLSearchParams(window.location.search).get('par') || 
                         new URLSearchParams(window.location.search).get('hote') || 
@@ -818,7 +824,6 @@ window.renderInvitationTicket = async (guest) => {
 
   const ctx = canvas.getContext('2d');
   const img = new Image();
-  img.crossOrigin = 'anonymous';
 
   return new Promise((resolve) => {
     img.onload = () => {
@@ -943,6 +948,11 @@ window.shareTicketOnWhatsApp = async () => {
 
   const canvas = document.getElementById('inv-ticket-canvas') || document.getElementById('clay-ticket-render-canvas');
   const filenameSafe = (guest.couple_name || guest.name || 'Billet').replace(/[^a-zA-Z0-9]/g, '_');
+
+  // S'assurer que le billet officiel est bien dessiné sur le canvas avant l'export
+  if (!currentGeneratedTicketDataUrl || !canvas || canvas.width < 100) {
+    await window.renderInvitationTicket(guest);
+  }
 
   // 1. Partage direct natif avec l'IMAGE du billet (Android, iPhone, navigateurs compatibles)
   if (canvas && navigator.canShare) {
@@ -1398,6 +1408,7 @@ window.submitInvitationRegistration = async () => {
   const phone = phoneEl ? phoneEl.value.trim() : '';
   const rawTable = tableEl ? tableEl.value.trim() : '';
   const host = hostEl ? hostEl.value.trim() : '';
+  const rank = document.getElementById('inv-input-rank')?.value.trim() || "Invitée de Marque";
   const partnerName = partnerEl ? partnerEl.value.trim() : '';
   const coupleName = coupleNameEl ? coupleNameEl.value.trim() : '';
 
@@ -1469,6 +1480,7 @@ window.submitInvitationRegistration = async () => {
     phone,
     table_number: cleanTable,
     invited_by: host,
+    role: rank,
     photo_url: currentInvitationPhotoBase64 || '',
     avatar_emoji: gender === 'F' ? '👑' : '🎉'
   };

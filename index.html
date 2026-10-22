@@ -3,1909 +3,660 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Compagnon de Cérémonie | Application Interactive</title>
-  <meta name="description" content="Application interactive d'animation, chat en direct, quiz et jeux live, réseautage et mur de prières pour mariages et soirées de gala.">
+  <title>Jours de Rencontre | Billetterie Numérique d'Exception & Compagnon d'Événement</title>
+  <meta name="description" content="Sublimez vos mariages, galas, conférences et jubilés avec notre billetterie numérique personnalisée nominative, notre compagnon de table interactif sans téléchargement et notre régie d'accueil instantanée.">
   <meta name="theme-color" content="#D4AF37">
   
-  <!-- PWA & Apple Touch Icons -->
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="apple-touch-icon" href="/icon.svg">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Cérémonie">
-
-  <!-- Feuilles de Styles -->
-  <link rel="stylesheet" href="/src/styles/main.css">
-  <link rel="stylesheet" href="/src/styles/chat.css">
-  <link rel="stylesheet" href="/src/styles/games.css">
-  <link rel="stylesheet" href="/src/styles/networking.css">
-  <link rel="stylesheet" href="/src/styles/prayer.css">
-  <link rel="stylesheet" href="/src/styles/projector.css">
-  <link rel="stylesheet" href="/src/styles/program.css">
-  <link rel="stylesheet" href="/src/styles/ads.css">
-  <link rel="stylesheet" href="/src/styles/invitation.css">
-
-  <!-- Polices Calligraphie & Prestige (Chargement Asynchrone Non-Bloquant) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap" media="print" onload="this.media='all'">
-  <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap">
-  </noscript>
-
-
-  <!-- Styles critiques Anti-FOUC (Mode Clair Neumorphique par défaut) -->
-  <style>
-    html, body {
-      background-color: #F5EEE6 !important;
-      color: #2D231E !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    html.dark-mode, body.dark-mode {
-      background-color: #07090e !important;
-      color: #f8fafc !important;
-    }
-    #main-app-layout {
-      background-color: #F5EEE6;
-      min-height: 100vh;
-    }
-    body.dark-mode #main-app-layout {
-      background-color: #07090e;
-    }
-    .brand-icon {
-      width: 36px !important;
-      height: 36px !important;
-      min-width: 36px !important;
-      max-width: 36px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      background: linear-gradient(180deg, #ED845E 0%, #DC6941 100%) !important;
-      border-radius: 12px !important;
-      overflow: hidden !important;
-    }
-    body.dark-mode .brand-icon {
-      background: linear-gradient(135deg, #d4af37, #aa771c) !important;
-    }
-    .brand-icon svg {
-      width: 20px !important;
-      height: 20px !important;
-      max-width: 20px !important;
-      max-height: 20px !important;
-      fill: #ffffff !important;
-    }
-    body.dark-mode .brand-icon svg {
-      fill: #0b0f19 !important;
-    }
-    /* Splash Screen Immédiat : En mode PWA installée, SUPPRESSION TOTALE DU 2ÈME ÉCRAN (0ms) */
-    @media all and (display-mode: standalone), (display-mode: fullscreen) {
-      #app-splash-screen {
-        display: none !important;
-      }
-    }
-    #app-splash-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #0B0F19;
-      z-index: 9999999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: opacity 0.15s ease, visibility 0.15s ease;
-    }
-    body.dark-mode #app-splash-screen {
-      background: #07090e;
-    }
-    #app-splash-screen.splash-hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    .splash-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 2rem;
-    }
-    .splash-badge {
-      width: 68px;
-      height: 68px;
-      border-radius: 22px;
-      background: linear-gradient(180deg, #ED845E 0%, #DC6941 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 10px 24px rgba(220, 105, 65, 0.4), inset 0 2px 3px rgba(255, 255, 255, 0.7);
-      animation: splashPulse 1.8s ease-in-out infinite;
-    }
-    body.dark-mode .splash-badge {
-      background: linear-gradient(135deg, #D4AF37 0%, #AA771C 100%);
-      box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
-    }
-    .splash-badge svg {
-      width: 34px;
-      height: 34px;
-      fill: #ffffff;
-    }
-    body.dark-mode .splash-badge svg {
-      fill: #07090e;
-    }
-    .splash-title {
-      margin-top: 1.25rem;
-      margin-bottom: 0.25rem;
-      font-size: 1.35rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: #2D231E;
-    }
-    body.dark-mode .splash-title {
-      background: linear-gradient(135deg, #FFF9D2 0%, #D4AF37 50%, #AA771C 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .splash-sub {
-      margin: 0;
-      font-size: 0.75rem;
-      color: #6B5D54;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-    }
-    body.dark-mode .splash-sub {
-      color: #94a3b8;
-    }
-    .splash-loader {
-      margin-top: 1.75rem;
-      width: 32px;
-      height: 32px;
-      border: 2.5px solid rgba(230, 122, 83, 0.2);
-      border-top-color: #E67A53;
-      border-radius: 50%;
-      animation: splashSpin 0.8s linear infinite;
-    }
-    body.dark-mode .splash-loader {
-      border-color: rgba(212, 175, 55, 0.2);
-      border-top-color: #D4AF37;
-    }
-    @keyframes splashPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-    @keyframes splashSpin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
-
-  <!-- Détection immédiate du thème sauvegardé (Anti-FOUC Sombre si activé) -->
+  <!-- Rétrocompatibilité : Redirection instantanée des liens historiques Gala vers /dinedegala2026/ -->
   <script>
     (function() {
       try {
-        var savedTheme = localStorage.getItem('compagnon_theme');
-        if (savedTheme === 'dark') {
-          document.documentElement.classList.add('dark-mode');
+        var sp = new URLSearchParams(window.location.search);
+        if (sp.has('invite') || sp.has('ticket') || sp.has('billet')) {
+          window.location.replace('/dinedegala2026/' + window.location.search);
         }
       } catch (e) {}
     })();
   </script>
+  
+  <!-- Métadonnées Open Graph pour les aperçus WhatsApp, iMessage, Facebook & Twitter -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://joursderencontre.com/">
+  <meta property="og:title" content="Jours de Rencontre | L'Art de l'Invitation & de l'Accueil d'Exception">
+  <meta property="og:description" content="Billetterie numérique nominative, compagnon de table en direct sans téléchargement, régie d'accueil rapide et écrans géants synchronisés.">
+  <meta property="og:image" content="https://joursderencontre.com/billet-invitation-template.png">
+  <meta property="og:image:secure_url" content="https://joursderencontre.com/billet-invitation-template.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1024">
+  <meta property="og:image:height" content="921">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Jours de Rencontre | Billetterie Numérique d'Exception">
+  <meta name="twitter:description" content="Invitations calligraphiées nominatives et compagnon d'événement en temps réel.">
+  <meta name="twitter:image" content="https://joursderencontre.com/billet-invitation-template.png">
+
+  <!-- Favicon & PWA -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
+  <!-- Polices Google Fonts Calligraphiques & Prestige -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet Landing Page -->
+  <link rel="stylesheet" href="/src/styles/landing.css">
 </head>
 <body>
 
-  <!-- ========================================================
-       SPLASH SCREEN ANTI-FLASH (S'affiche instantanément à 0ms)
-       ======================================================== -->
-  <div id="app-splash-screen">
-    <div class="splash-content">
-      <div class="splash-badge">
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="#ffffff"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
-      </div>
-      <h2 class="splash-title">Soirée Royale</h2>
-      <p class="splash-sub">Compagnon Interactif</p>
-      <div class="splash-loader"></div>
-    </div>
-  </div>
-
-  <!-- ========================================================
-       DISPOSITION PRINCIPALE MOBILE & TABLETTE
-       ======================================================== -->
-  <div id="main-app-layout">
-    
-    <!-- En-tête de l'application -->
-    <header class="app-header">
-      <div class="brand" onclick="window.location.reload()">
-        <div class="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff" style="width:20px;height:20px;max-width:20px;max-height:20px;"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
-        </div>
-        <div class="brand-text">
-          <h1 id="header-event-title">E-event</h1>
-          <p>Compagnon Interactif</p>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <!-- Bouton Espace Profil Invité (Remplaçant l'ancien badge Rejoindre QR) -->
-        <button type="button" class="guest-pill" id="guest-status-pill" onclick="window.openProfileModal()" title="Consulter et modifier votre profil, prières, réseau et points" style="cursor: pointer; border: none; font-family: inherit;">
-          <span>👤</span>
-          <span id="header-profile-label">Votre Profil</span>
-          <span class="guest-table-badge" id="header-profile-table">Table 1</span>
-        </button>
-
-        <!-- Bouton Bascule Thème Neumorphique Clair / Sombre -->
-        <button class="btn-icon" id="btn-toggle-theme" title="Basculer Mode Clair / Sombre" onclick="window.toggleAppTheme()">
-          <span id="theme-toggle-icon">🌙</span>
-        </button>
-
-        <!-- Bouton Mode Grand Écran / Vidéoprojecteur -->
-        <button class="btn-icon" id="btn-toggle-projector" title="Mode Grand Écran Vidéoprojecteur">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        </button>
-
-        <!-- Bouton Régie Diffusion Notification Push -->
-        <button class="btn-icon" id="btn-open-broadcast" title="Diffuser une alerte push (MC / Régie)" style="color: var(--terracotta-accent);">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- Conteneur principal -->
-    <main class="app-container">
-
-      <!-- Bannière interactive de notifications Web Push Gala -->
-      <div id="push-prompt-container"></div>
-
-
-      <!-- Bannière d'installation PWA (Visible si installable) -->
-      <div class="pwa-install-banner" id="pwa-install-banner" style="display: none;">
-        <div class="pwa-text">
-          <h4>📱 Installer l'application</h4>
-          <p>Ajoutez l'app sur votre écran d'accueil pour une expérience plein écran sans latence.</p>
-        </div>
-        <button class="btn-primary" id="btn-pwa-install" style="font-size: 0.78rem; padding: 0.4rem 0.8rem;">
-          Installer
-        </button>
-      </div>
-
-      <!-- ==========================================
-           ONGLET 0 : ACCUEIL GALA (LES 3 GRANDS HUBS 3D)
-           ========================================== -->
-      <section class="tab-view active" id="home-tab">
-        <div class="hero-welcome-section animate-fade-in">
-          <div class="hero-edition-badge">✨ 2ÈME ÉDITION • DÎNER DE GALA</div>
-          <!-- ESPACE VITRINE PUBLICITAIRE & SPONSORS (PETITES CARTES PASTEL CLAYMORPHISM) -->
-          <div class="home-ads-section">
-            <div class="home-ads-header">
-              <span class="home-ads-badge">✨ Vitrine Privilège & Sponsors</span>
-              <span class="home-ads-hint">3D 360° tactile 🔄</span>
-            </div>
-            <div class="home-ads-scroll-row" id="home-ads-showcase">
-              <!-- Rendu dynamique par AdsModule -->
-            </div>
-          </div>
-
-
-          <!-- LES 3 GRANDES CARTES EN BULLE DE DIALOGUE (EXACT DESIGN DU MODÈLE) -->
-          <div class="gala-speech-cards-container">
-
-            <!-- 1. BANNIÈRE 1 (TEAL) : NOUS PRIONS POUR VOUS -->
-            <div class="speech-card card-teal" id="btn-hero-prayer" onclick="window.PrayerWizard?.open()">
-              <div class="speech-card-badge">
-                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
-                  <!-- Mains de prière / Foi stylisées -->
-                  <path d="M32 8C30.2 8 28.5 9.2 27.8 11L24 24H16C13.8 24 12 25.8 12 28C12 29 12.4 30 13.1 30.7L24 41.6L20.4 53.8C19.7 56 21 58.4 23.2 59.1C24.4 59.5 25.7 59.2 26.6 58.4L32 53.6L37.4 58.4C39.1 59.9 41.7 59.7 43.2 58C43.9 57.2 44.2 56.1 43.6 53.8L40 41.6L50.9 30.7C52.4 29.2 52.4 26.8 50.9 25.3C50.2 24.6 49.2 24 48 24H40L36.2 11C35.5 9.2 33.8 8 32 8Z" fill="#ffffff"/>
-                </svg>
-              </div>
-              <div class="speech-card-body">
-                <h2 class="speech-card-title">Nous prions pour vous</h2>
-                <div class="speech-card-line"></div>
-                <p class="speech-card-text">
-                  Confiez vos intentions en toute discrétion. Une équipe dédiée prie pour vous, vos familles et vos projets tout au long du gala.
-                </p>
-                <div class="speech-card-metric" style="margin-top: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #047857; display: flex; align-items: center; gap: 0.4rem;">
-                  <span>🕊️</span>
-                  <span>Déjà <strong id="prayer-display-count" style="font-size: 0.92rem; text-decoration: underline;">102</strong> requêtes reçues</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2. BANNIÈRE 2 (PURPLE) : RÉSEAUTAGE & BUSINESS -->
-            <div class="speech-card card-purple" id="btn-hero-networking" onclick="window.NetworkingWizard?.open()">
-              <div class="speech-card-badge">
-                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
-                  <!-- Alliances & Poignée de main professionnelle -->
-                  <path d="M48 18L38 8L24 22L28 26L18 36L10 28L2 36L16 50L28 38L34 44L52 26L58 32L60 30L48 18ZM34 24L42 16L46 20L38 28L34 24ZM24 30L30 36L22 44L16 38L24 30Z" fill="#ffffff"/>
-                </svg>
-              </div>
-              <div class="speech-card-body">
-                <h2 class="speech-card-title">Réseautage</h2>
-                <div class="speech-card-line"></div>
-                <p class="speech-card-text">
-                  Vos futurs partenaires et clients partagent votre table. Échangez votre profil digital en 1 clic et tissez des alliances stratégiques.
-                </p>
-                <div class="speech-card-metric" style="margin-top: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #c2410c; display: flex; align-items: center; gap: 0.4rem;">
-                  <span>🤝</span>
-                  <span>Déjà <strong id="networking-display-count" style="font-size: 0.92rem; text-decoration: underline;">10</strong> profils publiés</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3. BANNIÈRE 3 (ORANGE) : JEUX EN LIGNE -->
-            <div class="speech-card card-orange" id="btn-hero-games" onclick="window.switchTab('games')">
-              <div class="speech-card-badge">
-                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
-                  <!-- Fusée identique au modèle visuel -->
-                  <path d="M32 6C32 6 22 18 22 34C22 39 23.5 44 26 48L32 46L38 48C40.5 44 42 39 42 34C42 18 32 6 32 6Z" fill="#ffffff"/>
-                  <circle cx="32" cy="24" r="4.5" fill="#c2410c"/>
-                  <path d="M22 32C17 35 12 43 12 46C15 46 21 44 23 41L22 32Z" fill="#ffffff"/>
-                  <path d="M42 32C47 35 52 43 52 46C49 46 43 44 41 41L42 32Z" fill="#ffffff"/>
-                  <path d="M27 49L32 59L37 49L34 52L32 50L30 52L27 49Z" fill="#ffffff"/>
-                </svg>
-              </div>
-              <div class="speech-card-body">
-                <h2 class="speech-card-title">Jeux en ligne</h2>
-                <div class="speech-card-line"></div>
-                <p class="speech-card-text">
-                  Hissez votre table au sommet ! Défiez vos voisins en duel express, participez aux défis bibliques et remportez le grand trophée du gala.
-                </p>
-              </div>
-            </div>
-
-            <!-- 4. BANNIÈRE 4 (GOLD) : NOTRE VITRINE & PRESTATIONS 3D -->
-            <div class="speech-card card-gold" id="btn-hero-vitrine" onclick="window.switchTab('vitrine')">
-              <div class="speech-card-badge">
-                <svg class="speech-card-icon" viewBox="0 0 64 64" fill="none">
-                  <!-- Automobile & Couronne Prestige -->
-                  <path d="M12 20L20 44H44L52 20L38 32L32 14L26 32L12 20ZM18 48H46V52H18V48Z" fill="#ffffff"/>
-                </svg>
-              </div>
-              <div class="speech-card-body">
-                <h2 class="speech-card-title">Notre Vitrine</h2>
-                <div class="speech-card-line"></div>
-                <p class="speech-card-text">
-                  Prestations VIP d'exception, partenaires d'honneur et showroom 3D interactif du véhicule de gala.
-                </p>
-                <div class="speech-card-metric" style="margin-top: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #b45309; display: flex; align-items: center; gap: 0.4rem;">
-                  <span>✨</span>
-                  <span>Showroom 3D WebGL • Véhicule VIP & Catalogue</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      <!-- ==========================================
-           ONGLET 0BIS : NOTRE VITRINE & SHOWROOM 3D
-           ========================================== -->
-      <section class="tab-view" id="vitrine-tab">
-        <div class="vitrine-container animate-fade-in">
-          
-          <!-- Barre de retour rapide -->
-          <div class="vitrine-topbar">
-            <button type="button" class="vitrine-back-btn" onclick="window.switchTab('home')">
-              <span>←</span>
-              <span>Retour à l'accueil</span>
-            </button>
-            <span class="hub-card-badge" style="background: rgba(212, 175, 55, 0.15); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.3);">
-              ✨ Prestige & Services
-            </span>
-          </div>
-
-          <!-- CARTE VÉHICULE 3D INTERACTIVE (Apple & Amazon WebGL Standard) -->
-          <div class="vitrine-hero-card">
-            <div class="vitrine-hero-header">
-              <div class="vitrine-hero-badge">🚗 Showroom 3D Exclusif • Véhicule Officiel</div>
-              <h2 class="vitrine-hero-title">Hyundai i30 Berline Prestige</h2>
-              <p class="vitrine-hero-subtitle">
-                Service de cortège d'honneur, transport VIP et escortes d'exception pour vos mariages et réceptions de gala.
-              </p>
-            </div>
-
-            <!-- Scène 3D WebGL Google model-viewer -->
-            <div class="vitrine-3d-stage">
-              <model-viewer
-                id="vitrine-model-viewer"
-                src="/models/hyundai_i30.glb"
-                alt="Hyundai i30 Berline Prestige 3D"
-                auto-rotate
-                camera-controls
-                touch-action="pan-y"
-                shadow-intensity="1.4"
-                exposure="1.0"
-                environment-image="neutral"
-                interaction-prompt="auto"
-                style="width: 100%; height: 100%;"
-              >
-                <div slot="poster" style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d4af37; font-weight: 700; font-size: 0.9rem;">
-                  🚗 Chargement du modèle 3D WebGL...
-                </div>
-              </model-viewer>
-            </div>
-
-            <div class="vitrine-3d-hint">
-              <span>🔄</span>
-              <span>Modèle 3D WebGL Réel : Faites glisser pour tourner à 360°, zoomez pour examiner le véhicule sous tous les angles.</span>
-            </div>
-
-            <!-- Fiche technique & points forts -->
-            <div class="vitrine-specs-grid">
-              <div class="vitrine-spec-chip">
-                <span class="vitrine-spec-label">Prestation</span>
-                <span class="vitrine-spec-value">Chauffeur VIP</span>
-              </div>
-              <div class="vitrine-spec-chip">
-                <span class="vitrine-spec-label">Confort</span>
-                <span class="vitrine-spec-value">Finition Luxe</span>
-              </div>
-              <div class="vitrine-spec-chip">
-                <span class="vitrine-spec-label">Disponibilité</span>
-                <span class="vitrine-spec-value" style="color: #10b981;">Sur Réservation</span>
-              </div>
-            </div>
-
-            <!-- Bouton de réservation directe WhatsApp -->
-            <a href="https://wa.me/?text=Bonjour%20je%20souhaite%20r%C3%A9server%20le%20v%C3%A9hicule%20VIP%20Hyundai%20i30%20pour%20une%20c%C3%A9r%C3%A9monie" target="_blank" rel="noopener noreferrer" class="vitrine-cta-btn">
-              <span>🚗 Réserver cette prestation avec chauffeur</span>
-              <span>➔</span>
-            </a>
-          </div>
-
-          <!-- CATALOGUE COMPLET DES PRESTATIONS & SPONSORS -->
-          <div class="admin-card" style="margin-top: 1.5rem; background: var(--bg-card); border-radius: 24px; padding: 18px; border: 1px solid rgba(212, 175, 55, 0.25);">
-            <div style="margin-bottom: 14px;">
-              <span class="hub-card-badge" style="background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.3);">
-                🛍️ Partenaires & Prestations
-              </span>
-              <h3 style="font-size: 1.2rem; font-weight: 800; margin: 6px 0 4px; color: var(--text-main);">
-                Vitrine Privilège & Partenaires Officiels
-              </h3>
-              <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
-                Retrouvez l'ensemble des ouvrages, parures, réceptions et créations d'honneur du dîner de gala.
-              </p>
-            </div>
-
-            <!-- Grille dynamique peuplée par AdsModule.renderVitrinePage() -->
-            <div class="vitrine-gallery-grid" id="vitrine-full-gallery">
-              <!-- Injecté dynamiquement par ads.js -->
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- ==========================================
-           ONGLET 1 : CHAT EN DIRECT
-           ========================================== -->
-      <section class="tab-view" id="chat-tab">
-
-        <div class="chat-container">
-          
-          <!-- Bannière Statut Invités Connectés & Hors-Ligne (Cliquable) -->
-          <div class="chat-presence-banner" id="chat-presence-banner" onclick="window.openGuestsPresenceModal()" title="Cliquer pour voir la liste des invités connectés et hors-ligne">
-            <div class="presence-indicator">
-              <span class="presence-pulse-dot"></span>
-              <span id="chat-online-count" class="presence-count">Chargement présence...</span>
-            </div>
-            <div class="presence-summary">
-              <span id="chat-total-guests-count">-- invités</span>
-              <span class="presence-cta">Voir les participants 👥</span>
-            </div>
-          </div>
-
-          <!-- Bannière Message Épinglé (Régie / MC) -->
-          <div class="pinned-banner" id="pinned-banner" style="display: none;">
-            <div class="pinned-icon">📢</div>
-            <div class="pinned-content">
-              <div class="pinned-tag">Annonce du Maître de Cérémonie</div>
-              <div class="pinned-text">Bienvenue à tous !</div>
-            </div>
-          </div>
-
-          <!-- Liste des messages défilants -->
-          <div class="chat-messages-list" id="chat-messages-list">
-            <!-- Injecté dynamiquement par chat.js -->
-          </div>
-
-          <!-- Sélecteur complet de tous les Emojis (Popup flottant riche) -->
-          <div class="chat-emoji-picker-container" id="chat-emoji-picker" style="display: none;">
-            <div class="emoji-picker-header">
-              <div class="emoji-category-tabs" id="emoji-category-tabs">
-                <button type="button" class="emoji-cat-btn active" data-cat="faces" title="Sourires & Émotions">😀</button>
-                <button type="button" class="emoji-cat-btn" data-cat="hands" title="Gestes & Mains">👋</button>
-                <button type="button" class="emoji-cat-btn" data-cat="hearts" title="Amour & Célébration">❤️</button>
-                <button type="button" class="emoji-cat-btn" data-cat="party" title="Fête & Gala">🍾</button>
-                <button type="button" class="emoji-cat-btn" data-cat="faith" title="Cérémonie & Symboles">✨</button>
-              </div>
-              <button type="button" class="emoji-picker-close" onclick="ChatModule.toggleEmojiPicker(false)">✕</button>
-            </div>
-            <div class="emoji-search-bar">
-              <input type="text" id="emoji-search-input" placeholder="🔍 Rechercher un emoji..." autocomplete="off">
-            </div>
-            <div class="emoji-grid-content" id="emoji-grid-content">
-              <!-- Grille d'émojis injectée dynamiquement -->
-            </div>
-          </div>
-
-          <!-- Zone de composition du message -->
-          <div class="chat-composer">
-            
-            <!-- Prévisualisation de la pièce jointe (Ultra-compressée) -->
-            <div class="chat-attachment-preview" id="chat-attachment-preview" style="display: none;">
-              <div class="attachment-preview-thumb-box" id="attachment-preview-thumb-box">
-                <img id="attachment-preview-img" src="" alt="Aperçu image">
-              </div>
-              <div class="attachment-preview-info">
-                <span id="attachment-preview-name" class="attachment-name">fichier.jpg</span>
-                <span id="attachment-preview-badge" class="attachment-badge">⚡ Ultra-compressé (48 Ko)</span>
-              </div>
-              <button type="button" class="btn-remove-attachment" onclick="ChatModule.clearAttachment()" title="Supprimer la pièce jointe">✕</button>
-            </div>
-
-            <!-- Barre d'émojis rapides -->
-            <div class="emoji-quick-bar">
-              <button class="quick-emoji-btn" data-emoji="🥂">🥂</button>
-              <button class="quick-emoji-btn" data-emoji="🎉">🎉</button>
-              <button class="quick-emoji-btn" data-emoji="👏">👏</button>
-              <button class="quick-emoji-btn" data-emoji="❤️">❤️</button>
-              <button class="quick-emoji-btn" data-emoji="🔥">🔥</button>
-              <button class="quick-emoji-btn" data-emoji="🙏">🙏</button>
-              <button class="quick-emoji-btn" data-emoji="👑">👑</button>
-              <button class="quick-emoji-btn" data-emoji="✨">✨</button>
-              <button class="quick-emoji-btn quick-emoji-more" onclick="ChatModule.toggleEmojiPicker()" title="Voir tous les émojis">➕ Tous</button>
-            </div>
-
-            <div class="composer-row">
-              <button type="button" class="btn-composer-icon" id="btn-toggle-emoji" title="Ouvrir la palette complète d'émojis" onclick="ChatModule.toggleEmojiPicker()">
-                😊
-              </button>
-              <button type="button" class="btn-composer-icon" id="btn-chat-attach" title="Joindre une photo (ultra-compressée) ou document" onclick="document.getElementById('chat-file-input').click()">
-                📎
-              </button>
-              <input type="file" id="chat-file-input" style="display: none;" accept="image/png,image/jpeg,image/webp,application/pdf,.doc,.docx" onchange="ChatModule.handleFileInput(event)">
-              <input type="text" class="chat-input" id="chat-input" placeholder="Écrire un mot chaleureux à la salle..." maxlength="500">
-              <button class="btn-send" id="btn-send-chat" title="Envoyer le message">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ==========================================
-           ONGLET 1BIS : PROGRAMME DÉROULÉ DE LA CÉRÉMONIE (SYNCHRONE TÉLÉPHONE)
-           ========================================== -->
-      <section class="tab-view" id="program-tab">
-        <div class="program-container animate-fade-in">
-
-          <!-- Barre supérieure avec Retour Accueil & Date officielle -->
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; gap: 8px;">
-            <button type="button" class="btn-3d" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); cursor: pointer;" onclick="window.switchTab('home')">
-              <span>← Retour à l'accueil</span>
-            </button>
-            <span style="font-size: 0.78rem; font-weight: 700; color: #D4AF37;">📅 Samedi 24 Octobre 2026</span>
-          </div>
-
-          <!-- Décompteur Dynamique Plus que : J - H - M - S (Compte à rebours identique au formulaire d'invitation) -->
-          <div class="invitation-countdown-box" style="margin-bottom: 0.85rem;">
-            <div class="invitation-countdown-label">
-              <span>⏳</span> Début de la cérémonie dans :
-            </div>
-            <div class="invitation-countdown-grid">
-              <div class="invitation-count-cell">
-                <span class="invitation-count-num" id="prog-count-days">00</span>
-                <span class="invitation-count-text">Jours</span>
-              </div>
-              <div class="invitation-count-cell">
-                <span class="invitation-count-num" id="prog-count-hours">00</span>
-                <span class="invitation-count-text">Heures</span>
-              </div>
-              <div class="invitation-count-cell">
-                <span class="invitation-count-num" id="prog-count-minutes">00</span>
-                <span class="invitation-count-text">Minutes</span>
-              </div>
-              <div class="invitation-count-cell">
-                <span class="invitation-count-num" id="prog-count-seconds">00</span>
-                <span class="invitation-count-text">Secondes</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- En-tête avec horloge neumorphique synchronisée au téléphone -->
-          <div class="program-hero-header">
-            <div class="program-header-top">
-              <span class="program-badge-tag">✨ Déroulé Officiel • Gala</span>
-              <div class="program-live-clock-pill" title="Heure synchronisée avec votre appareil">
-                <span class="clock-pulse-dot"></span>
-                <span id="program-live-clock-time">--:--:--</span>
-              </div>
-            </div>
-
-            <h2 class="program-hero-title">Programme du Dîner de Gala</h2>
-            <p class="program-hero-subtitle" style="font-weight: 700; letter-spacing: 0.02em;">
-              🟢 À venir, ⚡ En cours, 🔴 Passé
-            </p>
-
-            <!-- Progression globale de la cérémonie -->
-            <div class="program-progress-wrapper" title="Progression de la soirée">
-              <div class="program-progress-bar" id="program-overall-progress" style="width: 0%;"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
-              <span id="program-step-summary">Chargement du déroulé...</span>
-              <span>Synchronisation locale 100%</span>
-            </div>
-          </div>
-
-          <!-- Ligne de temps des créneaux du programme -->
-          <div class="program-timeline" id="program-timeline-list">
-            <!-- Injecté dynamiquement par program.js -->
-          </div>
-
-        </div>
-      </section>
-
-      <!-- ==========================================
-           ONGLET 2 : JEUX EN DIRECT (QUIZ & SONDAGES)
-           ========================================== -->
-      <section class="tab-view" id="games-tab">
-        <div class="games-hub">
-          
-          <div class="games-header">
-            <div class="games-header-info">
-              <h2>
-                <span>🎮 Jeux & Défis Bibliques</span>
-                <span class="live-indicator"><span class="live-dot"></span> EN DIRECT</span>
-              </h2>
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-                Testez vos connaissances bibliques, défendez les couleurs de votre table et remportez la couronne !
-              </p>
-            </div>
-          </div>
-
-          <!-- Sélecteur de mode de jeu -->
-          <div class="game-mode-tabs" style="display: flex; gap: 0.6rem; margin-bottom: 0.75rem;">
-            <button type="button" id="btn-mode-bible-games" class="btn-3d btn-3d-gold active" style="flex: 1; padding: 0.75rem 0.5rem; font-size: 0.86rem;" onclick="window.switchGameSubTab('bible')">
-              <span>📖 Jeux Bibliques</span>
-            </button>
-            <button type="button" id="btn-mode-duel-games" class="btn-3d btn-3d-coral" style="flex: 1; padding: 0.75rem 0.5rem; font-size: 0.86rem;" onclick="window.switchGameSubTab('duel')">
-              <span>⚔️ Duel des Tables</span>
-            </button>
-          </div>
-
-          <!-- Conteneur Jeux Bibliques (Solo & Table) -->
-          <div id="bible-games-container">
-            <!-- Injecté dynamiquement par bible-games.js -->
-          </div>
-
-          <!-- Zone Quiz IA en Live & Duels (Masquée par défaut si subtab != live) -->
-          <div id="live-games-container" style="display: none;">
-            <!-- Carte Quiz en direct / Duel (dynamique) -->
-            <div id="quiz-card-container">
-              <!-- Injecté par games.js -->
-            </div>
-
-            <!-- Classement des Tables en direct -->
-            <div id="leaderboard-container">
-              <!-- Injecté par games.js -->
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- ==========================================
-           ONGLET 3 : RÉSEAUTAGE & MISE EN RELATION
-           ========================================== -->
-      <section class="tab-view" id="networking-tab">
-        <div class="networking-hub">
-          
-          <div class="networking-hero">
-            <h2>🤝 Réseautage & Connexions</h2>
-            <p>
-              Découvrez les personnalités, professionnels et talents assis autour de vous. Échangez des opportunités et tissez des liens durables.
-            </p>
-            <div style="display: flex; gap: 0.6rem; margin-top: 0.25rem;">
-              <button class="btn-primary" id="btn-edit-my-networking" style="font-size: 0.82rem; padding: 0.5rem 1rem;">
-                ✨ Ma fiche de contact
-              </button>
-            </div>
-          </div>
-
-          <!-- Filtres de présence & statut (Tous, En ligne, Déconnectés) -->
-          <div class="networking-presence-filter-row">
-            <button type="button" class="net-status-pill active" id="net-filter-all" onclick="NetworkingModule.setStatusFilter('all')">
-              👥 Tous (<span id="net-count-all">0</span>)
-            </button>
-            <button type="button" class="net-status-pill" id="net-filter-online" onclick="NetworkingModule.setStatusFilter('online')">
-              🟢 En ligne (<span id="net-count-online">0</span>)
-            </button>
-            <button type="button" class="net-status-pill" id="net-filter-offline" onclick="NetworkingModule.setStatusFilter('offline')">
-              ⚪ Déconnectés (<span id="net-count-offline">0</span>)
-            </button>
-          </div>
-
-          <!-- Barre de recherche -->
-          <div class="search-filter-box">
-            <div class="search-input-wrapper">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="networking-search" placeholder="Rechercher par métier, passion ou compétence (ex: Tech, Santé, Art)...">
-            </div>
-          </div>
-
-          <!-- Grille des profils -->
-          <div class="profiles-grid" id="networking-profiles-list">
-            <!-- Injecté par networking.js -->
-          </div>
-
-        </div>
-      </section>
-
-      <!-- ==========================================
-           ONGLET 4 : DEMANDES DE PRIÈRE & BÉNÉDICTIONS
-           ========================================== -->
-      <section class="tab-view" id="prayer-tab">
-        <div class="prayer-hub">
-          
-          <div class="prayer-hero">
-            <div class="prayer-hero-icon">🙏</div>
-            <h2>Mur de Prières & Bénédictions</h2>
-            <p>
-              Portons les fardeaux les uns des autres et proclamons des paroles de paix, de grâce et d'élévation sur les hôtes et nos familles.
-            </p>
-            <button class="btn-3d btn-3d-amber" id="btn-new-prayer" style="margin-top: 0.5rem;" onclick="window.PrayerWizard?.open()">
-              <span>🙏 Déposer une prière / vœu</span>
-            </button>
-          </div>
-
-          <!-- Filtres de Catégories -->
-          <div class="prayer-filters">
-            <button class="filter-pill active" data-filter="all">Tous</button>
-            <button class="filter-pill" data-filter="priere">🙏 Prières</button>
-            <button class="filter-pill" data-filter="benediction">✨ Bénédictions</button>
-            <button class="filter-pill" data-filter="grace">🙌 Actions de grâce</button>
-            <button class="filter-pill" data-filter="my" id="filter-my-prayers" style="border-color: rgba(212,175,55,0.4);">🔒 Mes Requêtes</button>
-          </div>
-
-          <!-- Liste des requêtes -->
-          <div class="prayers-list" id="prayers-list">
-            <!-- Injecté par prayer.js -->
-          </div>
-
-        </div>
-      </section>
-
-    </main>
-
-
-    <!-- ==========================================
-         BARRE DE NAVIGATION DU BAS (MOBILE-FIRST)
-         ========================================== -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" data-tab="home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span>Accueil</span>
-      </button>
-
-      <button class="nav-item" data-tab="chat">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Direct</span>
-      </button>
-
-      <button class="nav-item" data-tab="games">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span>Jeux Live</span>
-      </button>
-
-      <button class="nav-item" data-tab="networking">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Réseautage</span>
-      </button>
-
-      <button class="nav-item" data-tab="prayer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span>Prières</span>
-      </button>
-    </nav>
-
-  </div>
-
-  <!-- ========================================================
-       VUE GRAND ÉCRAN / VIDÉOPROJECTEUR (PLEIN ÉCRAN)
-       ======================================================== -->
-  <div id="projector-view" class="projector-view-container" style="display: none;">
-    <div class="projector-topbar">
-      <div class="projector-event-title">
-        <h1 id="projector-event-name">Célébration & Soirée Royale</h1>
-        <p>Direct Interactif & Brise-Glace</p>
-      </div>
-
-      <div class="projector-stats-row">
-        <div class="stat-box">
-          <div class="stat-value" id="projector-guests-count">48</div>
-          <div class="stat-label">Invités connectés</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="projector-prayers-count">24</div>
-          <div class="stat-label">Prières & Soutiens</div>
-        </div>
-        <button class="btn-icon" id="btn-close-projector" title="Quitter le plein écran">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="projector-grid">
-      <!-- Zone d'animation centrale -->
-      <div class="projector-main-card" id="projector-main-content">
-        <!-- Rendu dynamique par projector.js -->
-      </div>
-
-      <!-- Colonne latérale : Podium des tables & QR Code -->
-      <div class="projector-side-column">
-        <div class="side-card">
-          <h3>🏆 Classement des Tables</h3>
-          <div id="projector-side-leaderboard">
-            <!-- Injecté par projector.js -->
-          </div>
-        </div>
-
-        <div class="qr-join-box">
-          <div class="qr-code-placeholder">
-            <svg viewBox="0 0 100 100" fill="#0b0f19">
-              <rect x="10" y="10" width="30" height="30" fill="#0b0f19"/>
-              <rect x="15" y="15" width="20" height="20" fill="white"/>
-              <rect x="20" y="20" width="10" height="10" fill="#0b0f19"/>
-              <rect x="60" y="10" width="30" height="30" fill="#0b0f19"/>
-              <rect x="65" y="15" width="20" height="20" fill="white"/>
-              <rect x="70" y="20" width="10" height="10" fill="#0b0f19"/>
-              <rect x="10" y="60" width="30" height="30" fill="#0b0f19"/>
-              <rect x="15" y="65" width="20" height="20" fill="white"/>
-              <rect x="20" y="70" width="10" height="10" fill="#0b0f19"/>
-              <rect x="50" y="50" width="12" height="12" fill="#0b0f19"/>
-              <rect x="70" y="70" width="15" height="15" fill="#0b0f19"/>
-            </svg>
-          </div>
-          <div class="qr-text-instruction">Flashez pour participer en direct !</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================
-       MODALES D'INTERACTION & FORMULAIRES
-       ======================================================== -->
-
-  <!-- 0. Modale Espace Profil Invité (CRM & Coordonnées Personnelles) -->
-  <div class="modal-overlay" id="modal-guest-profile" style="display: none;" onclick="if(event.target === this) window.closeProfileModal()">
-    <div class="modal-card profile-modal-card animate-scale-up" style="position: relative;">
-      <button type="button" class="btn-icon" style="position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px;" onclick="window.closeProfileModal()" title="Fermer">✕</button>
-
-      <div class="modal-header" style="margin-bottom: 1rem;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-          <span style="font-size: 1.5rem;">👤</span>
-          <h2 style="margin: 0; font-size: 1.25rem;">Espace Profil & Parcours Invité</h2>
-        </div>
-        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
-          Gérez vos coordonnées, consultez vos requêtes de prières, votre fiche de réseautage et vos points.
-        </p>
-      </div>
-
-      <!-- Sous-onglets internes du profil -->
-      <div class="profile-section-tab-nav">
-        <button type="button" class="profile-subtab-btn active" id="btn-profile-subtab-info" onclick="window.switchProfileSubtab('info')">
-          <span>📝</span>
-          <span>Coordonnées</span>
-        </button>
-        <button type="button" class="profile-subtab-btn" id="btn-profile-subtab-prayers" onclick="window.switchProfileSubtab('prayers')">
-          <span>🕊️</span>
-          <span>Prières</span>
-        </button>
-        <button type="button" class="profile-subtab-btn" id="btn-profile-subtab-networking" onclick="window.switchProfileSubtab('networking')">
-          <span>🤝</span>
-          <span>Réseautage</span>
-        </button>
-        <button type="button" class="profile-subtab-btn" id="btn-profile-subtab-points" onclick="window.switchProfileSubtab('points')">
-          <span>⭐</span>
-          <span>Points</span>
-        </button>
-      </div>
-
-      <!-- SOUS-ONGLET 1 : COORDONNÉES & INFORMATIONS PERSONNELLES -->
-      <div id="profile-subtab-content-info" class="profile-subtab-content">
-        <form id="profile-coordinates-form" onsubmit="event.preventDefault(); window.saveProfileCoordinates();">
-          
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-input-name">Nom complet / Prénom *</label>
-            <input type="text" id="profile-input-name" class="form-input" placeholder="Votre nom complet" required>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-input-table">Numéro de table *</label>
-            <input type="text" id="profile-input-table" class="form-input" placeholder="Ex: Table 1, Table VIP..." required>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-input-phone">Numéro WhatsApp / Téléphone</label>
-            <input type="tel" id="profile-input-phone" class="form-input" placeholder="Ex: +241 07000000">
-            <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
-              Utilisé pour l'assistance pastorale et le contact réseautage 1-clic.
-            </p>
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-input-profession">Profession / Fonction</label>
-            <input type="text" id="profile-input-profession" class="form-input" placeholder="Ex: Avocat, Médecin, Directeur, Entrepreneur...">
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-input-company">Entreprise / Lieu de travail</label>
-            <input type="text" id="profile-input-company" class="form-input" placeholder="Ex: Société Générale, Clinique, Indépendant...">
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-input-residence">Lieu de résidence</label>
-            <input type="text" id="profile-input-residence" class="form-input" placeholder="Ex: Libreville - Louis / Akanda / Owendo">
-          </div>
-
-          <div class="form-group" style="margin-bottom: 0.85rem;">
-            <label class="form-label" for="profile-select-has-church">Avez-vous une église où vous priez actuellement ?</label>
-            <select id="profile-select-has-church" class="form-input" onchange="document.getElementById('profile-church-details-box').style.display = (this.value === '1' ? 'block' : 'none')">
-              <option value="0">Non, pas pour le moment</option>
-              <option value="1">Oui, je fréquente une église / assemblée</option>
-            </select>
-          </div>
-
-          <div id="profile-church-details-box" style="display: none; padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; margin-bottom: 12px; border: 1px dashed rgba(245, 197, 66, 0.3);">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="profile-input-church-name">Nom de votre église / communauté</label>
-              <input type="text" id="profile-input-church-name" class="form-input" placeholder="Ex: Église Céleste, Centre Évangélique...">
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
-            <button type="button" class="btn-icon" style="width: auto; padding: 0 1rem;" onclick="window.closeProfileModal()">Annuler</button>
-            <button type="submit" id="btn-save-profile-coords" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #d4af37, #b45309);">
-              💾 Enregistrer mes coordonnées
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- SOUS-ONGLET 2 : MES PRIÈRES ENVOYÉES -->
-      <div id="profile-subtab-content-prayers" class="profile-subtab-content" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700;">🕊️ Vos Requêtes de Prière Déposées</h4>
-          <button type="button" class="btn-primary" style="font-size: 0.74rem; padding: 4px 10px;" onclick="window.closeProfileModal(); window.PrayerWizard?.open();">
-            + Nouvelle Requête
-          </button>
-        </div>
-        <div id="profile-prayers-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto;">
-          <p style="text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 1.5rem 0;">
-            Chargement de vos prières...
-          </p>
-        </div>
-      </div>
-
-      <!-- SOUS-ONGLET 3 : MA FICHE RÉSEAUTAGE -->
-      <div id="profile-subtab-content-networking" class="profile-subtab-content" style="display: none;">
-        <div id="profile-net-summary-box" style="text-align: center; padding: 1rem 0;">
-          <!-- Injecté dynamiquement par app.js -->
-        </div>
-      </div>
-
-      <!-- SOUS-ONGLET 4 : MES POINTS & DUELS -->
-      <div id="profile-subtab-content-points" class="profile-subtab-content" style="display: none;">
-        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 18px; padding: 16px; text-align: center; margin-bottom: 12px;">
-          <div style="font-size: 2.2rem; font-weight: 800; color: #f59e0b;" id="profile-stat-points">0</div>
-          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">Points Gala Récoltés</div>
-          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Quiz live, défis bibliques & brise-glaces</div>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <button type="button" class="btn-primary" style="flex: 1; font-size: 0.82rem;" onclick="window.closeProfileModal(); window.switchTab('games');">
-            🎮 Rejoindre les Jeux & Duels
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- 0. Modale d'Invitation Publique Prestige (2ème Édition Gala 24 Octobre 2026) -->
-  <div class="invitation-modal-overlay" id="invitation-link-modal" style="display: none;">
-    <div class="invitation-glass-card">
-      <button type="button" class="btn-icon" style="position: absolute; top: 1rem; right: 1rem; width: 34px; height: 34px; background: rgba(255,255,255,0.12); border-radius: 50%; color: #fff; border: 1px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer;" onclick="window.closeInvitationModal()" title="Fermer">✕</button>
-      
-      <div id="invitation-form-view">
-        <div style="text-align: center;">
-          <div class="invitation-badge-top">
-            <span>✨</span> 2ÈME ÉDITION DU DÎNER DE GALA <span>✨</span>
-          </div>
-          <h2 class="invitation-title">
-            Vous êtes invité à la 2ème édition de notre Dîner de gala ce 24 Octobre 2026 dès 15h
-          </h2>
-        </div>
-
-        <!-- Décompteur Dynamique Plus que : J - H - M - S -->
-        <div class="invitation-countdown-box">
-          <div class="invitation-countdown-label">
-            <span>⏳</span> Plus que :
-          </div>
-          <div class="invitation-countdown-grid">
-            <div class="invitation-count-cell">
-              <span class="invitation-count-num" id="inv-count-days">00</span>
-              <span class="invitation-count-text">Jours</span>
-            </div>
-            <div class="invitation-count-cell">
-              <span class="invitation-count-num" id="inv-count-hours">00</span>
-              <span class="invitation-count-text">Heures</span>
-            </div>
-            <div class="invitation-count-cell">
-              <span class="invitation-count-num" id="inv-count-minutes">00</span>
-              <span class="invitation-count-text">Minutes</span>
-            </div>
-            <div class="invitation-count-cell">
-              <span class="invitation-count-num" id="inv-count-seconds">00</span>
-              <span class="invitation-count-text">Secondes</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Formulaire d'enregistrement avec sauvegarde automatique en local -->
-        <form id="invitation-link-form" onsubmit="event.preventDefault(); window.submitInvitationRegistration();">
-          
-          <!-- Sexe M / F -->
-          <div class="inv-form-group">
-            <label class="inv-form-label">
-              <span>⚧️</span> Sexe <span style="color: #ef4444;">*</span>
-            </label>
-            <div class="inv-segmented-control">
-              <label class="inv-segment-item">
-                <input type="radio" name="inv-gender" value="M" checked onchange="window.onInvitationFieldChange()">
-                <span class="inv-segment-label">👨 Homme (M)</span>
-              </label>
-              <label class="inv-segment-item">
-                <input type="radio" name="inv-gender" value="F" onchange="window.onInvitationFieldChange()">
-                <span class="inv-segment-label">👩 Femme (F)</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Type de Billet (Seul / Couple) -->
-          <div class="inv-form-group">
-            <label class="inv-form-label">
-              <span>🎟️</span> Type de Billet <span style="color: #ef4444;">*</span>
-            </label>
-            <div class="inv-segmented-control">
-              <label class="inv-segment-item">
-                <input type="radio" name="inv-ticket-type" value="seul" checked onchange="window.toggleCoupleFields(false); window.onInvitationFieldChange();">
-                <span class="inv-segment-label">👤 Billet Seul</span>
-              </label>
-              <label class="inv-segment-item">
-                <input type="radio" name="inv-ticket-type" value="couple" onchange="window.toggleCoupleFields(true); window.onInvitationFieldChange();">
-                <span class="inv-segment-label">👥 Billet en Couple</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Nom et prénom de la personne -->
-          <div class="inv-form-group">
-            <label class="inv-form-label" for="inv-input-name">
-              <span>👤</span> Nom et prénom <span style="color: #ef4444;">*</span>
-            </label>
-            <input type="text" id="inv-input-name" class="inv-form-input" placeholder="Ex: Marc LEGRAND" required autocomplete="name" oninput="window.onInvitationFieldChange()">
-          </div>
-
-          <!-- Champs conditionnels Billet en Couple -->
-          <div id="inv-couple-fields" style="display: none; background: rgba(212, 175, 55, 0.08); border: 1.5px dashed rgba(212, 175, 55, 0.4); border-radius: 18px; padding: 14px; margin-bottom: 1rem;">
-            <div class="inv-form-group" style="margin-bottom: 0.75rem;">
-              <label class="inv-form-label" for="inv-input-partner">
-                <span>💍</span> Nom et prénom du conjoint (l'autre personne) <span style="color: #ef4444;">*</span>
-              </label>
-              <input type="text" id="inv-input-partner" class="inv-form-input" placeholder="Ex: Sarah LEGRAND" oninput="window.onInvitationFieldChange()">
-            </div>
-
-            <div class="inv-form-group" style="margin-bottom: 0;">
-              <label class="inv-form-label" for="inv-input-couple-name">
-                <span>✨</span> Comment nommez-vous votre couple ? <span style="color: #ef4444;">*</span>
-              </label>
-              <input type="text" id="inv-input-couple-name" class="inv-form-input" placeholder="Ex : Couple LEGRAND" oninput="window.onInvitationFieldChange()">
-              <div class="inv-form-hint">
-                💡 Ce nom sera élégamment calligraphié sur votre billet d'invitation officiel (ex: Couple LEGRAND).
-              </div>
-            </div>
-          </div>
-
-          <!-- Numéro WhatsApp -->
-          <div class="inv-form-group">
-            <label class="inv-form-label" for="inv-input-phone">
-              <span>💬</span> Numéro WhatsApp <span style="color: #ef4444;">*</span>
-            </label>
-            <input type="tel" id="inv-input-phone" class="inv-form-input" placeholder="Ex: +241 77 12 34 56" required autocomplete="tel" oninput="window.onInvitationFieldChange()">
-          </div>
-
-          <!-- Numéro de la TABLE -->
-          <div class="inv-form-group">
-            <label class="inv-form-label" for="inv-input-table">
-              <span>🍽️</span> N° de la TABLE <span style="color: #ef4444;">*</span>
-            </label>
-            <input type="text" id="inv-input-table" class="inv-form-input" placeholder="Renseignez votre numéro de table" required style="text-transform: uppercase;" oninput="window.onInvitationFieldChange()">
-            <div class="inv-form-hint">
-              Indiquez le numéro ou la lettre de table transmis par votre hôte.
-            </div>
-          </div>
-
-          <!-- Invité par -->
-          <div class="inv-form-group">
-            <label class="inv-form-label" for="inv-input-host">
-              <span>👑</span> Invité par <span style="color: #ef4444;">*</span>
-            </label>
-            <input type="text" id="inv-input-host" class="inv-form-input" placeholder="Ex: Pasteur Paul / Dr. Sophie" required oninput="window.onInvitationFieldChange()">
-            <div class="inv-form-hint">
-              Indiquez le nom de l'hôte qui vous a transmis l'invitation.
-            </div>
-          </div>
-
-          <!-- Photo d'identité (facultative) -->
-          <div class="inv-form-group">
-            <label class="inv-form-label">
-              <span>📸</span> Photo d'identité <span style="font-size: 0.78rem; font-weight: 500; color: #94a3b8;">(Facultative)</span>
-            </label>
-            <div style="display: flex; align-items: center; gap: 14px; background: rgba(255, 255, 255, 0.03); border: 1.5px dashed rgba(212, 175, 55, 0.35); border-radius: 18px; padding: 10px 14px;">
-              <div id="inv-photo-preview-box" style="width: 58px; height: 58px; border-radius: 16px; background: rgba(0, 0, 0, 0.3); border: 1.5px solid rgba(212, 175, 55, 0.4); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; overflow: hidden; flex-shrink: 0;">
-                <span id="inv-photo-emoji-placeholder">👤</span>
-                <img id="inv-photo-img-preview" src="" alt="Photo" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-              </div>
-              <div style="flex: 1; min-width: 0;">
-                <input type="file" id="inv-photo-input" accept="image/*" style="display: none;" onchange="window.handleInvitationPhotoSelect(event)">
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" class="btn-table-action" onclick="document.getElementById('inv-photo-input').click()" style="background: rgba(212, 175, 55, 0.18); border: 1px solid rgba(212, 175, 55, 0.45); color: #ffd700; border-radius: 10px; padding: 6px 12px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">
-                    📷 Choisir ma photo
-                  </button>
-                  <button type="button" id="inv-photo-remove-btn" onclick="window.removeInvitationPhoto()" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 10px; padding: 6px 10px; font-size: 0.8rem; cursor: pointer;">
-                    ✕ Retirer
-                  </button>
-                </div>
-                <div class="inv-form-hint" style="margin-top: 4px;">
-                  💡 Optionnel : apparaîtra sur votre profil invité et dans le trombinoscope.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" id="inv-btn-submit" class="inv-btn-submit">
-            <span>✨</span> Confirmer mon invitation & Générer mon billet ➔
-          </button>
-        </form>
-      </div>
-
-      <!-- Vue Confirmation / Succès avec Billet Officiel Téléchargeable -->
-      <div id="invitation-success-view" class="inv-success-card" style="display: none;">
-        <div class="inv-success-badge">🎉</div>
-        <h2 style="font-size: 1.35rem; color: #ffd700; margin: 0 0 0.5rem 0;">Votre Billet Officiel est Prêt !</h2>
-        <p style="color: #f1f5f9; font-size: 0.92rem; margin: 0;">
-          Votre invitation nominative pour la 2ème édition du Dîner de Gala a été générée.
-        </p>
-
-        <!-- Aperçu visuel du Billet officiel (Cliquer pour plein écran & zoom) -->
-        <div class="inv-ticket-preview-container" id="inv-ticket-wrapper" onclick="window.openTicketFullscreen()" style="cursor: zoom-in;" title="Cliquez pour afficher en plein écran avec zoom et rotation">
-          <img id="inv-ticket-preview-img" src="/billet-invitation-template.png" alt="Billet d'invitation officiel">
-          <div class="clay-ticket-fullscreen-badge" onclick="event.stopPropagation(); window.openTicketFullscreen();" title="Afficher en plein écran">
-            <span>🔍 Plein écran</span>
-          </div>
-        </div>
-
-        <!-- Canvas caché haute résolution pour le rendu 1024x921 -->
-        <canvas id="inv-ticket-canvas" width="1024" height="921" style="display: none;"></canvas>
-
-        <div style="display: flex; flex-direction: column; gap: 10px; margin: 1.25rem 0;">
-          <button type="button" class="inv-btn-submit" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);" onclick="window.downloadInvitationTicket()">
-            📥 Télécharger mon invitation officielle (Image HD)
-          </button>
-          <button type="button" class="inv-btn-submit" style="background: #25D366; box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);" onclick="window.shareTicketOnWhatsApp()">
-            💬 Partager mon billet sur WhatsApp
-          </button>
-        </div>
-
-        <div class="inv-summary-pill" id="inv-summary-details">
-          <!-- Injecté dynamiquement -->
-        </div>
-
-        <button type="button" class="inv-btn-submit" onclick="window.enterAppFromInvitation()">
-          🚀 Accéder à l'application du Gala
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Modale d'Alerte : Table non valide (Ne stressez pas !) -->
-  <div class="invitation-modal-overlay" id="invitation-invalid-table-modal" style="display: none; z-index: 10070;">
-    <div class="invitation-glass-card" style="max-width: 440px; text-align: center; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 30px 90px rgba(0,0,0,0.85), 0 0 40px rgba(239, 68, 68, 0.25);">
-      <div style="font-size: 3.2rem; margin-bottom: 0.6rem; animation: invCardPopIn 0.3s ease;">⚠️</div>
-      <h3 style="font-size: 1.3rem; color: #f87171; margin: 0 0 0.85rem 0; font-weight: 800;">
-        Numéro de Table non valide
-      </h3>
-      <div style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 18px; padding: 1.25rem 1rem; margin-bottom: 1.25rem; font-size: 0.95rem; line-height: 1.5; color: #fee2e2;">
-        <strong>Non valide, ne stressez pas !</strong> Contactez la personne qui vous invite pour qu'elle vous fournisse votre <strong>Numéro de table</strong>, puis revenez compléter.
-      </div>
-      <p style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 1.25rem; line-height: 1.4;">
-        🔒 Toutes vos informations déjà saisies (nom, WhatsApp, conjoint) sont automatiquement conservées sur votre appareil.
-      </p>
-      <button type="button" class="inv-btn-submit" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="window.closeInvalidTableModal()">
-        👍 J'ai compris, je contacte mon hôte
-      </button>
-    </div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- MODALE 3D CLAYMORPHIC DU BILLET OFFICIEL DU GALA            -->
-  <!-- ============================================================ -->
-  <div class="clay-ticket-overlay" id="modal-ticket-claymorphic" style="display: none;" onclick="if(event.target === this) window.closeClaymorphicTicketModal()">
-    <div class="clay-ticket-wrapper">
-      <!-- Bouton de fermeture tactile 3D Clay -->
-      <button type="button" class="clay-close-btn" onclick="window.closeClaymorphicTicketModal()" title="Fermer la vue billet">
-        <span>✕</span>
-      </button>
-
-      <!-- Carte Principale Claymorphic 3D -->
-      <div class="clay-ticket-card" id="clay-ticket-card-3d">
-        <!-- Badge statut supérieur clay -->
-        <div class="clay-header-pill">
-          <span class="clay-pill-icon">✨</span>
-          <span class="clay-pill-text">Billet Officiel Validé • 2ème Édition</span>
-          <span class="clay-pill-tag">CONFIRMÉ</span>
-        </div>
-
-        <h2 class="clay-title-gold" id="clay-guest-display-title">
-          Votre Billet d'Exception
-        </h2>
-        
-        <p class="clay-subtitle" id="clay-event-date-hint">
-          Samedi 24 Octobre 2026 • Dès 15h00 • Le Rocher des Âges
-        </p>
-
-        <!-- Rangée de badges 3D Claymorphic (Table, Hôte, Formule) -->
-        <div class="clay-badges-row">
-          <div class="clay-badge-item clay-badge-gold" id="clay-badge-table">
-            <span class="clay-badge-icon">🍽️</span>
-            <div class="clay-badge-content">
-              <span class="clay-badge-label">Table Réservée</span>
-              <strong class="clay-badge-val" id="clay-val-table">TABLE A</strong>
-            </div>
-          </div>
-
-          <div class="clay-badge-item clay-badge-purple" id="clay-badge-host">
-            <span class="clay-badge-icon">👑</span>
-            <div class="clay-badge-content">
-              <span class="clay-badge-label">Invité(e) par</span>
-              <strong class="clay-badge-val" id="clay-val-host">Pasteur Micky</strong>
-            </div>
-          </div>
-
-          <div class="clay-badge-item clay-badge-blue" id="clay-badge-type">
-            <span class="clay-badge-icon" id="clay-icon-type">🎟️</span>
-            <div class="clay-badge-content">
-              <span class="clay-badge-label">Formule</span>
-              <strong class="clay-badge-val" id="clay-val-type">Billet Seul</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- Conteneur 3D interactif du Billet avec Effet Tilt & Ombre portée douce (Cliquer pour Plein Écran) -->
-        <div class="clay-ticket-3d-scene" id="clay-ticket-scene" onclick="window.openTicketFullscreen()" style="cursor: zoom-in;" title="Cliquez pour afficher en plein écran avec zoom et rotation">
-          <div class="clay-ticket-3d-object" id="clay-ticket-object">
-            <div class="clay-ticket-frame">
-              <img id="clay-ticket-img-preview" src="/billet-invitation-template.png" alt="Billet officiel 3D" class="clay-ticket-img">
-              <div class="clay-ticket-fullscreen-badge" onclick="event.stopPropagation(); window.openTicketFullscreen();" title="Afficher en plein écran">
-                <span>🔍 Plein écran</span>
-              </div>
-              <div class="clay-ticket-gloss"></div>
-            </div>
-            <!-- Reflet 3D sous le billet -->
-            <div class="clay-ticket-shadow-floor"></div>
-          </div>
-        </div>
-
-        <!-- Canvas haute résolution caché pour rendu et export direct -->
-        <canvas id="clay-ticket-render-canvas" width="1024" height="921" style="display: none;"></canvas>
-
-        <!-- Actions Claymorphic 3D tactiles -->
-        <div class="clay-actions-group">
-          <button type="button" class="clay-btn clay-btn-emerald" onclick="window.downloadClayTicket()">
-            <span class="clay-btn-icon">📥</span>
-            <span class="clay-btn-text">Télécharger le Billet (HD)</span>
-          </button>
-
-          <button type="button" class="clay-btn clay-btn-whatsapp" onclick="window.shareClayTicketWhatsApp()">
-            <span class="clay-btn-icon">💬</span>
-            <span class="clay-btn-text">Partager sur WhatsApp</span>
-          </button>
-
-          <button type="button" class="clay-btn clay-btn-gold" onclick="window.goToProgramFromTicket()">
-            <span class="clay-btn-icon">📜</span>
-            <span class="clay-btn-text">Accéder au programme</span>
-          </button>
-        </div>
-
-        <!-- Détails & Consignes pratiques de l'accueil -->
-        <div class="clay-info-box">
-          <div class="clay-info-row">
-            <span class="clay-info-icon">📍</span>
-            <div class="clay-info-text">
-              <strong>Lieu de prestige :</strong> Salle de fête Le Rocher des Âges sise Rond point Entraco.
-            </div>
-          </div>
-          <div class="clay-info-row">
-            <span class="clay-info-icon">💡</span>
-            <div class="clay-info-text">
-              <strong>Présentation à l'accueil :</strong> Présentez cette image sur votre téléphone ou indiquez votre nom et celui de votre hôte pour votre accueil immédiat.
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================
-       MODALE PLEIN ÉCRAN POUR LE BILLET (ZOOM & ROTATION AUTO)
-       ======================================================== -->
-  <div id="ticket-fullscreen-modal" class="ticket-fs-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Aperçu Plein Écran du Billet">
-    <!-- Fond Cosmique Gala Prestige (Univers animé léger GPU 0ms) -->
-    <div class="ticket-fs-cosmos" aria-hidden="true">
-      <div class="ticket-fs-nebula nebula-1"></div>
-      <div class="ticket-fs-nebula nebula-2"></div>
-      <div class="ticket-fs-stars stars-layer-1"></div>
-      <div class="ticket-fs-stars stars-layer-2"></div>
-      <div class="ticket-fs-sparkle sparkle-1">✦</div>
-      <div class="ticket-fs-sparkle sparkle-2">✦</div>
-      <div class="ticket-fs-sparkle sparkle-3">✦</div>
-      <div class="ticket-fs-sparkle sparkle-4">✦</div>
-    </div>
-
-    <!-- Barre de contrôle supérieure flottante -->
-    <header class="ticket-fs-header">
-      <div class="ticket-fs-actions-left">
-        <button type="button" class="ticket-fs-btn" id="ticket-fs-rot-btn" onclick="window.toggleTicketFsRotation()" title="Faire pivoter le billet">
-          <span class="ticket-fs-icon">🔄</span>
-          <span class="ticket-fs-label">Rotation <b id="ticket-fs-rot-text">90°</b></span>
-        </button>
-      </div>
-
-      <div class="ticket-fs-actions-center">
-        <button type="button" class="ticket-fs-btn ticket-fs-circle" onclick="window.adjustTicketFsZoom(-0.25)" title="Dézoomer">
-          <span>−</span>
-        </button>
-        <button type="button" class="ticket-fs-btn ticket-fs-pill" onclick="window.resetTicketFsZoom()" title="Réinitialiser l'affichage">
-          <span id="ticket-fs-zoom-text">100%</span>
-        </button>
-        <button type="button" class="ticket-fs-btn ticket-fs-circle" onclick="window.adjustTicketFsZoom(0.25)" title="Zoomer">
-          <span>+</span>
-        </button>
-      </div>
-
-      <div class="ticket-fs-actions-right">
-        <button type="button" class="ticket-fs-btn ticket-fs-close" onclick="window.closeTicketFullscreen()" title="Fermer le plein écran">
-          ✕ <span class="ticket-fs-close-lbl">Fermer</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Zone d'affichage et de manipulation tactile (Viewport) -->
-    <div class="ticket-fs-viewport" id="ticket-fs-viewport">
-      <div class="ticket-fs-canvas-layer" id="ticket-fs-layer">
-        <img id="ticket-fs-img" src="/billet-invitation-template.png" alt="Billet officiel Plein Écran" draggable="false">
-      </div>
-    </div>
-
-    <!-- Info-bulle d'aide discrète -->
-    <footer class="ticket-fs-footer">
-      <div class="ticket-fs-tip">
-        <span>💡 Pincez pour zoomer • Glissez pour déplacer • Double-clic pour agrandir</span>
-      </div>
-    </footer>
-  </div>
-
-  <!-- 1. Modale Onboarding Express (15 secondes) -->
-  <div class="modal-overlay" id="onboarding-modal" style="display: none;" onclick="if(event.target === this) window.closeOnboarding()">
-    <div class="modal-card" style="position: relative;">
-      <button type="button" class="btn-icon" style="position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px;" onclick="window.closeOnboarding()" title="Fermer">✕</button>
-      <div class="modal-header">
-        <h2>Bienvenue à la Fête ! 🥂</h2>
-        <p>Indiquez votre prénom et votre table pour participer en 1 clic.</p>
-      </div>
-
-      <form id="onboarding-form" onsubmit="event.preventDefault(); window.saveOnboarding();">
-        <div class="form-group">
-          <label class="form-label" for="input-guest-name">Votre Prénom ou Surnom</label>
-          <input type="text" id="input-guest-name" class="form-input" placeholder="Ex: Marc, Estelle..." required autocomplete="given-name">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="input-guest-table">Votre Numéro de Table</label>
-          <input type="text" id="input-guest-table" class="form-input" placeholder="Ex: Table 4, Table d'Honneur..." value="Table 1">
-        </div>
-
-
-        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-          <button type="submit" class="btn-primary" style="flex: 1;">
-            C'est parti ! 🚀
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 2. Modale Assistant de Prière par Étapes (Carte 1 & Carte 2) -->
-  <div class="modal-overlay" id="prayer-wizard-modal" style="display: none;">
-    <div class="modal-card" style="border: 1px solid rgba(245, 197, 66, 0.4); max-width: 520px;">
-      
-      <!-- Barre de progression (3 étapes) -->
-      <div class="wizard-progress-bar">
-        <div class="wizard-progress-pill active" id="prayer-wizard-pill-1"></div>
-        <div class="wizard-progress-pill" id="prayer-wizard-pill-2"></div>
-        <div class="wizard-progress-pill" id="prayer-wizard-pill-3"></div>
-      </div>
-
-      <div class="modal-header">
-        <h2>🙏 Demande de Prière & Intercession</h2>
-        <p>Notre équipe pastorale et d'intercession vous accompagne avec discrétion et amour.</p>
-      </div>
-
-      <form id="prayer-wizard-form">
-
-        <!-- CARTE 1 : Sélection rapide du thème -->
-        <div id="prayer-wizard-card-1" class="wizard-step-container">
-          <label class="form-label">Étape 1/3 : Choisissez le sujet de votre requête</label>
-          <div class="prayer-topics-grid" id="prayer-wizard-topics-grid">
-            <!-- Injecté dynamiquement par prayer-wizard.js -->
-          </div>
-          <p style="font-size: 0.8rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
-            Cliquez sur un sujet pour passer directement aux précisions.
-          </p>
-          <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
-            <button type="button" class="btn-icon" id="btn-close-prayer-wizard" style="width: auto; padding: 0 1.25rem;">Fermer</button>
-          </div>
-        </div>
-
-        <!-- CARTE 2 : Description, Contact WhatsApp & Confidentialité -->
-        <div id="prayer-wizard-card-2" class="wizard-step-container" style="display: none;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-            <label class="form-label" style="margin: 0;">Étape 2/3 : Sujet sélectionné</label>
-            <span class="hub-card-badge" id="prayer-wizard-title-preview">Famille</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="prayer-wizard-content">Décrivez votre requête *</label>
-            <textarea id="prayer-wizard-content" class="form-textarea" rows="3" placeholder="Partagez librement ce que vous traversez ou vos besoins spirituels..." required></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="prayer-wizard-whatsapp">Votre numéro WhatsApp (avec indicatif)</label>
-            <input type="tel" id="prayer-wizard-whatsapp" class="form-input" placeholder="Ex: +241 07000000 ou +33 600000000">
-            <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
-              Permet à l'équipe pastorale d'échanger avec vous et de prier à vos côtés.
-            </p>
-          </div>
-
-          <!-- Note de réassurance & confidentialité -->
-          <div class="privacy-reassurance-box">
-            <span style="font-size: 1.2rem; flex-shrink: 0;">🔒</span>
-            <div>
-              <strong>Confidentialité absolue :</strong> ce que vous écrivez reste <u>strictement confidentiel</u> entre vous et l'équipe pastorale.
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
-            <button type="button" class="btn-icon" id="btn-back-prayer-step1" style="width: auto; padding: 0 1rem;">← Précédent</button>
-            <button type="button" id="btn-next-prayer-step3" class="btn-3d btn-3d-amber" style="flex: 1;">
-              <span>Suivant (Accompagnement) →</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- CARTE 3 : Coordonnées pastorales, personne ciblée & église -->
-        <div id="prayer-wizard-card-3" class="wizard-step-container" style="display: none;">
-          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 3/3 : Accompagnement Pastoral & Visite</div>
-
-          <div class="form-group">
-            <label class="form-label" for="prayer-wizard-target-person">Pour qui souhaitez-vous qu'on prie ?</label>
-            <input type="text" id="prayer-wizard-target-person" class="form-input" placeholder="Ex : Pour moi-même, mon époux(se), mes enfants, mes parents...">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="prayer-wizard-full-name">Comment vous appelez-vous ?</label>
-            <input type="text" id="prayer-wizard-full-name" class="form-input" placeholder="Votre nom et prénom">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="prayer-wizard-residence" style="display: flex; justify-content: space-between;">
-              <span>Où résidez-vous si jamais vous voulez qu'on vienne sur place prier ? *</span>
-              <span style="font-size: 0.72rem; color: #ea580c; font-weight: 700;">Obligatoire</span>
-            </label>
-            <input type="text" id="prayer-wizard-residence" class="form-input" placeholder="Ex : Libreville, Quartier Louis / Akanda / Port-Gentil" required>
-            <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
-              Indispensable si vous souhaitez une visite pastorale ou d'intercession à domicile.
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="prayer-wizard-has-church">Avez-vous une église où vous priez actuellement ?</label>
-            <select id="prayer-wizard-has-church" class="form-input">
-              <option value="non">Non, pas pour le moment</option>
-              <option value="oui">Oui, je fréquente une église / assemblée</option>
-            </select>
-          </div>
-
-          <div id="prayer-wizard-church-details" style="display: none; padding: 10px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; margin-bottom: 12px; border: 1px dashed rgba(245, 197, 66, 0.3);">
-            <div class="form-group" style="margin-bottom: 8px;">
-              <label class="form-label" for="prayer-wizard-church-name">Nom de votre église / communauté</label>
-              <input type="text" id="prayer-wizard-church-name" class="form-input" placeholder="Ex : Église Céleste, Centre Évangélique...">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="prayer-wizard-church-duration">Depuis combien de temps la fréquentez-vous ?</label>
-              <input type="text" id="prayer-wizard-church-duration" class="form-input" placeholder="Ex : 6 mois, 3 ans, depuis l'enfance...">
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-            <button type="button" class="btn-icon" id="btn-back-prayer-step2" style="width: auto; padding: 0 1rem;">← Précédent</button>
-            <button type="submit" id="btn-submit-prayer-wizard" class="btn-3d btn-3d-amber" style="flex: 1;">
-              <span>Envoyer ma requête pastorale 🙏</span>
-            </button>
-          </div>
-        </div>
-
-      </form>
-    </div>
-  </div>
-
-  <!-- 3. Modale Assistant Réseautage en 4 Cartes -->
-  <div class="modal-overlay" id="networking-wizard-modal" style="display: none;">
-    <div class="modal-card" style="border: 1px solid rgba(255, 122, 69, 0.4); max-width: 520px;">
-      
-      <!-- Barre de progression 4 étapes -->
-      <div class="wizard-progress-bar">
-        <div class="wizard-progress-pill active" id="net-progress-pill-1"></div>
-        <div class="wizard-progress-pill" id="net-progress-pill-2"></div>
-        <div class="wizard-progress-pill" id="net-progress-pill-3"></div>
-        <div class="wizard-progress-pill" id="net-progress-pill-4"></div>
-      </div>
-
-      <div class="modal-header">
-        <h2 id="net-wizard-modal-title">🤝 Fiche Réseautage VIP</h2>
-        <p id="net-wizard-modal-subtitle">Remplissez chaque champ pour publier votre fiche de contact (Modifiable à tout moment).</p>
-      </div>
-
-      <form id="networking-wizard-form">
-        <!-- CARTE 1 : Identité, Métier & Photo de Profil Réelle -->
-        <div id="net-step-card-1" class="wizard-step-container">
-          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 1/4 : Identité & Photo Réelle</div>
-          
-          <!-- Zone d'Upload de Photo Réelle (Obligatoire, sans avatars prédéfinis) -->
-          <div class="form-group">
-            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
-              <span>Votre Photo Réelle (Effet 3D Pop-Out) *</span>
-              <span style="font-size: 0.72rem; color: #ea580c; font-weight: 700;">Obligatoire</span>
-            </label>
-            
-            <div id="net-photo-upload-dropzone" class="photo-upload-clay-zone" onclick="document.getElementById('net-step-photo-file').click()">
-              <div id="net-photo-preview-container" style="display: none; position: relative;">
-                <div class="clay-photo-frame" style="width: 86px; height: 102px; margin: 0 auto; box-shadow: 0 10px 20px rgba(0,0,0,0.6);">
-                  <img id="net-photo-preview-img" src="" alt="Aperçu photo" class="clay-photo-img">
-                </div>
-                <p style="font-size: 0.76rem; color: #fb923c; margin-top: 0.5rem; text-decoration: underline; font-weight: 700;">
-                  Appuyez pour changer de photo 🔄
-                </p>
-              </div>
-
-              <div id="net-photo-placeholder-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.25rem 0.5rem;">
-                <div style="width: 54px; height: 54px; border-radius: 18px; background: rgba(234, 88, 12, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1.5px dashed #ea580c;">
-                  📸
-                </div>
-                <span style="font-size: 0.86rem; font-weight: 700; color: #fffaf0;">
-                  Appuyez pour choisir votre photo
-                </span>
-                <span style="font-size: 0.72rem; color: #94a3b8;">
-                  Prenez un selfie ou sélectionnez une photo depuis votre galerie
-                </span>
-              </div>
-            </div>
-
-            <input type="file" id="net-step-photo-file" accept="image/*" style="display: none;" onchange="window.handleNetPhotoUpload(event)">
-            <input type="hidden" id="net-step-photo-url" value="" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="net-step-fullname">Nom et Prénom *</label>
-            <input type="text" id="net-step-fullname" class="form-input" placeholder="Ex: Dr. Marc Koffi" required>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="net-step-profession">Métier / Fonction actuelle *</label>
-            <input type="text" id="net-step-profession" class="form-input" placeholder="Ex: Directeur Médical, Avocat, Designer..." required>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
-            <button type="button" class="btn-icon" id="btn-close-net-wizard" style="width: auto; padding: 0 1rem;">Annuler</button>
-            <button type="button" id="btn-net-to-step2" class="btn-3d btn-3d-coral" style="flex: 1;">
-              <span>Suivant (Étape 2) →</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- CARTE 2 : Entreprise, Bio & Centres d'intérêt -->
-        <div id="net-step-card-2" class="wizard-step-container" style="display: none;">
-          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 2/4 : Parcours & Intérêts</div>
-          
-          <div class="form-group">
-            <label class="form-label" for="net-step-company">Entreprise / Organisation *</label>
-            <input type="text" id="net-step-company" class="form-input" placeholder="Nom de votre société ou structure" required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="net-step-bio">Mini Biographie *</label>
-            <textarea id="net-step-bio" class="form-textarea" rows="2" placeholder="En une phrase : qui êtes-vous et quelle est votre passion ?" required></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="net-step-interests">Centres d'intérêt / Tags * (séparés par des virgules)</label>
-            <input type="text" id="net-step-interests" class="form-input" placeholder="Ex: Tech, Entrepreneuriat, Musique, Foi" required>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
-            <button type="button" class="btn-icon" id="btn-net-back-step1" style="width: auto; padding: 0 1rem;">← Retour</button>
-            <button type="button" id="btn-net-to-step3" class="btn-3d btn-3d-coral" style="flex: 1;">
-              <span>Suivant (Étape 3) →</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- CARTE 3 : Synergies (Ce que vous cherchez & offrez) -->
-        <div id="net-step-card-3" class="wizard-step-container" style="display: none;">
-          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 3/4 : Opportunités & Synergies</div>
-          
-          <div class="form-group">
-            <label class="form-label" for="net-step-looking-for">Ce que vous recherchez ce soir *</label>
-            <input type="text" id="net-step-looking-for" class="form-input" placeholder="Ex: Partenaires stratégiques, investisseurs, conseils..." required>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="net-step-offering">Ce que vous offrez / Vos compétences *</label>
-            <input type="text" id="net-step-offering" class="form-input" placeholder="Ex: Conseil juridique, mentorat, dev web, scénographie..." required>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
-            <button type="button" class="btn-icon" id="btn-net-back-step2" style="width: auto; padding: 0 1rem;">← Retour</button>
-            <button type="button" id="btn-net-to-step4" class="btn-3d btn-3d-coral" style="flex: 1;">
-              <span>Dernière étape (Contact) →</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- CARTE 4 : Contact WhatsApp & Finalisation -->
-        <div id="net-step-card-4" class="wizard-step-container" style="display: none;">
-          <div class="hub-card-badge" style="width: fit-content; margin-bottom: 0.5rem;">Étape 4/4 : Contact Direct</div>
-          
-          <div class="form-group">
-            <label class="form-label" for="net-step-whatsapp">Numéro WhatsApp (avec indicatif pays) *</label>
-            <input type="tel" id="net-step-whatsapp" class="form-input" placeholder="Ex: +225 0700000000" required>
-            <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">
-              Permettra aux autres invités de vous contacter en 1 clic après votre salutation.
-            </p>
-          </div>
-
-          <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-            <button type="button" class="btn-icon" id="btn-net-back-step3" style="width: auto; padding: 0 1rem;">← Retour</button>
-            <button type="submit" id="btn-submit-net-wizard" class="btn-3d btn-3d-coral" style="flex: 1;">
-              <span id="btn-submit-net-text">Enregistrer ma fiche de réseautage 🚀</span>
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-
-  <!-- 4. Modale Régie / MC : Diffusion Notification Push Directe -->
-  <div class="modal-overlay" id="broadcast-modal" style="display: none;">
-    <div class="modal-card" style="border: 1px solid rgba(212, 175, 55, 0.5); box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);">
-      <div class="modal-header">
-        <h2>📢 Diffuser une Alerte Push</h2>
-        <p>Envoyez une vibration et notification instantanée sur le téléphone de tous les invités.</p>
-      </div>
-
-      <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem;">
-        <button type="button" class="btn-icon quick-broadcast-preset" data-title="🔥 Le Grand Quiz commence !" data-body="Rejoignez vite l'onglet Jeux, la question 1 vient de s'afficher !" data-url="#games" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">🔥 Quiz Live</button>
-        <button type="button" class="btn-icon quick-broadcast-preset" data-title="🥂 Toast & Prise de Parole" data-body="Attention s'il vous plaît, les mariés / hôtes prennent la parole !" data-url="#chat" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">🥂 Toast VIP</button>
-        <button type="button" class="btn-icon quick-broadcast-preset" data-title="📸 Photo Souvenir de Table !" data-body="Le photographe passe à votre table dans 2 minutes !" data-url="#chat" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">📸 Photo Table</button>
-        <button type="button" class="btn-icon quick-broadcast-preset" data-title="🙏 Moment de Bénédiction" data-body="Partagez vos vœux et prières pour marquer cet instant." data-url="#prayer" style="font-size: 0.75rem; width: auto; padding: 6px 10px; border-radius: 8px;">🙏 Bénédiction</button>
-      </div>
-
-      <form id="broadcast-form" onsubmit="window.submitBroadcastForm(event)">
-        <div class="form-group">
-          <label class="form-label">Titre de l'alerte</label>
-          <input type="text" id="broadcast-title" class="form-input" placeholder="Ex: 🔥 Le Grand Quiz commence !" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Message / Consigne aux invités</label>
-          <textarea id="broadcast-body" class="form-textarea" rows="3" placeholder="Ex: Tous à vos téléphones pour marquer des points pour votre table !" required></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Lien de redirection au clic</label>
-          <select id="broadcast-url" class="form-input">
-            <option value="#games">Onglet Jeux & Quiz</option>
-            <option value="#chat">Onglet Chat en Direct</option>
-            <option value="#networking">Onglet Réseautage</option>
-            <option value="#prayer">Onglet Prières & Vœux</option>
-            <option value="/">Page d'accueil</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Code PIN Régie / MC (Sécurité)</label>
-          <input type="password" id="broadcast-pin" class="form-input" placeholder="Code PIN Régie (défaut : 7777)" required style="letter-spacing: 2px;">
-        </div>
-
-        <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
-          <button type="button" class="btn-icon" style="width: auto; padding: 0 1rem;" onclick="window.closeBroadcastModal()">Fermer</button>
-          <button type="submit" id="btn-submit-broadcast" class="btn-primary" style="flex: 1; background: linear-gradient(135deg, #d4af37, #b45309);">
-            🚀 Diffuser à tous les invités
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- ============================================================
-       MODALE 3D INTERACTIVE À 360° DU PRODUIT / ANNONCE
+       BARRE DE NAVIGATION SUPÉRIEURE
        ============================================================ -->
-  <div class="modal-3d-overlay" id="modal-ad-360" style="display: none;" onclick="if(event.target === this) window.AdsModule.closeModal3D()">
-    <div class="modal-3d-card animate-scale-up">
-      <button type="button" class="btn-close-3d" onclick="window.AdsModule.closeModal3D()" title="Fermer">✕</button>
-
-      <!-- Scène 3D Interactive (Touch & Mouse Drag) -->
-      <div class="turntable-stage-3d" id="turntable-stage-3d" title="Glissez pour faire tourner le produit à 360°">
-        <div class="product-object-3d" id="product-object-3d">
-          <img id="product-3d-img" src="" alt="Produit Gala 3D">
-          <div id="product-3d-emoji-fallback" style="display: none; font-size: 4.5rem; align-items: center; justify-content: center; height: 100%;">🛍️</div>
-        </div>
-        <div class="turntable-shadow-3d" id="turntable-shadow-3d"></div>
-      </div>
-
-      <!-- Barre de contrôle de rotation -->
-      <div class="turntable-controls-bar">
-        <span>🔄 Angle : <strong id="turntable-angle-indicator" style="color: var(--terracotta-accent, #E67A53);">0°</strong> (Tactile 360°)</span>
-        <button type="button" id="btn-auto-spin" class="btn-auto-spin" onclick="window.AdsModule.toggleAutoSpin()">
-          <span>⚡ Auto-spin</span>
-        </button>
-      </div>
-
-      <!-- Fiche détaillée du produit / sponsor -->
-      <div class="product-info-sheet">
-        <span class="product-modal-brand" id="modal-3d-brand">Partenaire Officiel</span>
-        <h3 class="product-modal-title" id="modal-3d-title">Titre du produit</h3>
-        <p class="product-modal-desc" id="modal-3d-desc">Description complète du produit ou de l'offre d'honneur.</p>
-        <div class="product-modal-price" id="modal-3d-price">Offre Spéciale</div>
-      </div>
-
-      <!-- Bouton d'action et lien de redirection -->
-      <a id="btn-3d-cta" class="btn-cta-ad" href="#" target="_blank" rel="noopener noreferrer">
-        <span>Découvrir l'offre exclusive</span>
-        <span>➔</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       MODALE PRÉSENCE DES INVITÉS (CONNECTÉS & HORS-LIGNE)
-       ============================================================ -->
-  <div class="modal-presence-overlay" id="modal-guests-presence" style="display: none;" onclick="if(event.target === this) window.closeGuestsPresenceModal()">
-    <div class="modal-presence-card animate-scale-up">
-      <div class="presence-modal-header">
+  <header class="site-navbar">
+    <div class="container nav-container">
+      <a href="/" class="brand-logo">
+        <div class="brand-crest">JR</div>
         <div>
-          <div class="presence-modal-badge">
-            <span class="presence-pulse-dot"></span>
-            <span>Flux Direct des Invités</span>
-          </div>
-          <h3 class="presence-modal-title">Participants & Statut Réseau</h3>
-          <p class="presence-modal-sub">Consultez les invités connectés en direct et ceux qui étaient présents.</p>
+          <span class="brand-title">Jours de Rencontre</span>
+          <span class="brand-subtitle">Prestige & Cérémonies</span>
         </div>
-        <button type="button" class="btn-close-presence" onclick="window.closeGuestsPresenceModal()" title="Fermer">✕</button>
-      </div>
+      </a>
 
-      <!-- Filtres par statut -->
-      <div class="presence-tabs-row">
-        <button type="button" class="presence-tab-btn active" id="presence-tab-online" onclick="ChatModule.setPresenceFilter('online')">
-          🟢 En ligne (<span id="count-badge-online">0</span>)
-        </button>
-        <button type="button" class="presence-tab-btn" id="presence-tab-offline" onclick="ChatModule.setPresenceFilter('offline')">
-          ⚪ Déconnectés (<span id="count-badge-offline">0</span>)
-        </button>
-        <button type="button" class="presence-tab-btn" id="presence-tab-all" onclick="ChatModule.setPresenceFilter('all')">
-          👥 Tous (<span id="count-badge-all">0</span>)
-        </button>
-      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#services" class="nav-link">Nos Services</a></li>
+          <li><a href="#studio-billets" class="nav-link">Galerie des Billets</a></li>
+          <li><a href="#gala-2026" class="nav-link">Dîner de Gala 2026</a></li>
+          <li><a href="#comparatif" class="nav-link">Pourquoi Nous ?</a></li>
+          <li><a href="#faq" class="nav-link">FAQ</a></li>
+        </ul>
+      </nav>
 
-      <!-- Champ de recherche réactif -->
-      <div class="presence-search-box">
-        <input type="text" id="presence-search-input" placeholder="🔍 Rechercher un invité par nom, table, métier..." autocomplete="off">
-      </div>
-
-      <!-- Liste déroulante des invités -->
-      <div class="presence-list-scroll" id="presence-list-scroll">
-        <!-- Rendu dynamique par ChatModule.renderPresenceList() -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       VISIONNEUSE LIGHTBOX PHOTO DU CHAT (ZOOM PLEIN ÉCRAN)
-       ============================================================ -->
-  <div class="chat-lightbox-overlay" id="chat-lightbox-modal" style="display: none;" onclick="if(event.target === this) window.closeChatLightbox()">
-    <div class="chat-lightbox-content animate-scale-up">
-      <button type="button" class="btn-close-lightbox" onclick="window.closeChatLightbox()" title="Fermer">✕</button>
-      <img id="chat-lightbox-img" src="" alt="Photo chat agrandie">
-      <div class="chat-lightbox-bar">
-        <span id="chat-lightbox-caption">Photo partagée</span>
-        <a id="chat-lightbox-download" href="#" download="photo-gala.jpg" class="chat-lightbox-btn-download">
-          💾 Télécharger l'image
+      <div class="nav-cta-group">
+        <a href="/dinedegala2026/" class="btn-gala-demo" title="Découvrir l'expérience complète du Dîner de Gala 2026">
+          <span>⭐ Démo Gala 2026</span>
+        </a>
+        <a href="https://api.whatsapp.com/send?text=Bonjour%20Jours%20de%20Rencontre%2C%20je%20souhaite%20des%20renseignements%20pour%20mon%20%C3%A9v%C3%A9nement." target="_blank" class="btn-whatsapp-quote">
+          <span>💬 Devis Express</span>
         </a>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Conteneur pour les Toasts / Notifications -->
-  <div class="toast-container" id="toast-container"></div>
+  <!-- ============================================================
+       HERO SECTION : ACCROCHE PRINCIPALE
+       ============================================================ -->
+  <section class="hero-section">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span>✨ L'Excellence Événementielle & Digitale</span>
+        </div>
 
+        <h1 class="hero-title">
+          Sublimez Vos Cérémonies avec une <span class="gold-text">Billetterie Numérique d'Exception</span>
+        </h1>
 
+        <p class="hero-subtitle">
+          Offrez à vos invités une expérience inoubliable dès la réception de leur billet sur WhatsApp : calligraphie nominative personnalisée, plan de table interactif en direct sans rien installer, accueil sécurisé et scénographie sur écrans géants.
+        </p>
 
-  <!-- Script d'aide pour sélection d'émojis dans la modale & Splash Screen -->
-  <script>
-    function selectEmojiBtn(btn) {
-      document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-    }
+        <div class="hero-actions">
+          <a href="#studio-billets" class="btn-primary-hero">
+            <span>🎨 Personnaliser un Billet en Direct</span>
+            <span style="font-size: 1.2rem;">→</span>
+          </a>
+          <a href="/dinedegala2026/" class="btn-secondary-hero">
+            <span>⭐ Découvrir la Démo Gala 2026</span>
+          </a>
+        </div>
 
-    function dismissSplash() {
-      var splash = document.getElementById('app-splash-screen');
-      if (splash && !splash.classList.contains('splash-hidden')) {
-        splash.classList.add('splash-hidden');
-        setTimeout(function() {
-          if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
-        }, 120);
-      }
-    }
-    window.dismissSplash = dismissSplash;
+        <div class="hero-stats-row">
+          <div class="stat-item">
+            <span class="stat-number">100%</span>
+            <span class="stat-label">Sans Application</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">0,2s</span>
+            <span class="stat-label">Scan d'Accueil</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">+15 000</span>
+            <span class="stat-label">Invités Comblés</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">0 Papier</span>
+            <span class="stat-label">Éco-Prestige</span>
+          </div>
+        </div>
+      </div>
 
-    // Fermeture ultra-rapide : en mode PWA standalone, fermeture en 0ms
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-      dismissSplash();
-    } else {
-      // En navigateur web : fermeture dès que le DOM est prêt (sans attendre images ou scripts distants)
-      if (document.readyState === 'interactive' || document.readyState === 'complete') {
-        dismissSplash();
-      } else {
-        document.addEventListener('DOMContentLoaded', dismissSplash);
-      }
-      // Sécurité absolue (max 300ms au lieu de 2200ms)
-      setTimeout(dismissSplash, 300);
-    }
-  </script>
+      <!-- Aperçu Flottant 3D du Billet -->
+      <div class="hero-visual">
+        <div class="floating-feature-pill pill-1">
+          <span>🔒 QR Code Unique Anti-Fraude</span>
+        </div>
+        <div class="floating-feature-pill pill-2">
+          <span>⚡ Envoi WhatsApp en 1 Clic</span>
+        </div>
 
-  <!-- Point d'entrée Javascript -->
-  <script type="module" src="/src/js/app.js"></script>
+        <div class="floating-ticket-card">
+          <div class="ticket-shine-effect"></div>
+          <div class="hero-ticket-header">
+            <span class="hero-ticket-tag">Billet Officiel Dématérialisé</span>
+            <span style="font-family: var(--font-serif); font-size: 0.9rem; color: #FFF1B0; font-weight: 700;">ÉDITION 2026</span>
+          </div>
+
+          <h3 class="hero-ticket-event">2ème Édition du Dîner de Gala</h3>
+          <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 0.8rem;">Samedi 24 Octobre 2026 • Salle Le Rocher des Âges</p>
+
+          <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #AA7C11; font-weight: 700;">Invitation Déposée à l'Honneur de :</span>
+          <div class="hero-ticket-guest">Mme Grâce MBOUMBA</div>
+
+          <div class="hero-ticket-details">
+            <div class="ticket-detail-item">
+              <span>Table Attitrée</span>
+              <strong>Table N°7 • Prestige</strong>
+            </div>
+            <div class="ticket-detail-item">
+              <span>Rang</span>
+              <strong>Invitée de Marque</strong>
+            </div>
+            <div class="ticket-detail-item">
+              <span>Accès</span>
+              <strong>VIP & Banquet</strong>
+            </div>
+          </div>
+
+          <div class="hero-ticket-footer">
+            <div style="font-size: 0.72rem; color: #64748B;">
+              <span>Certifié par Jours de Rencontre</span><br>
+              <strong style="color: #94A3B8; font-family: monospace;">SEC-GALA-8849-AF</strong>
+            </div>
+
+            <div class="fake-qr-code">
+              <div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div>
+              <div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div>
+              <div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div>
+              <div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div>
+              <div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       STUDIO INTERACTIF : 6 COLLECTIONS DE BILLETS
+       ============================================================ */
+  -->
+  <section id="studio-billets" class="studio-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Atelier de Création Numérique</span>
+        <h2 class="section-title">
+          Explorez Nos <span class="gold-text">6 Collections de Billets Numériques</span>
+        </h2>
+        <p class="section-subtitle">
+          Chaque célébration possède son âme. Choisissez votre univers, tapez le nom d'un invité et découvrez le rendu calligraphié en direct avec inclinaison 3D.
+        </p>
+      </div>
+
+      <!-- Sélecteur d'onglets pour les modèles -->
+      <div class="models-tabs-wrapper">
+        <button type="button" class="model-tab-btn" data-model="mariage">
+          <span>💍 Mariage Princier & Royal</span>
+        </button>
+        <button type="button" class="model-tab-btn" data-model="b2b">
+          <span>💼 Sommet B2B & Forum VIP</span>
+        </button>
+        <button type="button" class="model-tab-btn" data-model="gospel">
+          <span>🕊️ Nuit Gospel & Bénédiction</span>
+        </button>
+        <button type="button" class="model-tab-btn" data-model="jubile">
+          <span>🍸 Jubilé d'Or Art Déco</span>
+        </button>
+        <button type="button" class="model-tab-btn" data-model="charite">
+          <span>🎗️ Gala de Charité & Mécénat</span>
+        </button>
+        <button type="button" class="model-tab-btn active" data-model="gala">
+          <span>⭐ Dîner de Gala Impérial</span>
+        </button>
+      </div>
+
+      <!-- Studio Layout : Panneau de Contrôle + Scène 3D -->
+      <div class="studio-grid">
+        <!-- Contrôles en direct -->
+        <div class="studio-controls">
+          <div class="control-group">
+            <label class="control-label" for="studio-guest-name">Nom de l'Invité (Calligraphie en direct)</label>
+            <input type="text" id="studio-guest-name" class="control-input" value="Mme Grâce MBOUMBA" placeholder="Ex: M. & Mme Jean KOUASSI">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="studio-rank">Rang & Distinctions</label>
+            <select id="studio-rank" class="control-select">
+              <option value="Invitée d'Honneur">Invitée d'Honneur</option>
+              <option value="Invitée de Marque" selected>Invitée de Marque</option>
+              <option value="Table Présidentielle">Table Présidentielle</option>
+              <option value="Keynote Speaker & Délégué">Keynote Speaker & Délégué</option>
+              <option value="Mécène & Bienfaiteur">Mécène & Bienfaiteur</option>
+              <option value="Famille des Mariés">Famille des Mariés</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="studio-table">Table & Emplacement</label>
+            <input type="text" id="studio-table" class="control-input" value="Table N°7 • Prestige" placeholder="Ex: Table Impériale N°1">
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+            <button type="button" id="studio-whatsapp-btn" class="btn-studio-whatsapp">
+              <span>💬 Demander ce Modèle sur WhatsApp</span>
+            </button>
+            <button type="button" id="studio-download-btn" class="btn-studio-download">
+              <span>📥 Télécharger mon Spécimen HD</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scène de Rendu 3D Tilt -->
+        <div class="studio-stage">
+          <div class="ticket-render-box">
+            <div id="studio-ticket-render" class="live-ticket ticket-model-gala">
+              <div class="ticket-shine-effect"></div>
+
+              <div class="ticket-top-row">
+                <span class="ticket-top-tag">Dîner de Gala Officiel</span>
+                <span class="ticket-brand-mark">JOURS DE RENCONTRE</span>
+              </div>
+
+              <h3 class="ticket-main-title">2ème Édition du Prestigieux Dîner de Gala</h3>
+              <p class="ticket-event-subtitle">Samedi 24 Octobre 2026 • 15h00 • Salle Le Rocher des Âges</p>
+
+              <div class="ticket-invitation-intro">Invitation Déposée à l'Honneur de :</div>
+              <div class="ticket-guest-name">Mme Viviane NGUEMA</div>
+
+              <div class="ticket-meta-box">
+                <div class="ticket-meta-col">
+                  <span>Table Attitrée</span>
+                  <strong class="ticket-val-table">Table N°7 • Prestige</strong>
+                </div>
+                <div class="ticket-meta-col">
+                  <span>Rang Invité</span>
+                  <strong class="ticket-val-rank">Invitée de Marque</strong>
+                </div>
+                <div class="ticket-meta-col">
+                  <span>Code Sécurité</span>
+                  <strong class="ticket-val-sec">GALA-2026-VIP-7</strong>
+                </div>
+              </div>
+
+              <div class="ticket-bottom-bar">
+                <div class="ticket-qr-wrap">
+                  <div class="ticket-live-qr">
+                    <div class="fake-qr-code" style="width: 100%; height: 100%;">
+                      <div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div>
+                      <div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div>
+                      <div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div>
+                      <div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div>
+                      <div class="fake-qr-dot"></div><div class="fake-qr-dot empty"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div><div class="fake-qr-dot"></div>
+                    </div>
+                  </div>
+                  <div class="ticket-security-info">
+                    <span>Certifié & Nominatif</span>
+                    <strong>Billet Électronique Sécurisé</strong>
+                  </div>
+                </div>
+
+                <div style="text-align: right; font-size: 0.75rem; opacity: 0.8;">
+                  <span>Présenter à l'Accueil</span><br>
+                  <strong style="color: #FFF1B0;">Scan Flash 0,2s</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LES 4 PILIERS DE SERVICES
+       ============================================================ -->
+  <section id="services" class="services-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Une Solution Complète & Clé en Main</span>
+        <h2 class="section-title">
+          De l'Invitation au Jour J, <span class="gold-text">Chaque Détail Est Maîtrisé</span>
+        </h2>
+        <p class="section-subtitle">
+          Fini les billets papier perdus, les files d'attente interminables et la confusion des tables. Nous transformons votre événement en un spectacle d'organisation fluide et prestigieuse.
+        </p>
+      </div>
+
+      <div class="services-grid">
+        <!-- Service 1 -->
+        <div class="service-card">
+          <div class="service-icon-box">🎟️</div>
+          <h3 class="service-card-title">Billetterie Numérique & Invitations Calligraphiées</h3>
+          <p class="service-card-desc">
+            Chaque convive reçoit directement sur son WhatsApp un visuel haute fidélité calligraphié à son nom, accompagné d'un lien d'accès interactif et de son QR Code inviolable.
+          </p>
+          <ul class="service-points-list">
+            <li class="service-point-item">Nom de l'invité calligraphié avec raffinement</li>
+            <li class="service-point-item">Envoi direct en 1 clic par WhatsApp et SMS</li>
+            <li class="service-point-item">Gestion des confirmations RSVP et rappels automatiques</li>
+            <li class="service-point-item">Sécurité anti-copie et anti-doublon cryptographique</li>
+          </ul>
+        </div>
+
+        <!-- Service 2 -->
+        <div class="service-card">
+          <div class="service-icon-box">📱</div>
+          <h3 class="service-card-title">Le Compagnon de Table Interactif Sans Téléchargement</h3>
+          <p class="service-card-desc">
+            Aucune application à chercher sur l'App Store ou Google Play : un clic sur le lien ouvre instantanément l'application web de votre événement avec toutes les commodités.
+          </p>
+          <ul class="service-points-list">
+            <li class="service-point-item">Plan de salle interactif : table attitrée et voisins en direct</li>
+            <li class="service-point-item">Menu gastronomique numérique et carte des mets</li>
+            <li class="service-point-item">Programme minute par minute interactif</li>
+            <li class="service-point-item">Mur de prières, vœux et félicitations en temps réel</li>
+          </ul>
+        </div>
+
+        <!-- Service 3 -->
+        <div class="service-card">
+          <div class="service-icon-box">⚡</div>
+          <h3 class="service-card-title">Régie d'Accueil & Scan d'Entrée Instantané (0,2s)</h3>
+          <p class="service-card-desc">
+            Vos hôtesses d'accueil disposent d'un outil ultra-performant sur smartphone ou tablette : scan instantané du QR Code du billet pour valider la présence et afficher la table.
+          </p>
+          <ul class="service-points-list">
+            <li class="service-point-item">Scan caméra haute vitesse en 0,2 seconde</li>
+            <li class="service-point-item">Émargement et statistiques de présence en direct</li>
+            <li class="service-point-item">Alerte d'arrivée pour les VIP et personnalités de marque</li>
+            <li class="service-point-item">Fiches d'accueil de secours exportables en PDF officiel</li>
+          </ul>
+        </div>
+
+        <!-- Service 4 -->
+        <div class="service-card">
+          <div class="service-icon-box">📽️</div>
+          <h3 class="service-card-title">Scénographie en Direct & Écrans Géants</h3>
+          <p class="service-card-desc">
+            Connectez votre régie vidéo à notre interface grand écran pour faire vibrer toute la salle au rythme de votre événement et engager l'assemblée.
+          </p>
+          <ul class="service-points-list">
+            <li class="service-point-item">Projection live des vœux et photos capturées par les convives</li>
+            <li class="service-point-item">Compte à rebours théâtralisé avant l'ouverture officielle</li>
+            <li class="service-point-item">Jeux interactifs de table, quiz en direct et tirages au sort</li>
+            <li class="service-point-item">Ambiance visuelle coordonnée avec votre charte de couleur</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ÉTUDE DE CAS CONCRÈTE : DÎNER DE GALA 2026
+       ============================================================ -->
+  <section id="gala-2026" class="case-study-section">
+    <div class="container">
+      <div class="case-study-banner">
+        <div>
+          <span class="case-study-tag">Étude de Cas en Direct</span>
+          <h2 class="case-study-title">
+            Le Dîner de Gala 2026 : <span class="gold-text">20 Tables, 200+ Convives d'Élite</span>
+          </h2>
+          <p class="case-study-desc">
+            Découvrez en situation réelle comment la 2ème édition du Dîner de Gala (Salle Le Rocher des Âges) utilise notre billetterie dématérialisée, son plan de salle interactif et son programme minute par minute pour offrir une célébration mémorable.
+          </p>
+
+          <div class="case-study-badges">
+            <div class="case-badge">🏛️ Salle Le Rocher des Âges</div>
+            <div class="case-badge">🍷 20 Tables Prestige Numérotées</div>
+            <div class="case-badge">📱 100% WhatsApp & Sans Application</div>
+            <div class="case-badge">✨ Animation & Quiz en Direct</div>
+          </div>
+
+          <a href="/dinedegala2026/" class="btn-gala-live">
+            <span>🚀 Tester l'Application du Dîner de Gala 2026</span>
+            <span style="font-size: 1.2rem;">→</span>
+          </a>
+        </div>
+
+        <div class="case-study-mockup">
+          <img src="/billet-invitation-template.png" alt="Billet Officiel Dîner de Gala 2026">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TABLEAU COMPARATIF : PAPIER VS JOURS DE RENCONTRE
+       ============================================================ -->
+  <section id="comparatif" class="comparison-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Analyse Comparative</span>
+        <h2 class="section-title">
+          Pourquoi Abandonner le <span class="gold-text">Carton d'Invitation Papier ?</span>
+        </h2>
+        <p class="section-subtitle">
+          Comparez les coûts, les risques et l'expérience offerte à vos convives entre les méthodes traditionnelles et notre technologie d'élite.
+        </p>
+      </div>
+
+      <div class="comparison-table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th style="width: 34%;">Critères Essentiels</th>
+              <th style="width: 33%;">Cartons Papier Traditionnels</th>
+              <th style="width: 33%;" class="col-highlight">Jours de Rencontre (Prestige Numérique)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Distribution aux Invités</strong></td>
+              <td><span class="cross-mark">✕</span> Déplacement physique, frais de coursier, retards</td>
+              <td class="col-highlight"><span class="check-mark">✓</span> Envoi instantané en 1 clic sur WhatsApp & SMS</td>
+            </tr>
+            <tr>
+              <td><strong>Coût d'Impression & Délais</strong></td>
+              <td><span class="cross-mark">✕</span> Élevé (imprimeur, dorure, 2 à 3 semaines de délai)</td>
+              <td class="col-highlight"><span class="check-mark">✓</span> Mise en place rapide en 48h, zéro réimpression</td>
+            </tr>
+            <tr>
+              <td><strong>Plan de Table & Orientation</strong></td>
+              <td><span class="cross-mark">✕</span> Panneau d'affichage statique pris d'assaut à l'entrée</td>
+              <td class="col-highlight"><span class="check-mark">✓</span> Indication instantanée de la table sur le smartphone</td>
+            </tr>
+            <tr>
+              <td><strong>Temps d'Accueil & Émargement</strong></td>
+              <td><span class="cross-mark">✕</span> 30 à 60 secondes par invité (feuilles papier)</td>
+              <td class="col-highlight"><span class="check-mark">✓</span> 0,2 seconde via scan optique QR Code sécurisé</td>
+            </tr>
+            <tr>
+              <td><strong>Modification de Dernière Minute</strong></td>
+              <td><span class="cross-mark">✕</span> Impossible (erreur de nom ou changement de table)</td>
+              <td class="col-highlight"><span class="check-mark">✓</span> Mise à jour en temps réel sans renvoyer de support</td>
+            </tr>
+            <tr>
+              <td><strong>Interaction Pendant l'Événement</strong></td>
+              <td><span class="cross-mark">✕</span> Nulle (le carton d'invitation est jeté ou oublié)</td>
+              <td class="col-highlight"><span class="check-mark">✓</span> Menu, programme, chat, quiz, mur de vœux et photos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       QUESTIONS FRÉQUENTES (FAQ ACCORDÉON)
+       ============================================================ -->
+  <section id="faq" class="faq-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Vos Interrogations</span>
+        <h2 class="section-title">
+          Questions <span class="gold-text">Fréquemment Posées</span>
+        </h2>
+        <p class="section-subtitle">
+          Tout ce que vous devez savoir pour réussir la billetterie et l'accueil de votre prochain grand rassemblement.
+        </p>
+      </div>
+
+      <div class="faq-container">
+        <div class="faq-card">
+          <div class="faq-question">
+            <span>Les invités doivent-ils télécharger une application mobile ?</span>
+            <span class="faq-toggle-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Non, absolument pas ! C'est l'un de nos plus grands atouts : l'expérience est 100% accessible via navigateur web. Un simple clic sur le lien WhatsApp ou un scan du QR Code ouvre instantanément le billet et le compagnon de table, sans créer de compte ni saturer la mémoire du téléphone.
+          </div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-question">
+            <span>Comment envoyons-nous les invitations aux invités ?</span>
+            <span class="faq-toggle-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Depuis votre tableau de bord administrateur sécurisé, vous pouvez en 1 seul clic générer l'image calligraphiée en haute définition du billet avec le nom de l'invité et l'envoyer directement via WhatsApp accompagnée du texte protocolaire officiel.
+          </div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-question">
+            <span>Que se passe-t-il si la connexion internet est instable le jour J ?</span>
+            <span class="faq-toggle-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Nous prévoyons une double sécurité : notre application intègre un mode hors-ligne fluide et vous permet d'exporter et d'imprimer à tout moment les fiches d'accueil officielles par table en PDF avec tous les codes de secours. Vos hôtesses sont opérationnelles en toutes circonstances.
+          </div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-question">
+            <span>Peut-on personnaliser entièrement le design à nos couleurs ?</span>
+            <span class="faq-toggle-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Oui, totalement ! Notre studio s'adapte à votre charte : monogramme des mariés, armoiries familiales, logos institutionnels, polices d'écriture et couleurs (or impérial, émeraude, rubis, bleu nuit, rose poudré...).
+          </div>
+        </div>
+
+        <div class="faq-card">
+          <div class="faq-question">
+            <span>Combien de temps à l'avance faut-il commander ?</span>
+            <span class="faq-toggle-icon">+</span>
+          </div>
+          <div class="faq-answer">
+            Grâce à notre infrastructure agile, nous pouvons déployer votre billetterie complète en 48 à 72 heures. Pour des événements d'envergure (plus de 500 invités avec plan de table complexe), nous recommandons de nous contacter 2 à 3 semaines avant le lancement des invitations.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CALL TO ACTION FINAL
+       ============================================================ -->
+  <section class="final-cta-section">
+    <div class="container">
+      <div class="final-cta-card">
+        <h2 class="final-cta-title">
+          Donnez à Votre Prochain Événement <br><span class="gold-text">L'Éclat et le Prestige Qu'il Mérite</span>
+        </h2>
+        <p class="final-cta-subtitle">
+          Contactez notre équipe dès aujourd'hui pour une démonstration privée sur-mesure et recevez votre devis personnalisé en moins de 2 heures.
+        </p>
+
+        <div class="final-cta-buttons">
+          <a href="https://api.whatsapp.com/send?text=Bonjour%20Jours%20de%20Rencontre%2C%20je%20souhaite%20r%C3%A9server%20la%20billetterie%20num%C3%A9rique%20pour%20mon%20%C3%A9v%C3%A9nement." target="_blank" class="btn-primary-hero">
+            <span>💬 Échanger sur WhatsApp avec un Conseiller</span>
+          </a>
+          <a href="/dinedegala2026/" class="btn-secondary-hero">
+            <span>⭐ Explorer le Projet Dîner de Gala 2026</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PIED DE PAGE (FOOTER)
+       ============================================================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="brand-logo" style="margin-bottom: 1.2rem;">
+            <div class="brand-crest">JR</div>
+            <div>
+              <span class="brand-title">Jours de Rencontre</span>
+              <span class="brand-subtitle">Prestige & Cérémonies</span>
+            </div>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.7; max-width: 320px;">
+            Créateur d'expériences événementielles d'exception, billetterie numérique nominative et compagnon interactif en direct pour mariages, galas et sommets.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Nos Collections</h4>
+          <ul class="footer-links">
+            <li><a href="#studio-billets" class="footer-link">Mariage Princier & Royal</a></li>
+            <li><a href="#studio-billets" class="footer-link">Sommet B2B & Forum VIP</a></li>
+            <li><a href="#studio-billets" class="footer-link">Nuit Gospel & Célébration</a></li>
+            <li><a href="#studio-billets" class="footer-link">Anniversaire Jubilé Art Déco</a></li>
+            <li><a href="#studio-billets" class="footer-link">Gala de Charité & Mécénat</a></li>
+            <li><a href="#studio-billets" class="footer-link">Dîner de Gala Impérial</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Services Clé en Main</h4>
+          <ul class="footer-links">
+            <li><a href="#services" class="footer-link">Billetterie Dématérialisée</a></li>
+            <li><a href="#services" class="footer-link">Plan de Salle Interactif</a></li>
+            <li><a href="#services" class="footer-link">Régie d'Accueil Ultra-Rapide</a></li>
+            <li><a href="#services" class="footer-link">Scénographie & Écrans Live</a></li>
+            <li><a href="#comparatif" class="footer-link">Comparatif Papier vs Digital</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="footer-col-title">Accès Direct</h4>
+          <ul class="footer-links">
+            <li><a href="/dinedegala2026/" class="footer-link" style="color: #FFF1B0; font-weight: 700;">⭐ Dîner de Gala 2026</a></li>
+            <li><a href="/login/admin/" class="footer-link">🔐 Espace Organisateur</a></li>
+            <li><a href="#faq" class="footer-link">Foire aux Questions</a></li>
+            <li><a href="https://api.whatsapp.com/send?text=Bonjour%20Jours%20de%20Rencontre" target="_blank" class="footer-link">Contact WhatsApp</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          © 2026 Jours de Rencontre (joursderencontre.com). Tous droits réservés.
+        </div>
+        <div style="display: flex; gap: 1.5rem;">
+          <span>Confidentialité & Prestige</span>
+          <span>Conditions Générales</span>
+          <span>Mentions Légales</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Module Script JavaScript -->
+  <script type="module" src="/src/js/landing.js"></script>
 </body>
 </html>

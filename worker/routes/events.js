@@ -273,6 +273,8 @@ export async function handleEventRoutes(pathname, request, env) {
       guestId = buildPersonalizedGuestTicketId(name, coupleName, ticketType);
     }
 
+    const role = (data.role || data.rank || "Invitée de Marque").trim();
+
     if (db) {
       try {
         await db.prepare(`
@@ -280,8 +282,8 @@ export async function handleEventRoutes(pathname, request, env) {
             id, event_id, name, table_number, phone, invited_by, registration_source,
             gender, ticket_type, partner_name, couple_name, photo_url,
             avatar_emoji, role, created_at, last_active
-          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, ?, ?, ?, ?, ?, 'invite', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).bind(guestId, name, assignedTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji).run();
+          ) VALUES (?, 'default', ?, ?, ?, ?, 'link', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(guestId, name, assignedTable, phone, invitedBy, gender, ticketType, partnerName, coupleName, photoUrl, avatarEmoji, role).run();
       } catch (err) {
         console.error("Erreur insertion invité par lien:", err);
         return errorResponse("Erreur base de données: " + err.message, 500);
@@ -301,7 +303,7 @@ export async function handleEventRoutes(pathname, request, env) {
       couple_name: coupleName,
       photo_url: photoUrl,
       avatar_emoji: avatarEmoji,
-      role: 'invite',
+      role: role,
       token: `token-${guestId}`
     };
 

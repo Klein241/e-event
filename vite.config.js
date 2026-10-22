@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   root: '.',
@@ -9,8 +10,9 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       input: {
-        main: './index.html',
-        admin: './login/admin/index.html'
+        main: resolve(__dirname, 'index.html'),
+        gala: resolve(__dirname, 'dinedegala2026/index.html'),
+        admin: resolve(__dirname, 'login/admin/index.html')
       }
     }
   },

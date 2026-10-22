@@ -659,7 +659,7 @@
         </div>
 
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
-          <input type="text" id="admin-invitation-link-input" value="https://joursderencontre.com/?invite=gala2026" class="admin-input" readonly style="flex: 1; min-width: 260px; font-weight: 600; background: var(--bg-card); cursor: copy;" onclick="this.select()">
+          <input type="text" id="admin-invitation-link-input" value="https://joursderencontre.com/dinedegala2026/?invite=gala2026" class="admin-input" readonly style="flex: 1; min-width: 260px; font-weight: 600; background: var(--bg-card); cursor: copy;" onclick="this.select()">
           
           <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.copyInvitationLink()">
             📋 Copier le lien
@@ -667,7 +667,7 @@
           <button type="button" class="btn-table-action" style="background: #25D366; color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.shareInvitationWhatsApp()">
             💬 Partager sur WhatsApp
           </button>
-          <a id="admin-invitation-test-btn" href="https://joursderencontre.com/?invite=gala2026" target="_blank" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); font-weight: 700; padding: 8px 14px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <a id="admin-invitation-test-btn" href="https://joursderencontre.com/dinedegala2026/?invite=gala2026" target="_blank" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); font-weight: 700; padding: 8px 14px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
             👁️ Tester l'invitation
           </a>
           <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #7d773c, #9d9247); color: #fff; font-weight: 800; padding: 8px 16px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 12px rgba(125, 119, 60, 0.35);" onclick="window.exportGuestsReceptionSheet('link')" title="Imprimer ou enregistrer en PDF la fiche d'accueil officielle des invités par lien">
@@ -726,7 +726,7 @@
             <p>Consultez, filtrez par parrain/hôte et gérez les participants (en salle ou par lien)</p>
           </div>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="btn-table-action" onclick="window.exportGuestsReceptionSheet('link')" style="background: linear-gradient(135deg, #7d773c, #9d9247); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(125, 119, 60, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;" title="Exporter la fiche d'accueil officielle imprimable pour la réception">
+            <button type="button" class="btn-table-action" onclick="window.exportGuestsReceptionSheet('current')" style="background: linear-gradient(135deg, #7d773c, #9d9247); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(125, 119, 60, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;" title="Exporter la fiche d'accueil officielle imprimable pour la réception">
               <span>📋</span> Fiche d'Accueil (PDF)
             </button>
             <button type="button" class="btn-table-action" onclick="window.openCreateGuestModal()" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
@@ -1204,6 +1204,26 @@
           </div>
         </div>
 
+        <!-- Rang & Distinctions -->
+        <div style="margin-bottom: 14px;">
+          <label for="admin-input-guest-rank" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            🎖️ Rang & Distinctions
+          </label>
+          <input type="text" id="admin-input-guest-rank" class="admin-input" list="admin-ranks-datalist" placeholder="Ex: Invitée d'Honneur, VIP, Table Présidentielle...">
+          <datalist id="admin-ranks-datalist">
+            <option value="Invitée d'Honneur">
+            <option value="Invité d'Honneur">
+            <option value="Invitée de Marque">
+            <option value="Invité de Marque">
+            <option value="Table Présidentielle">
+            <option value="VIP d'Honneur">
+            <option value="Keynote Speaker & Délégué">
+            <option value="Mécène & Bienfaiteur">
+            <option value="Famille d'Honneur">
+            <option value="Convive de Marque">
+          </datalist>
+        </div>
+
         <!-- WhatsApp -->
         <div style="margin-bottom: 14px;">
           <label for="admin-input-guest-phone" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
@@ -1348,6 +1368,14 @@
             </label>
             <input type="text" id="admin-edit-host" class="admin-input" placeholder="Nom de l'hôte" list="admin-hosts-datalist" required>
           </div>
+        </div>
+
+        <!-- Rang & Distinctions -->
+        <div style="margin-bottom: 14px;">
+          <label for="admin-edit-rank" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
+            🎖️ Rang & Distinctions
+          </label>
+          <input type="text" id="admin-edit-rank" class="admin-input" list="admin-ranks-datalist" placeholder="Ex: Invitée d'Honneur, VIP, Table Présidentielle...">
         </div>
 
         <!-- WhatsApp -->

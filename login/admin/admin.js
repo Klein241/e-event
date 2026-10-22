@@ -36,13 +36,13 @@ export function buildGuestTicketId(name, coupleName, ticketType) {
 window.buildGuestTicketId = buildGuestTicketId;
 
 export function getCanonicalTicketUrl(guest) {
-  if (!guest) return `${getCanonicalOrigin()}/?invite=gala2026`;
+  if (!guest) return `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;
   const origin = getCanonicalOrigin();
   const ticketId = encodeURIComponent(guest.id || '');
   const guestName = (guest.ticket_type === 'couple' && guest.couple_name) ? guest.couple_name : (guest.name || '');
   const cleanName = guestName.replace(/^(m\.|mme|mr|monsieur|madame)\s+/i, '').trim();
   const nameParam = cleanName ? `&nom=${encodeURIComponent(cleanName)}` : '';
-  return `${origin}/?ticket=${ticketId}${nameParam}`;
+  return `${origin}/dinedegala2026/?ticket=${ticketId}${nameParam}`;
 }
 window.getCanonicalTicketUrl = getCanonicalTicketUrl;
 
@@ -1183,6 +1183,7 @@ window.saveManualGuest = async () => {
   const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
   const host = document.getElementById('admin-input-guest-host')?.value.trim() || 'Admin';
   const phone = document.getElementById('admin-input-guest-phone')?.value.trim() || '';
+  const rank = document.getElementById('admin-input-guest-rank')?.value.trim() || "Invitée de Marque";
 
   if (!name) {
     showAdminToast("Veuillez saisir le nom de l'invité", "warning");
@@ -1207,6 +1208,7 @@ window.saveManualGuest = async () => {
       couple_name: coupleName,
       table_number: cleanTable,
       invited_by: host,
+      role: rank,
       phone,
       photo_url: currentAdminGuestPhotoBase64 || '',
       registration_source: 'link'
@@ -1229,7 +1231,7 @@ window.saveManualGuest = async () => {
 };
 
 window.copyInvitationLink = () => {
-  const url = `${getCanonicalOrigin()}/?invite=gala2026`;
+  const url = `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;
   const input = document.getElementById('admin-invitation-link-input');
   if (input) input.value = url;
   navigator.clipboard.writeText(url).then(() => {
@@ -1240,7 +1242,7 @@ window.copyInvitationLink = () => {
 };
 
 window.shareInvitationWhatsApp = () => {
-  const url = `${getCanonicalOrigin()}/?invite=gala2026`;
+  const url = `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;
   const text =
     `*INVITATION OFFICIELLE - 2ÈME ÉDITION DU DÎNER DE GALA*\n\n` +
     `⭐ Vous êtes chaleureusement invité(e) à la 2ème édition de notre prestigieux Dîner de Gala le *Samedi 24 Octobre 2026 dès 15h00* !\n\n` +
@@ -1462,7 +1464,7 @@ function renderGuests(guests) {
   if (countLinkEl) countLinkEl.textContent = linkCount;
 
   // Initialiser l'URL du lien d'invitation avec le domaine officiel
-  const canonicalInviteUrl = `${getCanonicalOrigin()}/?invite=gala2026`;
+  const canonicalInviteUrl = `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;
   const linkInput = document.getElementById('admin-invitation-link-input');
   if (linkInput) {
     linkInput.value = canonicalInviteUrl;
@@ -1833,7 +1835,80 @@ window.openGuestCRM = (guestId) => {
   modal.style.display = 'flex';
 };
 
-window.adminShareGuestTicketWhatsApp = (guestId) => {
+async function generateGuestTicketBlob(guest) {
+  try {
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+  } catch(e) {}
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 921;
+  const ctx = canvas.getContext('2d');
+
+  const img = new Image();
+
+  await new Promise((resolve) => {
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, 1024, 921);
+
+      let textToInscribe = '';
+      if (guest.ticket_type === 'couple') {
+        const rawCouple = (guest.couple_name || `Couple ${guest.name}`).trim();
+        if (/^couple\s+/i.test(rawCouple)) {
+          textToInscribe = 'Couple ' + rawCouple.replace(/^couple\s+/i, '').trim();
+        } else {
+          textToInscribe = rawCouple;
+        }
+      } else {
+        const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+        const cleanName = (guest.name || '').replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+        textToInscribe = `${prefix}${cleanName}`.trim();
+      }
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.45)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+
+      let fontSize = 36;
+      if (textToInscribe.length > 34) fontSize = 24;
+      else if (textToInscribe.length > 26) fontSize = 28;
+      else if (textToInscribe.length > 18) fontSize = 32;
+
+      ctx.font = `700 ${fontSize}px "Playfair Display", Georgia, "Brush Script MT", cursive, serif`;
+      ctx.fillStyle = '#1c130d';
+      ctx.fillText(textToInscribe, 512, 94);
+
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      const cleanTableNum = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim();
+      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#8B5A2B';
+      ctx.textAlign = 'right';
+      ctx.fillText(`TABLE ${cleanTableNum}`, 930, 48);
+
+      resolve();
+    };
+
+    img.onerror = () => {
+      console.warn("Échec chargement image fond billet");
+      resolve();
+    };
+
+    img.src = '/billet-invitation-template.png';
+  });
+
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+
+window.adminShareGuestTicketWhatsApp = async (guestId) => {
   const guest = (AdminState.guests || []).find(g => g.id === guestId);
   if (!guest) return;
 
@@ -1862,13 +1937,59 @@ window.adminShareGuestTicketWhatsApp = (guestId) => {
     `📍 *Lieu :* Salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
     `🎟️ *Voir mon Billet Officiel en 3D & Accéder à la Cérémonie :*\n${ticketUrl}`;
 
+  const filenameSafe = (guest.couple_name || guest.name || 'Billet').replace(/[^a-zA-Z0-9]/g, '_');
+
+  showAdminToast("Génération du billet officiel en cours...", "info");
+
+  try {
+    const blob = await generateGuestTicketBlob(guest);
+    if (blob) {
+      const ticketFile = new File([blob], `Billet-Gala-2026-${filenameSafe}.png`, { type: 'image/png' });
+
+      // 1. Sur Smartphone / Navigateur supportant le partage direct natif avec fichier (Android, iPhone)
+      if (navigator.canShare && navigator.canShare({ files: [ticketFile] })) {
+        try {
+          await navigator.share({
+            title: `Billet d'Invitation - ${displayName}`,
+            text: cleanMessage,
+            files: [ticketFile]
+          });
+          showAdminToast("Billet et invitation partagés avec succès ! ✨", "success");
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          console.warn("Échec partage natif régie, bascule vers WhatsApp Web:", err);
+        }
+      }
+
+      // 2. Sur Desktop / PC : Copie de l'image dans le presse-papier + Téléchargement automatique
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+        }
+      } catch (e) {}
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Billet-Gala-2026-${filenameSafe}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch (err) {
+    console.warn("Erreur génération image billet régie:", err);
+  }
+
+  // 3. Ouvrir WhatsApp avec le message texte formaté
   let waPhone = (guest.phone || '').replace(/[^0-9]/g, '');
   const waUrl = waPhone
     ? `https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(cleanMessage)}`
     : `https://api.whatsapp.com/send?text=${encodeURIComponent(cleanMessage)}`;
 
   window.open(waUrl, '_blank');
-  showAdminToast("Lien du billet officiel 3D préparé pour WhatsApp ! 💬", "success");
+  showAdminToast("Image du billet téléchargée et texte préparé pour WhatsApp ! 💬", "success");
 };
 
 window.closeGuestCRM = () => {
@@ -1892,6 +2013,10 @@ window.openEditGuestModal = (guestId) => {
   document.getElementById('admin-edit-phone').value = guest.phone || '';
   document.getElementById('admin-edit-table').value = (guest.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim();
   document.getElementById('admin-edit-host').value = guest.invited_by || '';
+  const rankEl = document.getElementById('admin-edit-rank');
+  if (rankEl) {
+    rankEl.value = (guest.role && guest.role !== 'invite') ? guest.role : (guest.rank || "Invitée de Marque");
+  }
   document.getElementById('admin-edit-profession').value = guest.profession || '';
   document.getElementById('admin-edit-company').value = guest.company || '';
   document.getElementById('admin-edit-residence').value = guest.residence_location || '';
@@ -1958,6 +2083,7 @@ window.saveEditedGuest = async () => {
   const cleanTable = rawTable.toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
   const host = document.getElementById('admin-edit-host').value.trim();
   const phone = document.getElementById('admin-edit-phone').value.trim();
+  const rank = document.getElementById('admin-edit-rank')?.value.trim() || "Invitée de Marque";
   const profession = document.getElementById('admin-edit-profession').value.trim();
   const company = document.getElementById('admin-edit-company').value.trim();
   const residence = document.getElementById('admin-edit-residence').value.trim();
@@ -1985,6 +2111,7 @@ window.saveEditedGuest = async () => {
         couple_name: coupleName,
         table_number: cleanTable,
         invited_by: host,
+        role: rank,
         phone,
         profession,
         company,
@@ -2017,12 +2144,6 @@ window.exportGuestPDF = (guestId) => {
   const guest = AdminState.guests.find(g => g.id === guestId);
   if (!guest) return;
 
-  const printWindow = window.open('', '_blank', 'width=800,height=900');
-  if (!printWindow) {
-    alert("Veuillez autoriser les fenêtres pop-up pour imprimer ou exporter en PDF.");
-    return;
-  }
-
   const prayers = guest.prayers_history || [];
   const prayersList = prayers.map(p => `
     <div style="border-left: 3px solid #f59e0b; padding-left: 12px; margin-bottom: 12px;">
@@ -2033,558 +2154,596 @@ window.exportGuestPDF = (guestId) => {
     </div>
   `).join('');
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-      <meta charset="UTF-8">
-      <title>Fiche Participant - ${escapeHtml(guest.name)}</title>
-      <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; color: #222; line-height: 1.5; }
-        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #ea580c; padding-bottom: 14px; margin-bottom: 20px; }
-        .title { font-size: 22px; font-weight: bold; color: #ea580c; margin: 0; }
-        .badge { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 999px; font-weight: bold; font-size: 12px; }
-        .section { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
-        .section h3 { margin-top: 0; font-size: 14px; color: #475569; text-transform: uppercase; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
-        .footer { margin-top: 30px; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
-        @media print { button { display: none; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div>
-          <div class="title">${escapeHtml(guest.name)}</div>
-          <div style="font-size: 13px; color: #64748b;">Table : <strong>Table ${escapeHtml(guest.table_number || '1')}</strong> • Score : <strong>${guest.points || 0} pts</strong></div>
-        </div>
-        <button onclick="window.print()" style="padding: 8px 16px; background: #ea580c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-          🖨️ Imprimer / Enregistrer PDF
-        </button>
-      </div>
+  const fullHtml = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fiche Participant - ${escapeHtml(guest.name)}</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; color: #222; line-height: 1.5; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #ea580c; padding-bottom: 14px; margin-bottom: 20px; }
+    .title { font-size: 22px; font-weight: bold; color: #ea580c; margin: 0; }
+    .badge { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 999px; font-weight: bold; font-size: 12px; }
+    .section { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+    .section h3 { margin-top: 0; font-size: 14px; color: #475569; text-transform: uppercase; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+    .footer { margin-top: 30px; font-size: 11px; text-align: center; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+    @media print { button { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">${escapeHtml(guest.name)}</div>
+      <div style="font-size: 13px; color: #64748b;">Table : <strong>Table ${escapeHtml(guest.table_number || '1')}</strong> • Rang : <strong>${escapeHtml(guest.role && guest.role !== 'invite' ? guest.role : (guest.rank || "Invitée de Marque"))}</strong> • Score : <strong>${guest.points || 0} pts</strong></div>
+    </div>
+    <button onclick="window.print()" style="padding: 8px 16px; background: #ea580c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+      🖨️ Imprimer / Enregistrer PDF
+    </button>
+  </div>
 
-      <div class="section">
-        <h3>📍 Coordonnées & Situation Professionnelle</h3>
-        <div class="grid">
-          <div><strong>Lieu de résidence :</strong> ${escapeHtml(guest.residence_location || 'Non renseigné')}</div>
-          <div><strong>Téléphone :</strong> ${escapeHtml(guest.phone || 'Non renseigné')}</div>
-          <div><strong>Profession / Métier :</strong> ${escapeHtml(guest.profession || 'Non renseigné')}</div>
-          <div><strong>Lieu de travail / Entreprise :</strong> ${escapeHtml(guest.company || 'Non renseigné')}</div>
-        </div>
-      </div>
+  <div class="section">
+    <h3>📍 Coordonnées & Situation Professionnelle</h3>
+    <div class="grid">
+      <div><strong>Lieu de résidence :</strong> ${escapeHtml(guest.residence_location || 'Non renseigné')}</div>
+      <div><strong>Téléphone :</strong> ${escapeHtml(guest.phone || 'Non renseigné')}</div>
+      <div><strong>Profession / Métier :</strong> ${escapeHtml(guest.profession || 'Non renseigné')}</div>
+      <div><strong>Lieu de travail / Entreprise :</strong> ${escapeHtml(guest.company || 'Non renseigné')}</div>
+    </div>
+  </div>
 
-      <div class="section">
-        <h3>⛪ Vie Spirituelle & Église</h3>
-        <div class="grid">
-          <div><strong>Fréquente une église :</strong> ${guest.has_church ? 'Oui' : 'Non'}</div>
-          <div><strong>Nom de l'église :</strong> ${escapeHtml(guest.church_name || 'Non renseigné')}</div>
-          <div><strong>Ancienneté :</strong> ${escapeHtml(guest.church_duration || 'Non renseigné')}</div>
-        </div>
-      </div>
+  <div class="section">
+    <h3>⛪ Vie Spirituelle & Église</h3>
+    <div class="grid">
+      <div><strong>Fréquente une église :</strong> ${guest.has_church ? 'Oui' : 'Non'}</div>
+      <div><strong>Nom de l'église :</strong> ${escapeHtml(guest.church_name || 'Non renseigné')}</div>
+      <div><strong>Ancienneté :</strong> ${escapeHtml(guest.church_duration || 'Non renseigné')}</div>
+    </div>
+  </div>
 
-      <div class="section">
-        <h3>🙏 Requêtes de Prière (${prayers.length})</h3>
-        ${prayersList || '<p style="font-size: 13px; color: #666;">Aucune demande de prière enregistrée.</p>'}
-      </div>
+  <div class="section">
+    <h3>🙏 Requêtes de Prière (${prayers.length})</h3>
+    ${prayersList || '<p style="font-size: 13px; color: #666;">Aucune demande de prière enregistrée.</p>'}
+  </div>
 
-      <div class="footer">
-        Compagnon de Cérémonie • Dîner de Gala • Fiche générée le ${new Date().toLocaleString()}
-      </div>
+  <div class="footer">
+    Compagnon de Cérémonie • Dîner de Gala • Fiche générée le ${new Date().toLocaleString()}
+  </div>
 
-      <script>
-        window.onload = function() {
-          setTimeout(function() { window.print(); }, 400);
-        };
-      </script>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 400);
+    };
+  </script>
+</body>
+</html>`;
+
+  try {
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(blobUrl, '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      alert("Veuillez autoriser les fenêtres pop-up pour imprimer ou exporter en PDF.");
+    }
+  } catch (e) {
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(fullHtml);
+      printWindow.document.close();
+    } else {
+      alert("Veuillez autoriser les fenêtres pop-up pour imprimer ou exporter en PDF.");
+    }
+  }
 };
 
-window.exportGuestsReceptionSheet = (filterMode = 'link') => {
-  // 1. Filtrer les invités
-  let guests = AdminState.guests || [];
-  if (filterMode === 'link') {
-    guests = guests.filter(g => g.registration_source === 'link');
-  } else if (filterMode === 'salle') {
-    guests = guests.filter(g => g.registration_source !== 'link');
-  }
-
-  // Respecter le filtre d'hôte s'il est actif dans l'admin (normalisation canonique)
-  const hostFilter = document.getElementById('admin-guest-host-filter')?.value;
-  if (hostFilter) {
-    guests = guests.filter(g => getHostKey(g.invited_by) === hostFilter || (g.invited_by || '').toLowerCase().trim() === hostFilter.toLowerCase());
-  }
-
-  // Si aucun invité n'est encore enregistré
-  if (guests.length === 0) {
-    const confirmBlank = confirm(
-      "Aucun invité par lien n'est encore enregistré avec ces critères.\n\nSouhaitez-vous générer le gabarit officiel vierge des Tables (A, D, F, G, H...) pour que l'équipe d'accueil puisse noter les présences manuellement sur papier ?"
-    );
-    if (!confirmBlank) return;
-    
-    // Gabarit de tables officielles vierges
-    const sampleTables = ['A', 'D', 'F', 'G', 'H', 'I'];
-    guests = sampleTables.map(t => ({
-      name: '',
-      table_number: t,
-      invited_by: hostFilter || 'Hôte Officiel',
-      phone: '',
-      is_placeholder: true
-    }));
-  }
-
-  // 2. Regrouper par Table puis par Hôte (normalisation canonique insensible à la casse Micky vs micky)
-  const groupMap = {};
-  guests.forEach(g => {
-    const rawTable = (g.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
-    const rawHost = (g.invited_by || '').trim();
-    const hostKey = getHostKey(rawHost);
-    const key = `${rawTable}___${hostKey}`;
-    if (!groupMap[key]) {
-      groupMap[key] = {
-        table: rawTable,
-        host: getHostDisplayName(rawHost),
-        items: []
-      };
+window.exportGuestsReceptionSheet = (filterMode = 'current') => {
+  try {
+    let mode = filterMode;
+    if (mode === 'current') {
+      mode = (typeof currentGuestSubTab !== 'undefined' && currentGuestSubTab) ? currentGuestSubTab : 'all';
     }
-    if (rawHost.length > groupMap[key].host.length || (rawHost !== rawHost.toLowerCase() && groupMap[key].host === groupMap[key].host.toLowerCase())) {
-      groupMap[key].host = getHostDisplayName(rawHost);
-    }
-    if (!g.is_placeholder) {
-      groupMap[key].items.push(g);
-    }
-  });
 
-  // Trier les groupes par Table (A, A', B, C...) puis par Hôte
-  const groups = Object.values(groupMap).sort((a, b) => {
-    const cmp = a.table.localeCompare(b.table, undefined, { numeric: true });
-    if (cmp !== 0) return cmp;
-    return a.host.localeCompare(b.host);
-  });
+    // 1. Filtrer les invités
+    let guests = AdminState.guests || [];
+    if (mode === 'link') {
+      guests = guests.filter(g => g.registration_source === 'link');
+    } else if (mode === 'salle') {
+      guests = guests.filter(g => g.registration_source !== 'link');
+    }
 
-  // 3. Découper en blocs de 10 places
-  const blocks = [];
-  groups.forEach(grp => {
-    if (grp.items.length === 0) {
-      blocks.push({
-        table: grp.table,
-        host: grp.host,
-        items: []
-      });
-    } else {
-      for (let i = 0; i < grp.items.length; i += 10) {
-        const slice = grp.items.slice(i, i + 10);
-        const isFollowUp = i > 0;
+    // Respecter le filtre d'hôte s'il est actif dans l'admin (normalisation canonique)
+    const hostFilter = document.getElementById('admin-guest-host-filter')?.value;
+    if (hostFilter) {
+      guests = guests.filter(g => getHostKey(g.invited_by) === hostFilter || (g.invited_by || '').toLowerCase().trim() === hostFilter.toLowerCase());
+    }
+
+    // Si aucun invité n'est encore enregistré avec ces critères
+    if (guests.length === 0) {
+      const labelMode = mode === 'link' ? "par lien" : (mode === 'salle' ? "en salle" : "enregistré");
+      const confirmBlank = confirm(
+        `Aucun invité ${labelMode} n'est actuellement trouvé avec ces filtres.\n\nSouhaitez-vous générer le gabarit officiel vierge des Tables (A, D, F, G, H...) pour que l'équipe d'accueil puisse noter les présences manuellement sur papier ?`
+      );
+      if (!confirmBlank) return;
+      
+      // Gabarit de tables officielles vierges
+      const sampleTables = ['A', 'D', 'F', 'G', 'H', 'I'];
+      guests = sampleTables.map(t => ({
+        name: '',
+        table_number: t,
+        invited_by: hostFilter || 'Hôte Officiel',
+        phone: '',
+        is_placeholder: true
+      }));
+    }
+
+    // 2. Regrouper par Table puis par Hôte (normalisation canonique insensible à la casse Micky vs micky)
+    const groupMap = {};
+    guests.forEach(g => {
+      const rawTable = (g.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+      const rawHost = (g.invited_by || '').trim();
+      const hostKey = getHostKey(rawHost);
+      const key = `${rawTable}___${hostKey}`;
+      if (!groupMap[key]) {
+        groupMap[key] = {
+          table: rawTable,
+          host: getHostDisplayName(rawHost),
+          items: []
+        };
+      }
+      if (rawHost.length > groupMap[key].host.length || (rawHost !== rawHost.toLowerCase() && groupMap[key].host === groupMap[key].host.toLowerCase())) {
+        groupMap[key].host = getHostDisplayName(rawHost);
+      }
+      if (!g.is_placeholder) {
+        groupMap[key].items.push(g);
+      }
+    });
+
+    // Trier les groupes par Table (A, A', B, C...) puis par Hôte
+    const groups = Object.values(groupMap).sort((a, b) => {
+      const cmp = a.table.localeCompare(b.table, undefined, { numeric: true });
+      if (cmp !== 0) return cmp;
+      return a.host.localeCompare(b.host);
+    });
+
+    // 3. Découper en blocs de 10 places
+    const blocks = [];
+    groups.forEach(grp => {
+      if (grp.items.length === 0) {
         blocks.push({
           table: grp.table,
-          host: isFollowUp ? `${grp.host} (suite)` : grp.host,
-          items: slice
+          host: grp.host,
+          items: []
         });
+      } else {
+        for (let i = 0; i < grp.items.length; i += 10) {
+          const slice = grp.items.slice(i, i + 10);
+          const isFollowUp = i > 0;
+          blocks.push({
+            table: grp.table,
+            host: isFollowUp ? `${grp.host} (suite)` : grp.host,
+            items: slice
+          });
+        }
       }
+    });
+
+    // 4. Découper en pages de MAXIMUM 3 tables par page A4 (Adaptabilité dynamique demandée par le client)
+    const BLOCKS_PER_PAGE = 3;
+    const pages = [];
+    for (let i = 0; i < blocks.length; i += BLOCKS_PER_PAGE) {
+      const pageSlice = blocks.slice(i, i + BLOCKS_PER_PAGE);
+      pages.push(pageSlice);
     }
-  });
 
-  // 4. Découper en pages de MAXIMUM 3 tables par page A4 (Adaptabilité dynamique demandée par le client)
-  // Une table a 10 places. Avec 3 tables par page, même avec des noms longs (ex: M. KENFACK TONFACK GUIVIS HOUSTONE),
-  // aucune table n'est coupée à la cellule 5 !
-  const BLOCKS_PER_PAGE = 3;
-  const pages = [];
-  for (let i = 0; i < blocks.length; i += BLOCKS_PER_PAGE) {
-    const pageSlice = blocks.slice(i, i + BLOCKS_PER_PAGE);
-    pages.push(pageSlice);
-  }
+    // 5. Rendu HTML de chaque page A4
+    const pagesHtml = pages.map((pageBlocks, pageIndex) => {
+      const blocksHtml = pageBlocks.map(block => {
+        // 10 lignes par bloc
+        let rowsHtml = '';
+        for (let rowIdx = 1; rowIdx <= 10; rowIdx++) {
+          const guest = block.items[rowIdx - 1];
+          let guestName = '';
+          let guestRank = '';
+          let guestPhone = '';
 
-  // 5. Ouvrir la fenêtre d'impression
-  const printWindow = window.open('', '_blank', 'width=1150,height=960');
-  if (!printWindow) {
-    alert("Veuillez autoriser les fenêtres pop-up de votre navigateur pour imprimer ou enregistrer en PDF la fiche d'accueil.");
-    return;
-  }
-
-  // 6. Rendu HTML de chaque page A4
-  const pagesHtml = pages.map((pageBlocks, pageIndex) => {
-    const blocksHtml = pageBlocks.map(block => {
-      // 10 lignes par bloc
-      let rowsHtml = '';
-      for (let rowIdx = 1; rowIdx <= 10; rowIdx++) {
-        const guest = block.items[rowIdx - 1];
-        let guestName = '';
-        let guestPhone = '';
-
-        if (guest) {
-          if (guest.ticket_type === 'couple') {
-            let rawCouple = (guest.couple_name || guest.name || '').trim();
-            // Nettoyer pour éviter la répétition "Couple couple ..."
-            rawCouple = rawCouple.replace(/^couple\s+/i, '').trim();
-            let cName = `Couple ${rawCouple}`;
-            let details = '';
-            if (guest.name && guest.partner_name) {
-              const cleanP1 = (guest.name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
-              const cleanP2 = (guest.partner_name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
-              details = ` (${cleanP1} & ${cleanP2})`;
+          if (guest) {
+            if (guest.ticket_type === 'couple') {
+              let rawCouple = (guest.couple_name || guest.name || '').trim();
+              rawCouple = rawCouple.replace(/^couple\s+/i, '').trim();
+              let cName = `Couple ${rawCouple}`;
+              let details = '';
+              if (guest.name && guest.partner_name) {
+                const cleanP1 = (guest.name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
+                const cleanP2 = (guest.partner_name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
+                details = ` (${cleanP1} & ${cleanP2})`;
+              }
+              guestName = `<strong>${escapeHtml(cName)}</strong>${escapeHtml(details)}`;
+            } else {
+              let cleanN = (guest.name || '').trim();
+              cleanN = cleanN.replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+              const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+              guestName = `${prefix}<strong>${escapeHtml(cleanN)}</strong>`;
             }
-            guestName = `<strong>${escapeHtml(cName)}</strong>${escapeHtml(details)}`;
-          } else {
-            let cleanN = (guest.name || '').trim();
-            cleanN = cleanN.replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
-            const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
-            guestName = `${prefix}<strong>${escapeHtml(cleanN)}</strong>`;
+            guestPhone = escapeHtml(guest.phone || '');
+            const rawRole = (guest.role || guest.rank || '').trim();
+            if (rawRole && !/^(invite|invitée de marque|invitee de marque)$/i.test(rawRole)) {
+              guestName += ` <span style="font-size: 9.5px; font-weight: 700; color: #7d773c; margin-left: 4px;">[${escapeHtml(rawRole)}]</span>`;
+            }
           }
-          guestPhone = escapeHtml(guest.phone || '');
+
+          // Ligne 1 : inclut les cellules fusionnées (Hôte à gauche, Table à droite)
+          if (rowIdx === 1) {
+            rowsHtml += `
+              <tr>
+                <td rowspan="10" class="col-host">
+                  <div class="host-name-box">
+                    <div class="host-name-label">Invité par :</div>
+                    <div class="host-name-text">${escapeHtml(block.host)}</div>
+                  </div>
+                </td>
+                <td class="col-num">${rowIdx}</td>
+                <td class="col-name">${guestName}</td>
+                <td class="col-phone">${guestPhone}</td>
+                <td rowspan="10" class="col-table">
+                  <div class="table-name-text">TABLE ${escapeHtml(block.table)}</div>
+                </td>
+              </tr>
+            `;
+          } else {
+            rowsHtml += `
+              <tr>
+                <td class="col-num">${rowIdx}</td>
+                <td class="col-name">${guestName}</td>
+                <td class="col-phone">${guestPhone}</td>
+              </tr>
+            `;
+          }
         }
 
-        // Ligne 1 : inclut les cellules fusionnées (Hôte à gauche, Table à droite)
-        if (rowIdx === 1) {
-          rowsHtml += `
-            <tr>
-              <td rowspan="10" class="col-host">
-                <div class="host-name-box">
-                  <div class="host-name-label">Invité par :</div>
-                  <div class="host-name-text">${escapeHtml(block.host)}</div>
-                </div>
-              </td>
-              <td class="col-num">${rowIdx}</td>
-              <td class="col-name">${guestName}</td>
-              <td class="col-phone">${guestPhone}</td>
-              <td rowspan="10" class="col-table">
-                <div class="table-name-text">TABLE ${escapeHtml(block.table)}</div>
-              </td>
-            </tr>
-          `;
-        } else {
-          rowsHtml += `
-            <tr>
-              <td class="col-num">${rowIdx}</td>
-              <td class="col-name">${guestName}</td>
-              <td class="col-phone">${guestPhone}</td>
-            </tr>
-          `;
-        }
-      }
+        return `
+          <div class="block-wrapper">
+            <table class="block-table">
+              <thead>
+                <tr class="header-band-row">
+                  <th colspan="5" class="header-band"></th>
+                </tr>
+                <tr class="header-labels-row">
+                  <th class="th-host">Inviter par</th>
+                  <th class="th-num">N°</th>
+                  <th class="th-name">Nom de l'invité</th>
+                  <th class="th-phone">N° TEL</th>
+                  <th class="th-table-blank">TABLE</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }).join('');
 
       return `
-        <div class="block-wrapper">
-          <table class="block-table">
-            <thead>
-              <tr class="header-band-row">
-                <th colspan="5" class="header-band"></th>
-              </tr>
-              <tr class="header-labels-row">
-                <th class="th-host">Inviter par</th>
-                <th class="th-num">N°</th>
-                <th class="th-name">Nom de l'invité</th>
-                <th class="th-phone">N° TEL</th>
-                <th class="th-table-blank">TABLE</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+        <div class="sheet-page">
+          <div class="sheet-main-content">
+            ${blocksHtml}
+          </div>
+          <div class="sheet-vertical-banner">
+            <div class="vertical-title">LISTE DES INVITES</div>
+          </div>
+          <div style="position: absolute; bottom: 2mm; left: 8mm; right: 40mm; font-size: 8.5px; color: #64748b; display: flex; justify-content: space-between;">
+            <span>2ème Édition Dîner de Gala 2026 • Fiche d'Accueil Officielle</span>
+            <span><strong>Page ${pageIndex + 1} / ${pages.length}</strong></span>
+          </div>
         </div>
       `;
     }).join('');
 
-    return `
-      <div class="sheet-page">
-        <div class="sheet-main-content">
-          ${blocksHtml}
-        </div>
-        <div class="sheet-vertical-banner">
-          <div class="vertical-title">LISTE DES INVITES</div>
-        </div>
-        <div style="position: absolute; bottom: 2mm; left: 8mm; right: 40mm; font-size: 8.5px; color: #64748b; display: flex; justify-content: space-between;">
-          <span>2ème Édition Dîner de Gala 2026 • Fiche d'Accueil Officielle</span>
-          <span><strong>Page ${pageIndex + 1} / ${pages.length}</strong></span>
-        </div>
-      </div>
-    `;
-  }).join('');
+    const fullHtml = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fiche d'Accueil Officielle - Liste des Invités (${pages.length} page${pages.length > 1 ? 's' : ''})</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 4mm 6mm;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #f1f5f9;
+      color: #111;
+      height: auto !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-      <meta charset="UTF-8">
-      <title>Fiche d'Accueil Officielle - Liste des Invités (${pages.length} page${pages.length > 1 ? 's' : ''})</title>
-      <style>
-        @page {
-          size: A4 portrait;
-          margin: 4mm 6mm;
-        }
-        * { box-sizing: border-box; }
-        html, body {
-          font-family: 'Segoe UI', Arial, sans-serif;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #f1f5f9;
-          color: #111;
-          height: auto !important;
-          overflow: visible !important;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
+    /* Barre d'action supérieure (masquée à l'impression) */
+    .top-action-bar {
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .top-action-bar button {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-print {
+      background: #f59e0b;
+      color: #1e293b;
+      margin-right: 8px;
+    }
+    .btn-close {
+      background: #475569;
+      color: #fff;
+    }
 
-        /* Barre d'action supérieure (masquée à l'impression) */
-        .top-action-bar {
-          background: #1e293b;
-          color: #fff;
-          padding: 12px 24px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          position: sticky;
-          top: 0;
-          z-index: 999;
-          box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        }
-        .top-action-bar button {
-          font-size: 14px;
-          font-weight: 700;
-          padding: 8px 18px;
-          border-radius: 8px;
-          border: none;
-          cursor: pointer;
-        }
-        .btn-print {
-          background: #f59e0b;
-          color: #1e293b;
-          margin-right: 8px;
-        }
-        .btn-close {
-          background: #475569;
-          color: #fff;
-        }
+    /* Structure de Page A4 */
+    .sheet-page {
+      width: 198mm;
+      min-height: 280mm;
+      margin: 15px auto;
+      background: #fff;
+      display: flex;
+      flex-direction: row;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      box-sizing: border-box;
+      overflow: visible;
+      position: relative;
+    }
+    .sheet-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
 
-        /* Structure de Page A4 */
-        .sheet-page {
-          width: 198mm;
-          min-height: 280mm;
-          margin: 15px auto;
-          background: #fff;
-          display: flex;
-          flex-direction: row;
-          border: 1px solid #cbd5e1;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-          page-break-after: always;
-          break-after: page;
-          page-break-inside: avoid;
-          break-inside: avoid;
-          box-sizing: border-box;
-          overflow: visible;
-          position: relative;
-        }
-        .sheet-page:last-child {
-          page-break-after: auto;
-          break-after: auto;
-        }
+    /* Zone Principale gauche (Tables) */
+    .sheet-main-content {
+      flex: 1;
+      padding: 5mm 4mm 8mm 5mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 5mm;
+    }
 
-        /* Zone Principale gauche (Tables) */
-        .sheet-main-content {
-          flex: 1;
-          padding: 5mm 4mm 8mm 5mm;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-          gap: 5mm;
-        }
+    /* Bloc individuel (Table + Hôte) */
+    .block-wrapper {
+      margin-bottom: 0;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
 
-        /* Bloc individuel (Table + Hôte) */
-        .block-wrapper {
-          margin-bottom: 0;
-          page-break-inside: avoid;
-          break-inside: avoid;
-        }
+    .block-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1.5px solid #222;
+    }
 
-        .block-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-          border: 1.5px solid #222;
-        }
+    /* Bande supérieure verte olive / bronze */
+    .header-band {
+      background-color: #7d773c !important;
+      height: 12px;
+      border: 1.5px solid #222;
+    }
+    .header-labels-row th {
+      border: 1.5px solid #222;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 4px;
+      text-align: center;
+      background-color: #fff;
+      color: #1c130d;
+    }
+    .th-host { width: 17%; }
+    .th-num { width: 4.5%; }
+    .th-name { width: 52%; }
+    .th-phone { width: 15%; }
+    .th-table-blank { width: 11.5%; background: #ded9c8 !important; border: 1.5px solid #222; font-size: 10.5px; }
 
-        /* Bande supérieure verte olive / bronze */
-        .header-band {
-          background-color: #7d773c !important;
-          height: 12px;
-          border: 1.5px solid #222;
-        }
-        .header-labels-row th {
-          border: 1.5px solid #222;
-          font-size: 10.5px;
-          font-weight: 800;
-          padding: 3px 4px;
-          text-align: center;
-          background-color: #fff;
-          color: #1c130d;
-        }
-        .th-host { width: 17%; }
-        .th-num { width: 4.5%; }
-        .th-name { width: 52%; }
-        .th-phone { width: 15%; }
-        .th-table-blank { width: 11.5%; background: #ded9c8 !important; border: 1.5px solid #222; font-size: 10.5px; }
+    /* Lignes de contenu */
+    .block-table td {
+      border: 1.5px solid #222;
+      height: 22px;
+      padding: 2px 4px;
+      font-size: 11px;
+      vertical-align: middle;
+    }
 
-        /* Lignes de contenu */
-        .block-table td {
-          border: 1.5px solid #222;
-          height: 22px;
-          padding: 2px 4px;
-          font-size: 11px;
-          vertical-align: middle;
-        }
+    /* Cellule Hôte fusionnée (gauche) */
+    .col-host {
+      text-align: center;
+      vertical-align: middle;
+      background: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      color: #1c130d;
+      padding: 4px !important;
+    }
+    .host-name-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .host-name-label {
+      font-size: 8.5px;
+      color: #64748b;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .host-name-text {
+      max-width: 110px;
+      word-break: break-word;
+      font-size: 11px;
+      font-weight: 800;
+    }
 
-        /* Cellule Hôte fusionnée (gauche) */
-        .col-host {
-          text-align: center;
-          vertical-align: middle;
-          background: #fff;
-          font-weight: 700;
-          font-size: 11px;
-          color: #1c130d;
-          padding: 4px !important;
-        }
-        .host-name-box {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-        }
-        .host-name-label {
-          font-size: 8.5px;
-          color: #64748b;
-          text-transform: uppercase;
-          margin-bottom: 2px;
-        }
-        .host-name-text {
-          max-width: 110px;
-          word-break: break-word;
-          font-size: 11px;
-          font-weight: 800;
-        }
+    /* Numéro */
+    .col-num {
+      text-align: center;
+      font-weight: 700;
+      font-size: 10.5px;
+      color: #222;
+      background: #fafafa;
+    }
 
-        /* Numéro */
-        .col-num {
-          text-align: center;
-          font-weight: 700;
-          font-size: 10.5px;
-          color: #222;
-          background: #fafafa;
-        }
+    /* Nom invité : Pleine largeur, adaptation dynamique multi-lignes */
+    .col-name {
+      text-align: left;
+      white-space: normal !important;
+      word-break: normal;
+      overflow-wrap: break-word;
+      line-height: 1.25;
+      font-size: 11px;
+      padding: 2px 6px !important;
+    }
 
-        /* Nom invité : Pleine largeur, adaptation dynamique multi-lignes */
-        .col-name {
-          text-align: left;
-          white-space: normal !important;
-          word-break: normal;
-          overflow-wrap: break-word;
-          line-height: 1.25;
-          font-size: 11px;
-          padding: 2px 6px !important;
-        }
+    /* Téléphone */
+    .col-phone {
+      text-align: center;
+      font-size: 10px;
+      color: #222;
+      white-space: nowrap;
+      font-family: Consolas, "Segoe UI Mono", monospace, sans-serif;
+    }
 
-        /* Téléphone */
-        .col-phone {
-          text-align: center;
-          font-size: 10px;
-          color: #222;
-          white-space: nowrap;
-          font-family: Consolas, "Segoe UI Mono", monospace, sans-serif;
-        }
+    /* Cellule Table fusionnée (droite) */
+    .col-table {
+      background-color: #ded9c8 !important;
+      text-align: center;
+      vertical-align: middle;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      color: #111;
+    }
+    .table-name-text {
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: 800;
+    }
 
-        /* Cellule Table fusionnée (droite) */
-        .col-table {
-          background-color: #ded9c8 !important;
-          text-align: center;
-          vertical-align: middle;
-          font-weight: 900;
-          font-size: 13px;
-          letter-spacing: 0.5px;
-          color: #111;
-        }
-        .table-name-text {
-          font-family: Arial, Helvetica, sans-serif;
-          font-weight: 800;
-        }
+    /* Bannière verticale droite */
+    .sheet-vertical-banner {
+      width: 36mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border-left: 2px solid #222;
+      padding: 8px 0;
+    }
+    .vertical-title {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      font-family: Impact, "Arial Black", sans-serif;
+      font-weight: 900;
+      font-size: 26px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #f97316 0%, #facc15 50%, #ea580c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 2px rgba(234, 88, 12, 0.25));
+      user-select: none;
+    }
 
-        /* Bannière verticale droite */
-        .sheet-vertical-banner {
-          width: 36mm;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #fff;
-          border-left: 2px solid #222;
-          padding: 8px 0;
-        }
-        .vertical-title {
-          writing-mode: vertical-rl;
-          text-orientation: upright;
-          font-family: Impact, "Arial Black", sans-serif;
-          font-weight: 900;
-          font-size: 26px;
-          letter-spacing: 5px;
-          text-transform: uppercase;
-          background: linear-gradient(180deg, #f97316 0%, #facc15 50%, #ea580c 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          filter: drop-shadow(0 2px 2px rgba(234, 88, 12, 0.25));
-          user-select: none;
-        }
+    /* Règles d'impression pour exporter TOUTES les pages sans coupure */
+    @media print {
+      html, body {
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .top-action-bar { display: none !important; }
+      .sheet-page {
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        min-height: 275mm !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .sheet-page:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      .block-wrapper {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-action-bar">
+    <div>
+      <span style="font-size: 16px; font-weight: 800; color: #f59e0b;">📋 Fiche d'Accueil Officielle • Dîner de Gala 2026</span>
+      <span style="font-size: 12px; margin-left: 12px; opacity: 0.85;">(${blocks.length} table(s) • Max 3 tables par feuille A4 • ${pages.length} page(s) à imprimer)</span>
+    </div>
+    <div>
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+      <button class="btn-close" onclick="window.close()">✖ Fermer</button>
+    </div>
+  </div>
 
-        /* Règles d'impression pour exporter TOUTES les pages sans coupure */
-        @media print {
-          html, body {
-            background: #fff !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-          }
-          .top-action-bar { display: none !important; }
-          .sheet-page {
-            margin: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            width: 100% !important;
-            min-height: 275mm !important;
-            max-height: none !important;
-            height: auto !important;
-            overflow: visible !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          .sheet-page:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-          }
-          .block-wrapper {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="top-action-bar">
-        <div>
-          <span style="font-size: 16px; font-weight: 800; color: #f59e0b;">📋 Fiche d'Accueil Officielle • Dîner de Gala 2026</span>
-          <span style="font-size: 12px; margin-left: 12px; opacity: 0.85;">(${blocks.length} table(s) • Max 3 tables par feuille A4 • ${pages.length} page(s) à imprimer)</span>
-        </div>
-        <div>
-          <button class="btn-print" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
-          <button class="btn-close" onclick="window.close()">✖ Fermer</button>
-        </div>
-      </div>
+  ${pagesHtml}
+</body>
+</html>`;
 
-      ${pagesHtml}
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
+    // 6. Ouvrir la fenêtre de prévisualisation proprement via Blob URL
+    try {
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, '_blank', 'width=1150,height=960');
+      if (!printWindow) {
+        alert("Veuillez autoriser les fenêtres pop-up de votre navigateur pour afficher la fiche d'accueil.");
+      }
+    } catch (e) {
+      console.warn("Échec Blob URL, repli sur document.write:", e);
+      const printWindow = window.open('', '_blank', 'width=1150,height=960');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(fullHtml);
+        printWindow.document.close();
+      } else {
+        alert("Veuillez autoriser les fenêtres pop-up pour afficher la fiche d'accueil.");
+      }
+    }
+  } catch (err) {
+    console.error("Erreur génération fiche d'accueil:", err);
+    showAdminToast("Erreur lors de la génération de la fiche d'accueil : " + err.message, "error");
+  }
 };
 
 window.deleteGuest = async (guestId) => {
