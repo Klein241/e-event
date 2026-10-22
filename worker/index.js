@@ -56,6 +56,15 @@ export default {
       return handleOptions();
     }
 
+    // 1b. Redirection automatique vers le domaine officiel joursderencontre.com
+    if (url.hostname.includes("compagnon-de-ceremonie.mynexus.workers.dev") || 
+        (url.hostname.endsWith(".workers.dev") && !url.hostname.includes("localhost"))) {
+      const canonicalUrl = new URL(request.url);
+      canonicalUrl.hostname = "joursderencontre.com";
+      canonicalUrl.protocol = "https:";
+      return Response.redirect(canonicalUrl.toString(), 301);
+    }
+
     // 2. Routage API modulaire
     if (pathname.startsWith("/api/")) {
       try {

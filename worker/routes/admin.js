@@ -4,6 +4,7 @@
  */
 
 import { jsonResponse, errorResponse } from "../utils/response.js";
+import { buildPersonalizedGuestTicketId } from "./events.js";
 
 function isAuthorized(request, env) {
   const adminPin = env.ADMIN_PIN || "7777";
@@ -219,7 +220,7 @@ export async function handleAdminRoutes(pathname, request, env) {
     const avatarEmoji = data.avatar_emoji || (gender === "F" ? "👑" : "🎉");
     const registrationSource = data.registration_source || "link"; // invité par lien ou manuel
 
-    const guestId = data.id || `guest-admin-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const guestId = (data.id && data.id.trim()) || buildPersonalizedGuestTicketId(name, coupleName, ticketType);
 
     if (db) {
       await db.prepare(`

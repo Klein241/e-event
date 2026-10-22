@@ -5,6 +5,20 @@
 import { jsonResponse, errorResponse } from "../utils/response.js";
 import { getMockEvent, getMockGuest } from "../utils/mocks.js";
 
+export function buildPersonalizedGuestTicketId(name, coupleName, ticketType) {
+  let target = (ticketType === 'couple' && coupleName) ? coupleName : (name || 'invite');
+  target = target.replace(/^(m\.|mme|mr|monsieur|madame|docteur|dr|pasteur|couple)\s+/i, '');
+  const clean = target
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 24);
+  const rand = Math.random().toString(36).substring(2, 6);
+  return `billet-${clean || 'invite'}-${rand}`;
+}
+
 export async function handleEventRoutes(pathname, request, env) {
   const method = request.method;
   const db = env.DB;
@@ -243,17 +257,20 @@ export async function handleEventRoutes(pathname, request, env) {
     // Si l'ID envoyé existe déjà en base (cas d'un smartphone partagé ou réutilisé),
     // on force la génération d'un NOUVEL identifiant pour ne JAMAIS écraser un invité précédent !
     let guestId = (data.id || "").trim();
+    if (!guestId || guestId.startsWith("guest-link-17")) {
+      guestId = buildPersonalizedGuestTicketId(name, coupleName, ticketType);
+    }
     if (db && guestId) {
       try {
         const existing = await db.prepare("SELECT id FROM guests WHERE id = ?").bind(guestId).first();
         if (existing) {
-          guestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+          guestId = `${guestId}-${Math.random().toString(36).substring(2, 5)}`;
         }
       } catch (e) {
-        guestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+        guestId = buildPersonalizedGuestTicketId(name, coupleName, ticketType);
       }
     } else {
-      guestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      guestId = buildPersonalizedGuestTicketId(name, coupleName, ticketType);
     }
 
     if (db) {
@@ -346,13 +363,32 @@ export async function handleEventRoutes(pathname, request, env) {
   // 3c. Consultation du profil consolidé (Prières, Réseau & Coordonnées)
   if (pathname === "/api/guests/detail" && method === "GET") {
     const url = new URL(request.url);
-    const guestId = url.searchParams.get("id");
+    const guestId = (url.searchParams.get("id") || "").trim();
     if (!guestId || !db) return jsonResponse({ guest: null, prayers: [], networking: null });
 
     try {
-      const guest = await db.prepare("SELECT * FROM guests WHERE id = ?").bind(guestId).first();
-      const prayers = await db.prepare("SELECT * FROM prayer_requests WHERE guest_id = ? ORDER BY created_at DESC LIMIT 20").bind(guestId).all();
-      const networking = await db.prepare("SELECT * FROM networking_profiles WHERE guest_id = ?").bind(guestId).first();
+      // 1. Recherche par identifiant exact
+      let guest = await db.prepare("SELECT * FROM guests WHERE id = ?").bind(guestId).first();
+
+      // 2. Si non trouvé par ID exact, recherche intelligente par téléphone, nom exact ou nom approchant
+      if (!guest) {
+        guest = await db.prepare(`
+          SELECT * FROM guests 
+          WHERE phone = ? 
+             OR LOWER(name) = LOWER(?) 
+             OR LOWER(couple_name) = LOWER(?)
+             OR id LIKE ?
+             OR name LIKE ?
+          LIMIT 1
+        `).bind(guestId, guestId, guestId, `%${guestId}%`, `%${guestId}%`).first();
+      }
+
+      if (!guest) {
+        return jsonResponse({ guest: null, prayers: [], networking: null });
+      }
+
+      const prayers = await db.prepare("SELECT * FROM prayer_requests WHERE guest_id = ? ORDER BY created_at DESC LIMIT 20").bind(guest.id).all();
+      const networking = await db.prepare("SELECT * FROM networking_profiles WHERE guest_id = ?").bind(guest.id).first();
 
       return jsonResponse({
         guest: guest || null,

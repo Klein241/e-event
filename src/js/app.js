@@ -19,6 +19,44 @@ window.BibleGames = BibleGamesModule;
 window.ProgramModule = ProgramModule;
 window.AdsModule = AdsModule;
 
+// Redirection automatique immédiate côté client vers le domaine officiel
+if (typeof window !== 'undefined' && window.location.hostname.includes('compagnon-de-ceremonie.mynexus.workers.dev')) {
+  window.location.replace(`https://joursderencontre.com${window.location.pathname}${window.location.search}${window.location.hash}`);
+}
+
+export function getCanonicalOrigin() {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return window.location.origin;
+  }
+  return 'https://joursderencontre.com';
+}
+window.getCanonicalOrigin = getCanonicalOrigin;
+
+export function buildGuestTicketId(name, coupleName, ticketType) {
+  let target = (ticketType === 'couple' && coupleName) ? coupleName : (name || 'invite');
+  target = target.replace(/^(m\.|mme|mr|monsieur|madame|docteur|dr|pasteur|couple)\s+/i, '');
+  const clean = target
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 24);
+  const rand = Math.random().toString(36).substring(2, 6);
+  return `billet-${clean || 'invite'}-${rand}`;
+}
+window.buildGuestTicketId = buildGuestTicketId;
+
+export function getCanonicalTicketUrl(guest) {
+  if (!guest) return `${getCanonicalOrigin()}/?invite=gala2026`;
+  const origin = getCanonicalOrigin();
+  const ticketId = encodeURIComponent(guest.id || '');
+  const guestName = (guest.ticket_type === 'couple' && guest.couple_name) ? guest.couple_name : (guest.name || '');
+  const cleanName = guestName.replace(/^(m\.|mme|mr|monsieur|madame)\s+/i, '').trim();
+  const nameParam = cleanName ? `&nom=${encodeURIComponent(cleanName)}` : '';
+  return `${origin}/?ticket=${ticketId}${nameParam}`;
+}
+window.getCanonicalTicketUrl = getCanonicalTicketUrl;
 
 let deferredPrompt = null;
 
@@ -891,9 +929,7 @@ window.shareTicketOnWhatsApp = async () => {
   }
 
   const cleanTable = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
-  const ticketUrl = guest.id
-    ? `${window.location.origin}/?ticket=${encodeURIComponent(guest.id)}`
-    : `${window.location.origin}/?invite=gala2026`;
+  const ticketUrl = getCanonicalTicketUrl(guest);
 
   // Texte formaté WhatsApp sans caractères UTF-16 corrompus pour un rendu parfait sur iOS & Android
   const cleanMessage =
@@ -1024,7 +1060,14 @@ window.openClaymorphicTicketModalById = async (guestId) => {
   if (titleEl) titleEl.textContent = "Chargement de votre billet...";
 
   try {
-    const res = await Api.request(`/guests/detail?id=${encodeURIComponent(guestId)}`);
+    let res = await Api.request(`/guests/detail?id=${encodeURIComponent(guestId)}`);
+    if ((!res || !res.guest)) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const nomParam = urlParams.get('nom');
+      if (nomParam && nomParam !== guestId) {
+        res = await Api.request(`/guests/detail?id=${encodeURIComponent(nomParam)}`);
+      }
+    }
     if (res && res.guest) {
       AppState.setGuest(res.guest);
       updateGuestHeader();
@@ -1413,9 +1456,8 @@ window.submitInvitationRegistration = async () => {
     btn.innerHTML = `<span>⏳</span> Génération de votre billet officiel...`;
   }
 
-  // Toujours générer un identifiant unique dédié pour chaque nouvel invité enregistré par lien
-  // (Empêche qu'un appareil ayant déjà un profil invité en mémoire écrase l'enregistrement précédent)
-  const freshGuestId = `guest-link-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+  // Toujours générer un identifiant personnalisé et unique dédié avec le nom de l'invité
+  const freshGuestId = buildGuestTicketId(name, coupleName, ticketType);
 
   const payload = {
     id: freshGuestId,

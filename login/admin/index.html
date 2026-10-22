@@ -659,7 +659,7 @@
         </div>
 
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
-          <input type="text" id="admin-invitation-link-input" class="admin-input" readonly style="flex: 1; min-width: 260px; font-weight: 600; background: var(--bg-card); cursor: copy;" onclick="this.select()">
+          <input type="text" id="admin-invitation-link-input" value="https://joursderencontre.com/?invite=gala2026" class="admin-input" readonly style="flex: 1; min-width: 260px; font-weight: 600; background: var(--bg-card); cursor: copy;" onclick="this.select()">
           
           <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.copyInvitationLink()">
             📋 Copier le lien
@@ -667,7 +667,7 @@
           <button type="button" class="btn-table-action" style="background: #25D366; color: #fff; font-weight: 700; padding: 8px 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.shareInvitationWhatsApp()">
             💬 Partager sur WhatsApp
           </button>
-          <a id="admin-invitation-test-btn" href="/?invite=gala2026" target="_blank" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); font-weight: 700; padding: 8px 14px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+          <a id="admin-invitation-test-btn" href="https://joursderencontre.com/?invite=gala2026" target="_blank" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); font-weight: 700; padding: 8px 14px; border-radius: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
             👁️ Tester l'invitation
           </a>
           <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #7d773c, #9d9247); color: #fff; font-weight: 800; padding: 8px 16px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 4px 12px rgba(125, 119, 60, 0.35);" onclick="window.exportGuestsReceptionSheet('link')" title="Imprimer ou enregistrer en PDF la fiche d'accueil officielle des invités par lien">

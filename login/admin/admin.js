@@ -7,6 +7,45 @@
 
 const API_BASE = '/api';
 
+// Redirection automatique immédiate côté client vers le domaine officiel
+if (typeof window !== 'undefined' && window.location.hostname.includes('compagnon-de-ceremonie.mynexus.workers.dev')) {
+  window.location.replace(`https://joursderencontre.com${window.location.pathname}${window.location.search}${window.location.hash}`);
+}
+
+export function getCanonicalOrigin() {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return window.location.origin;
+  }
+  return 'https://joursderencontre.com';
+}
+window.getCanonicalOrigin = getCanonicalOrigin;
+
+export function buildGuestTicketId(name, coupleName, ticketType) {
+  let target = (ticketType === 'couple' && coupleName) ? coupleName : (name || 'invite');
+  target = target.replace(/^(m\.|mme|mr|monsieur|madame|docteur|dr|pasteur|couple)\s+/i, '');
+  const clean = target
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 24);
+  const rand = Math.random().toString(36).substring(2, 6);
+  return `billet-${clean || 'invite'}-${rand}`;
+}
+window.buildGuestTicketId = buildGuestTicketId;
+
+export function getCanonicalTicketUrl(guest) {
+  if (!guest) return `${getCanonicalOrigin()}/?invite=gala2026`;
+  const origin = getCanonicalOrigin();
+  const ticketId = encodeURIComponent(guest.id || '');
+  const guestName = (guest.ticket_type === 'couple' && guest.couple_name) ? guest.couple_name : (guest.name || '');
+  const cleanName = guestName.replace(/^(m\.|mme|mr|monsieur|madame)\s+/i, '').trim();
+  const nameParam = cleanName ? `&nom=${encodeURIComponent(cleanName)}` : '';
+  return `${origin}/?ticket=${ticketId}${nameParam}`;
+}
+window.getCanonicalTicketUrl = getCanonicalTicketUrl;
+
 // État de l'administrateur
 const AdminState = {
   token: null,
@@ -1158,7 +1197,9 @@ window.saveManualGuest = async () => {
   if (btn) { btn.disabled = true; btn.innerHTML = `<span>⏳</span> Enregistrement...`; }
 
   try {
+    const generatedGuestId = buildGuestTicketId(name, coupleName, ticketType);
     const payload = {
+      id: generatedGuestId,
       name,
       gender,
       ticket_type: ticketType,
@@ -1188,23 +1229,23 @@ window.saveManualGuest = async () => {
 };
 
 window.copyInvitationLink = () => {
+  const url = `${getCanonicalOrigin()}/?invite=gala2026`;
   const input = document.getElementById('admin-invitation-link-input');
-  const url = input ? input.value : `${window.location.origin}/?invite=gala2026`;
+  if (input) input.value = url;
   navigator.clipboard.writeText(url).then(() => {
-    showAdminToast("Lien d'invitation copié dans le presse-papier !", "success");
+    showAdminToast("Lien d'invitation officiel copié : " + url, "success");
   }).catch(() => {
     showAdminToast("Lien d'invitation : " + url, "info");
   });
 };
 
 window.shareInvitationWhatsApp = () => {
-  const input = document.getElementById('admin-invitation-link-input');
-  const url = input ? input.value : `${window.location.origin}/?invite=gala2026`;
+  const url = `${getCanonicalOrigin()}/?invite=gala2026`;
   const text =
     `*INVITATION OFFICIELLE - 2ÈME ÉDITION DU DÎNER DE GALA*\n\n` +
     `⭐ Vous êtes chaleureusement invité(e) à la 2ème édition de notre prestigieux Dîner de Gala le *Samedi 24 Octobre 2026 dès 15h00* !\n\n` +
     `📍 *Lieu :* Salle de fête Le Rocher des Âges sise Rond point Entraco.\n\n` +
-    `🎟️ Cliquez sur ce lien sécurisé pour confirmer votre présence et réserver votre table :\n${url}`;
+    `🎟️ Cliquez sur ce lien officiel pour confirmer votre présence et réserver votre table :\n${url}`;
   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 };
 
@@ -1420,14 +1461,15 @@ function renderGuests(guests) {
   if (countSalleEl) countSalleEl.textContent = salleCount;
   if (countLinkEl) countLinkEl.textContent = linkCount;
 
-  // Initialiser l'URL du lien d'invitation
+  // Initialiser l'URL du lien d'invitation avec le domaine officiel
+  const canonicalInviteUrl = `${getCanonicalOrigin()}/?invite=gala2026`;
   const linkInput = document.getElementById('admin-invitation-link-input');
   if (linkInput) {
-    linkInput.value = `${window.location.origin}/?invite=gala2026`;
+    linkInput.value = canonicalInviteUrl;
   }
   const testBtn = document.getElementById('admin-invitation-test-btn');
   if (testBtn) {
-    testBtn.href = `${window.location.origin}/?invite=gala2026`;
+    testBtn.href = canonicalInviteUrl;
   }
 
   if (!container) return;
@@ -1776,7 +1818,7 @@ window.openGuestCRM = (guestId) => {
       <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; padding: 10px 18px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;" onclick="window.openEditGuestModal('${guest.id}')">
         ✏️ Modifier Coordonnées & Table
       </button>
-      <a href="/?ticket=${encodeURIComponent(guest.id)}" target="_blank" class="btn-table-action" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; font-weight: 800; padding: 10px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px;">
+      <a href="${getCanonicalTicketUrl(guest)}" target="_blank" class="btn-table-action" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; font-weight: 800; padding: 10px 16px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px;">
         🎟️ Voir Billet 3D
       </a>
       <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; font-weight: 800; padding: 10px 16px;" onclick="window.adminShareGuestTicketWhatsApp('${guest.id}')">
@@ -1809,7 +1851,7 @@ window.adminShareGuestTicketWhatsApp = (guestId) => {
   }
 
   const cleanTable = String(guest.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
-  const ticketUrl = `${window.location.origin}/?ticket=${encodeURIComponent(guest.id)}`;
+  const ticketUrl = getCanonicalTicketUrl(guest);
 
   const cleanMessage =
     `*INVITATION OFFICIELLE - 2ÈME ÉDITION DU DÎNER DE GALA*\n\n` +
