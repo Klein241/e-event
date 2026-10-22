@@ -26,13 +26,14 @@
   <link rel="stylesheet" href="/src/styles/ads.css">
   <link rel="stylesheet" href="/src/styles/invitation.css">
 
-  <!-- Polices Calligraphie & Prestige pour Billet Officiel et Titres -->
+  <!-- Polices Calligraphie & Prestige (Chargement Asynchrone Non-Bloquant) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap" rel="stylesheet">
-  
-  <!-- Moteur Web 3D interactif Google model-viewer (Apple & Amazon WebGL Standard) -->
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap" media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Great+Vibes&display=swap">
+  </noscript>
 
 
   <!-- Styles critiques Anti-FOUC (Mode Clair Neumorphique par défaut) -->
@@ -81,7 +82,12 @@
     body.dark-mode .brand-icon svg {
       fill: #0b0f19 !important;
     }
-    /* Splash Screen Immédiat Neumorphique */
+    /* Splash Screen Immédiat : En mode PWA installée, SUPPRESSION TOTALE DU 2ÈME ÉCRAN (0ms) */
+    @media all and (display-mode: standalone), (display-mode: fullscreen) {
+      #app-splash-screen {
+        display: none !important;
+      }
+    }
     #app-splash-screen {
       position: fixed;
       top: 0;
@@ -90,12 +96,12 @@
       bottom: 0;
       width: 100vw;
       height: 100vh;
-      background: #F5EEE6;
+      background: #0B0F19;
       z-index: 9999999;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.35s ease, visibility 0.35s ease;
+      transition: opacity 0.15s ease, visibility 0.15s ease;
     }
     body.dark-mode #app-splash-screen {
       background: #07090e;
@@ -1867,14 +1873,24 @@
         splash.classList.add('splash-hidden');
         setTimeout(function() {
           if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
-        }, 360);
+        }, 120);
       }
     }
     window.dismissSplash = dismissSplash;
-    window.addEventListener('load', function() {
-      setTimeout(dismissSplash, 120);
-    });
-    setTimeout(dismissSplash, 2200);
+
+    // Fermeture ultra-rapide : en mode PWA standalone, fermeture en 0ms
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      dismissSplash();
+    } else {
+      // En navigateur web : fermeture dès que le DOM est prêt (sans attendre images ou scripts distants)
+      if (document.readyState === 'interactive' || document.readyState === 'complete') {
+        dismissSplash();
+      } else {
+        document.addEventListener('DOMContentLoaded', dismissSplash);
+      }
+      // Sécurité absolue (max 300ms au lieu de 2200ms)
+      setTimeout(dismissSplash, 300);
+    }
   </script>
 
   <!-- Point d'entrée Javascript -->

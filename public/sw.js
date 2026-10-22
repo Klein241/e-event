@@ -1,11 +1,12 @@
 // Service Worker - Compagnon de Cérémonie PWA & Web Push
-const CACHE_NAME = 'compagnon-v1.5.0';
+const CACHE_NAME = 'compagnon-v2.1.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
-  '/icon.svg'
+  '/icon.svg',
+  '/billet-invitation-template.png'
 ];
 
 // Installation & mise en cache des assets essentiels
@@ -32,7 +33,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Stratégie réseau d'abord pour l'API, cache pour les assets
+// Stratégie Stale-While-Revalidate ultra-rapide (0ms) pour la navigation et cache pour les assets
 self.addEventListener('fetch', (event) => {
   // Ignorer les requêtes non HTTP(S) (ex: extensions Chrome)
   if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
@@ -58,40 +59,46 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Navigation HTML : Réseau d'abord avec fallback cache hors-ligne immédiat
+  // 1. Navigation HTML : Rendu instantané 0ms depuis le cache, synchronisation silencieuse en arrière-plan (Stale-While-Revalidate)
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const copy = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return networkResponse;
-        })
-        .catch(() => caches.match(event.request).then(cached => cached || caches.match('/index.html')))
+      caches.match('/index.html').then((cachedIndex) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const copy = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedIndex);
+
+        // Si la page HTML est en cache, retour immédiat en 0ms !
+        if (cachedIndex) {
+          fetchPromise.catch(() => {});
+          return cachedIndex;
+        }
+
+        // Sinon premier chargement, attendre le réseau
+        return fetchPromise;
+      })
     );
     return;
   }
 
-  // 2. Assets statiques : cache d'abord avec rafraîchissement réseau
+  // 2. Assets statiques (JS, CSS, images, fontes) : Cache d'abord avec rafraîchissement
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {});
         return cachedResponse;
       }
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
-        const responseToCache = networkResponse.clone();
+        const copy = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+          cache.put(event.request, copy);
         });
         return networkResponse;
       });

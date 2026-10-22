@@ -115,12 +115,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 12ter. Gestes tactiles et contrôles de la visionneuse plein écran du billet
   setupTicketFullscreenGestures();
 
-  // 13. Retrait fluide de l'écran de chargement anti-flash
-  setTimeout(() => {
-    if (typeof window.dismissSplash === 'function') {
-      window.dismissSplash();
-    }
-  }, 80);
+  // 13. Retrait immédiat de l'écran de chargement anti-flash (0ms)
+  if (typeof window.dismissSplash === 'function') {
+    window.dismissSplash();
+  }
 
   // 14. Détection du Billet Officiel 3D Claymorphic (?ticket=... ou ?billet=...) ou invitation (?invite=...)
   const urlParams = new URLSearchParams(window.location.search);
@@ -165,12 +163,25 @@ async function loadEventInfo() {
   }
 }
 
+function ensureModelViewerLoaded() {
+  if (window.customElements && window.customElements.get('model-viewer')) return;
+  if (document.querySelector('script[src*="model-viewer"]')) return;
+  const s = document.createElement('script');
+  s.type = 'module';
+  s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
+  document.head.appendChild(s);
+}
+
 function setupNavigation() {
   const navItems = document.querySelectorAll('.nav-item');
   const views = document.querySelectorAll('.tab-view');
 
   window.switchTab = (targetTab) => {
     if (!targetTab) return;
+
+    if (targetTab === 'vitrine') {
+      ensureModelViewerLoaded();
+    }
 
     // Si l'utilisateur clique sur chat ou direct mais que la régie l'a remplacé par le programme
     if (targetTab === 'chat' && AppState.direct_feature_enabled === 0) {
