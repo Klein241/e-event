@@ -788,7 +788,7 @@
   position: fixed;
   inset: 0;
   z-index: 100050;
-  background: rgba(5, 4, 8, 0.96);
+  background: radial-gradient(ellipse at 50% 35%, #18122B 0%, #0c0919 55%, #05040a 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   display: flex;
@@ -802,6 +802,134 @@
 @keyframes ticketFsFadeIn {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* ========================================================
+   FOND COSMIQUE & UNIVERS ANIMÉ ULTRA-LÉGER (100% GPU 0ms)
+   ======================================================== */
+.ticket-fs-cosmos {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Nébuleuses Célestes en dérive lente (2 grandes lueurs douces en apesanteur) */
+.ticket-fs-nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(65px);
+  -webkit-filter: blur(65px);
+  will-change: transform;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.ticket-fs-nebula.nebula-1 {
+  width: 520px;
+  height: 520px;
+  top: -120px;
+  right: -90px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.28) 0%, rgba(180, 130, 40, 0.12) 40%, transparent 70%);
+  animation: nebulaFloat1 20s ease-in-out infinite alternate;
+}
+
+.ticket-fs-nebula.nebula-2 {
+  width: 620px;
+  height: 620px;
+  bottom: -160px;
+  left: -130px;
+  background: radial-gradient(circle, rgba(147, 51, 234, 0.26) 0%, rgba(88, 28, 135, 0.10) 45%, transparent 70%);
+  animation: nebulaFloat2 26s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaFloat1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-40px, 35px, 0) scale(1.12); }
+  100% { transform: translate3d(25px, -20px, 0) scale(0.96); }
+}
+
+@keyframes nebulaFloat2 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(50px, -40px, 0) scale(1.15); }
+  100% { transform: translate3d(-30px, 20px, 0) scale(0.92); }
+}
+
+/* Étoiles du Cosmos (Centaines de micro-étoiles scintillantes sans image externe) */
+.ticket-fs-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.ticket-fs-stars.stars-layer-1 {
+  background-image: 
+    radial-gradient(1px 1px at 25px 35px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 110px 85px, #ffd700, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 190px 145px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 270px 45px, #ffeaa7, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 330px 225px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 75px 295px, #ffd700, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 155px 345px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 235px 415px, #ffd700, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 295px 475px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 45px 495px, #ffeaa7, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 345px 535px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 125px 585px, #ffd700, rgba(0,0,0,0));
+  background-size: 380px 620px;
+  animation: starsTwinkle1 6s ease-in-out infinite alternate;
+}
+
+.ticket-fs-stars.stars-layer-2 {
+  background-image: 
+    radial-gradient(1.2px 1.2px at 55px 65px, rgba(255,255,255,0.9), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 145px 125px, rgba(255,215,0,0.95), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 225px 185px, rgba(255,255,255,0.8), rgba(0,0,0,0)),
+    radial-gradient(1.8px 1.8px at 305px 95px, rgba(255,215,0,0.9), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 95px 255px, rgba(255,255,255,0.85), rgba(0,0,0,0)),
+    radial-gradient(2.2px 2.2px at 205px 325px, rgba(255,235,140,0.95), rgba(0,0,0,0)),
+    radial-gradient(1.2px 1.2px at 285px 395px, rgba(255,255,255,0.8), rgba(0,0,0,0)),
+    radial-gradient(1.6px 1.6px at 65px 445px, rgba(255,215,0,0.9), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 175px 515px, rgba(255,255,255,0.85), rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 255px 565px, rgba(255,215,0,0.95), rgba(0,0,0,0));
+  background-size: 340px 600px;
+  animation: starsTwinkle2 8s ease-in-out infinite alternate;
+}
+
+@keyframes starsTwinkle1 {
+  0% { opacity: 0.35; transform: translate3d(0, 0, 0); }
+  50% { opacity: 0.85; }
+  100% { opacity: 0.50; transform: translate3d(0, -15px, 0); }
+}
+
+@keyframes starsTwinkle2 {
+  0% { opacity: 0.75; transform: translate3d(0, 0, 0); }
+  50% { opacity: 0.30; }
+  100% { opacity: 0.90; transform: translate3d(0, -25px, 0); }
+}
+
+/* Éclats dorés étincelants (Constellations discrètes aux 4 coins) */
+.ticket-fs-sparkle {
+  position: absolute;
+  color: #ffd700;
+  font-size: 1.1rem;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.75));
+  will-change: opacity, transform;
+  animation: sparkleGlint 5s ease-in-out infinite;
+}
+
+.ticket-fs-sparkle.sparkle-1 { top: 18%; left: 8%; animation-delay: 0s; font-size: 1.3rem; }
+.ticket-fs-sparkle.sparkle-2 { top: 22%; right: 10%; animation-delay: 1.6s; font-size: 0.95rem; }
+.ticket-fs-sparkle.sparkle-3 { bottom: 20%; left: 12%; animation-delay: 2.8s; font-size: 1.05rem; }
+.ticket-fs-sparkle.sparkle-4 { bottom: 25%; right: 8%; animation-delay: 3.9s; font-size: 1.25rem; }
+
+@keyframes sparkleGlint {
+  0%, 100% { opacity: 0.25; transform: scale(0.7) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.3) rotate(180deg); }
 }
 
 /* Barre de Contrôle Supérieure Flottante */
@@ -889,6 +1017,7 @@
   width: 100%;
   height: 100%;
   position: relative;
+  z-index: 5;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -918,7 +1047,7 @@
   display: block;
   object-fit: contain;
   border-radius: 12px;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 45px rgba(212, 175, 55, 0.28);
   pointer-events: none;
 }
 
