@@ -326,9 +326,114 @@ function startLivePolling() {
   AdminState.pollingTimer = setInterval(() => {
     if (!document.hidden) {
       loadCurrentTab();
+      window.loadAdminPinnedNote();
     }
   }, 20000);
 }
+
+// -------------------------------------------------------------
+// GESTION DE LA NOTE ÉPINGLÉE RÉGIE (Hôtesses & Superviseur)
+// -------------------------------------------------------------
+window.loadAdminPinnedNote = async () => {
+  try {
+    const res = await fetch('/api/shared/pinned-note');
+    if (!res.ok) return;
+    const data = await res.json();
+    const inputEl = document.getElementById('admin-pinned-note-input');
+    const badgeEl = document.getElementById('badge-pinned-note-status');
+    const updatedEl = document.getElementById('admin-pinned-note-last-updated');
+
+    if (data && data.success && data.note && data.note.is_active && data.note.content) {
+      if (inputEl) inputEl.value = data.note.content;
+      if (badgeEl) {
+        badgeEl.textContent = '🟢 Note Active & Épinglée';
+        badgeEl.style.background = 'rgba(16, 185, 129, 0.2)';
+        badgeEl.style.color = '#34d399';
+      }
+      if (updatedEl) {
+        const timeStr = new Date(data.note.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        updatedEl.textContent = `Dernière mise à jour : ${timeStr} par ${data.note.author || 'Régie'}`;
+      }
+    } else {
+      if (badgeEl) {
+        badgeEl.textContent = '⚪ Aucune note active';
+        badgeEl.style.background = 'rgba(255, 255, 255, 0.1)';
+        badgeEl.style.color = 'var(--text-muted)';
+      }
+      if (updatedEl) {
+        updatedEl.textContent = 'Aucune consigne épinglée actuellement';
+      }
+    }
+  } catch (err) {
+    console.error('Erreur chargement note admin:', err);
+  }
+};
+
+window.adminSavePinnedNote = async () => {
+  const inputEl = document.getElementById('admin-pinned-note-input');
+  const content = (inputEl ? inputEl.value : '').trim();
+  const btn = document.getElementById('btn-save-pinned-note');
+
+  if (!content) {
+    alert('Veuillez saisir le texte de la consigne avant de l\'épingler.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Diffusion...';
+  }
+
+  try {
+    const res = await fetch('/api/admin/pinned-note', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content,
+        author: 'Régie Générale',
+        is_active: 1
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Erreur lors de la sauvegarde de la note');
+    }
+
+    alert('✅ Note épinglée avec succès ! Elle est immédiatement visible chez les Hôtesses et le Superviseur.');
+    window.loadAdminPinnedNote();
+  } catch (err) {
+    console.error('Erreur épinglage note:', err);
+    alert(`Erreur : ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>📌</span> Épingler chez Hôtesses & Superviseur';
+    }
+  }
+};
+
+window.adminRemovePinnedNote = async () => {
+  if (!confirm('Êtes-vous sûr de vouloir retirer la note épinglée chez les hôtesses et le superviseur ?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/pinned-note', { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Erreur lors du retrait de la note');
+    }
+
+    const inputEl = document.getElementById('admin-pinned-note-input');
+    if (inputEl) inputEl.value = '';
+
+    alert('✅ Note retirée avec succès.');
+    window.loadAdminPinnedNote();
+  } catch (err) {
+    console.error('Erreur retrait note:', err);
+    alert(`Erreur : ${err.message}`);
+  }
+};
 
 // -------------------------------------------------------------
 // 1. VUE D'ENSEMBLE (OVERVIEW)
@@ -338,6 +443,7 @@ async function loadOverview() {
     const data = await adminFetch('/admin/overview');
     AdminState.overview = data;
     renderOverview(data);
+    window.loadAdminPinnedNote();
   } catch (err) {
     console.error("Erreur chargement overview:", err);
   }
@@ -970,21 +1076,25 @@ window.setGuestSubTab = (tab) => {
   currentGuestSubTab = tab;
   const btnSalle = document.getElementById('subtab-guests-salle');
   const btnLink = document.getElementById('subtab-guests-link');
+  const btnNoBillet = document.getElementById('subtab-guests-nobillet');
+  const btnEvang = document.getElementById('subtab-guests-evangelized');
   const btnAll = document.getElementById('subtab-guests-all');
 
   [
-    { el: btnSalle, key: 'salle' },
-    { el: btnLink, key: 'link' },
-    { el: btnAll, key: 'all' }
+    { el: btnSalle, key: 'salle', bg: 'var(--terracotta-gradient)', col: '#fff' },
+    { el: btnLink, key: 'link', bg: 'var(--terracotta-gradient)', col: '#fff' },
+    { el: btnNoBillet, key: 'nobillet', bg: 'linear-gradient(135deg, #f59e0b, #d97706)', col: '#fff' },
+    { el: btnEvang, key: 'evangelized', bg: 'linear-gradient(135deg, #10b981, #059669)', col: '#fff' },
+    { el: btnAll, key: 'all', bg: 'var(--terracotta-gradient)', col: '#fff' }
   ].forEach(item => {
     if (!item.el) return;
     if (item.key === tab) {
-      item.el.style.background = 'var(--terracotta-gradient)';
-      item.el.style.color = '#fff';
+      item.el.style.background = item.bg;
+      item.el.style.color = item.col;
       item.el.classList.add('active');
     } else {
       item.el.style.background = 'var(--bg-secondary)';
-      item.el.style.color = 'var(--text-main)';
+      item.el.style.color = item.key === 'nobillet' ? '#fbbf24' : (item.key === 'evangelized' ? '#34d399' : 'var(--text-main)');
       item.el.classList.remove('active');
     }
   });
@@ -2147,17 +2257,24 @@ function renderGuests(guests) {
   const countBadge = document.getElementById('admin-guests-count');
   if (countBadge) countBadge.textContent = `${guests ? guests.length : 0} invité(s)`;
 
-  // Mettre à jour les compteurs des 2 catégories officielles (+ Tous)
+  // Mettre à jour les compteurs des catégories officielles (+ Sans Billet, Évangélisés, Tous)
   const allCount = (AdminState.guests || []).length;
-  const salleCount = (AdminState.guests || []).filter(g => g.registration_source !== 'link').length;
+  const salleCount = (AdminState.guests || []).filter(g => g.registration_source !== 'link' && g.registration_source !== 'sans_billet').length;
   const linkCount = (AdminState.guests || []).filter(g => g.registration_source === 'link').length;
+  const noBilletCount = (AdminState.guests || []).filter(g => g.registration_source === 'sans_billet').length;
+  const evangelizedCount = (AdminState.guests || []).filter(g => Number(g.is_evangelized) === 1).length;
 
   const countAllEl = document.getElementById('subtab-count-all');
   const countSalleEl = document.getElementById('subtab-count-salle');
   const countLinkEl = document.getElementById('subtab-count-link');
+  const countNoBilletEl = document.getElementById('subtab-count-nobillet');
+  const countEvangelizedEl = document.getElementById('subtab-count-evangelized');
+
   if (countAllEl) countAllEl.textContent = allCount;
   if (countSalleEl) countSalleEl.textContent = salleCount;
   if (countLinkEl) countLinkEl.textContent = linkCount;
+  if (countNoBilletEl) countNoBilletEl.textContent = noBilletCount;
+  if (countEvangelizedEl) countEvangelizedEl.textContent = evangelizedCount;
 
   // Initialiser l'URL du lien d'invitation avec le domaine officiel
   const canonicalInviteUrl = `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;
@@ -2183,10 +2300,14 @@ function renderGuests(guests) {
       ? "Aucun invité en salle n'est actuellement enregistré (ceux qui scannent le QR code et remplissent leur profil)."
       : (currentGuestSubTab === 'link'
         ? "Aucun invité par lien ou manuel n'est encore enregistré."
-        : "Aucun invité ne correspond à votre recherche.");
+        : (currentGuestSubTab === 'nobillet'
+          ? "Aucun invité sans billet n'a été enregistré par les hôtesses pour le moment."
+          : (currentGuestSubTab === 'evangelized'
+            ? "Aucun invité n'a encore été marqué comme évangélisé."
+            : "Aucun invité ne correspond à votre recherche.")));
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
-        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">${currentGuestSubTab === 'salle' ? '🏛️' : (currentGuestSubTab === 'link' ? '💌' : '👥')}</span>
+        <span style="font-size: 2.5rem; display: block; margin-bottom: 8px;">${currentGuestSubTab === 'salle' ? '🏛️' : (currentGuestSubTab === 'link' ? '💌' : (currentGuestSubTab === 'nobillet' ? '🎫' : (currentGuestSubTab === 'evangelized' ? '✝️' : '👥')))}</span>
         <p>${emptyMsg}</p>
       </div>
     `;
@@ -2208,9 +2329,19 @@ function renderGuests(guests) {
       : `<span class="status-pill" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(107, 93, 84, 0.1); color: var(--text-muted);">Sans église</span>`;
 
     const isLink = g.registration_source === 'link';
-    const sourceBadge = isLink
-      ? `<span class="status-pill status-active" title="Inscrit par lien ou créé par l'admin" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`
-      : `<span class="status-pill status-active" title="Invité en salle (QR code scanné)" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">🏛️ En salle</span>`;
+    const isSansBillet = g.registration_source === 'sans_billet';
+    const isEvangelized = Number(g.is_evangelized) === 1;
+
+    let sourceBadge = `<span class="status-pill status-active" title="Invité en salle (QR code scanné)" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">🏛️ En salle</span>`;
+    if (isLink) {
+      sourceBadge = `<span class="status-pill status-active" title="Inscrit par lien ou créé par l'admin" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`;
+    } else if (isSansBillet) {
+      sourceBadge = `<span class="status-pill status-warning" title="Enregistré sans billet à l'accueil" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); font-weight: 800;">🏷️ Sans Billet</span>`;
+    }
+
+    const evangelizedBadge = isEvangelized
+      ? `<span class="status-pill status-active" title="Évangélisé - Fiche renseignée" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-weight: 800;">✝️ Évangélisé</span>`
+      : '';
 
     const coupleBadge = g.ticket_type === 'couple'
       ? `<span class="status-pill status-active" title="Billet en Couple" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(236, 72, 153, 0.15); color: #db2777; border: 1px solid rgba(236, 72, 153, 0.4); font-weight: 800;">👥 Couple</span>`
@@ -2230,7 +2361,7 @@ function renderGuests(guests) {
 
     const hostHtml = g.invited_by
       ? `<div style="font-size: 0.8rem; color: #b45309; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-           <span>👑</span> Invité par : <strong>${escapeHtml(g.invited_by)}</strong>
+           <span>👑</span> ${isSansBillet ? 'Accueil par' : 'Invité par'} : <strong>${escapeHtml(g.invited_by)}</strong>
          </div>`
       : '';
 
@@ -2267,6 +2398,7 @@ function renderGuests(guests) {
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color); gap: 8px; flex-wrap: wrap;">
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
             ${sourceBadge}
+            ${evangelizedBadge}
             ${coupleBadge}
             ${prayersBadge}
             ${churchBadge}
@@ -2293,11 +2425,15 @@ window.filterGuests = (query) => {
   
   let list = AdminState.guests || [];
 
-  // 1. Filtrage par les 2 catégories officielles (+ Tous)
+  // 1. Filtrage par catégories officielles (+ Sans Billet, Évangélisés, Tous)
   if (currentGuestSubTab === 'salle') {
-    list = list.filter(g => g.registration_source !== 'link');
+    list = list.filter(g => g.registration_source !== 'link' && g.registration_source !== 'sans_billet');
   } else if (currentGuestSubTab === 'link') {
     list = list.filter(g => g.registration_source === 'link');
+  } else if (currentGuestSubTab === 'nobillet') {
+    list = list.filter(g => g.registration_source === 'sans_billet');
+  } else if (currentGuestSubTab === 'evangelized') {
+    list = list.filter(g => Number(g.is_evangelized) === 1);
   }
 
   // 1.5. Filtrage par Table sélectionnée (au clic sur une table)
@@ -2420,6 +2556,105 @@ window.openGuestCRM = (guestId) => {
         </div>
       </div>
     ` : ''}
+
+    ${guest.registration_source === 'sans_billet' ? `
+      <!-- Origine Inscription SANS BILLET Accueil -->
+      <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15)); border: 1.5px solid rgba(245, 158, 11, 0.5); border-radius: 16px; padding: 14px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h4 style="margin: 0; font-size: 0.88rem; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px;">
+            🏷️ Invité Enregistré SANS BILLET à l'Accueil
+          </h4>
+          <span class="status-pill status-warning" style="background: rgba(245, 158, 11, 0.25); color: #fbbf24; font-weight: 800; font-size: 0.72rem;">Accueil Hôtesse</span>
+        </div>
+        <div style="font-size: 0.92rem; color: var(--text-main);">
+          Enregistré(e) par : <strong style="color: #fbbf24;">${escapeHtml(guest.invited_by || 'Hôtesse Accueil')}</strong>
+        </div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+          Genre : <strong>${guest.gender === 'F' ? 'Femme' : 'Homme'}</strong> • Formule : <strong>${guest.ticket_type === 'couple' ? 'En Couple' : 'Seul'}</strong>
+        </div>
+      </div>
+    ` : ''}
+
+    ${guest.evangelization_record ? `
+      <!-- FICHE D'ÉVANGÉLISATION TRANSMIS PAR LE SUPERVISEUR -->
+      <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(15, 43, 89, 0.25)); border: 2px solid #0ea5e9; border-radius: 18px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 18px rgba(14, 165, 233, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(14, 165, 233, 0.3); padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.4rem;">✝️</span>
+            <div>
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">
+                FICHE D'ÉVANGÉLISATION (OFFICIELLE)
+              </h4>
+              <span style="font-size: 0.74rem; color: #94a3b8; font-style: italic;">Une vie transformée, un monde éclairé !</span>
+            </div>
+          </div>
+          <span class="status-pill status-active" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 800; font-size: 0.75rem;">
+            ✓ Transmise à la Régie
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 0.85rem;">
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Fréquente une église :</span>
+            <strong style="color: ${guest.evangelization_record.attends_church ? '#34d399' : '#f87171'};">
+              ${guest.evangelization_record.attends_church ? 'Oui' : 'Non'}
+            </strong>
+            ${guest.evangelization_record.attends_church 
+              ? `<div style="font-size: 0.78rem; color: #e2e8f0; margin-top: 2px;">Assemblée : <em>${escapeHtml(guest.evangelization_record.church_name || 'Non précisé')}</em></div>`
+              : `<div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 2px;">Raison : <em>${escapeHtml(guest.evangelization_record.church_no_reason || 'Non précisée')}</em></div>`
+            }
+          </div>
+
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Déjà baptisé(e) :</span>
+            <strong style="color: ${guest.evangelization_record.is_baptized ? '#34d399' : '#f87171'};">
+              ${guest.evangelization_record.is_baptized ? 'Oui' : 'Non'}
+            </strong>
+            ${guest.evangelization_record.is_baptized 
+              ? `<div style="font-size: 0.78rem; color: #e2e8f0; margin-top: 2px;">Date / période : <em>${escapeHtml(guest.evangelization_record.baptism_date || 'Non précisée')}</em></div>`
+              : `<div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 2px;">Raison : <em>${escapeHtml(guest.evangelization_record.baptism_no_reason || 'Non précisée')}</em></div>`
+            }
+          </div>
+
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Dernière église fréquentée :</span>
+            <strong style="color: #e2e8f0;">${escapeHtml(guest.evangelization_record.last_church_attended || 'Non renseigné')}</strong>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Activité Professionnelle :</span>
+            <strong style="color: #e2e8f0;">${escapeHtml(guest.evangelization_record.profession || guest.profession || 'Non renseigné')}</strong>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Décision & Orientation pastorale :</span>
+            <strong style="color: #38bdf8;">${escapeHtml(guest.evangelization_record.spiritual_decision || 'Acceptation de Christ')}</strong>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Superviseur référent :</span>
+            <strong style="color: #fde047;">${escapeHtml(guest.evangelization_record.supervisor_name || 'Superviseur Régie')}</strong>
+          </div>
+        </div>
+
+        ${guest.evangelization_record.notes ? `
+          <div style="margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; color: #cbd5e1; border-left: 3px solid #38bdf8;">
+            <strong>Notes & Prière :</strong> <em>« ${escapeHtml(guest.evangelization_record.notes)} »</em>
+          </div>
+        ` : ''}
+
+        <div style="margin-top: 10px; font-size: 0.74rem; color: #94a3b8; display: flex; justify-content: space-between; align-items: center;">
+          <span>Enregistrée le : ${guest.evangelization_record.created_at ? new Date(guest.evangelization_record.created_at).toLocaleString('fr-FR') : 'Ce jour'}</span>
+          <span style="color: #f59e0b; font-weight: 700;">« Allez par tout le monde... » Marc 16:15</span>
+        </div>
+      </div>
+    ` : (Number(guest.is_evangelized) === 1 ? `
+      <!-- Marqué évangélisé sans fiche encore soumise -->
+      <div style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 14px; padding: 12px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="color: #34d399; font-weight: 700; font-size: 0.88rem;">✝️ Invité marqué comme évangélisé par l'accueil ou le superviseur</span>
+        <span class="status-pill status-active" style="font-size: 0.72rem;">Fiche en cours</span>
+      </div>
+    ` : '')}
 
     <!-- Section 1 : Coordonnées & Lieu de vie -->
     <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 14px; margin-bottom: 14px;">

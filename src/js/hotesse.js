@@ -190,6 +190,7 @@ async function loadHostessData(isBackground = false) {
 
     updateStatsAndGauges();
     renderGlossyTableButtons();
+    loadPinnedNote();
 
     // Si une modale de table est ouverte, actualiser son contenu en temps réel
     if (HostessState.selectedTable) {
@@ -200,6 +201,29 @@ async function loadHostessData(isBackground = false) {
       console.warn("Erreur chargement données hôtesse:", err);
       showToast("Mode hors-ligne ou connexion réseau lente", "⚠️");
     }
+  }
+}
+
+// Chargement et affichage de la Note Épinglée par l'admin
+async function loadPinnedNote() {
+  try {
+    const res = await fetch('/api/shared/pinned-note');
+    if (!res.ok) return;
+    const data = await res.json();
+    const banner = document.getElementById('hostess-pinned-note-banner');
+    const textEl = document.getElementById('pinned-note-text');
+    const authorEl = document.getElementById('pinned-note-author');
+    if (!banner || !textEl) return;
+
+    if (data && data.note && data.note.content) {
+      textEl.textContent = data.note.content;
+      if (authorEl) authorEl.textContent = data.note.author || 'Régie Admin';
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch (e) {
+    console.warn("Erreur chargement note épinglée:", e);
   }
 }
 
@@ -509,6 +533,8 @@ function renderTableModalContent(cleanTable, searchQuery = HostessState.tableSea
         <!-- Rangée identique aux captures d'écran -->
         <div class="guest-badges-row">
           <span class="mini-glossy-table ${tableColor}">TABLE ${escapeHtml(cleanTable)}</span>
+          ${g.registration_source === 'sans_billet' ? '<span style="background: rgba(245, 158, 11, 0.22); border: 1.5px solid #f59e0b; color: #fbbf24; font-size: 0.72rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px;"><span>🎫</span> Sans Billet</span>' : ''}
+          ${Number(g.is_evangelized) === 1 ? '<span style="background: rgba(16, 185, 129, 0.22); border: 1.5px solid #10b981; color: #34d399; font-size: 0.72rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px;"><span>✝️</span> Évangélisé</span>' : ''}
           ${couplePillHtml}
           ${hostPillHtml}
         </div>
@@ -883,8 +909,147 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadHostessData();
 
-  // Rafraîchissement automatique en tâche de fond toutes les 12 secondes
+  // Rafraîchissement automatique en tâche de fond toutes les 10 secondes
   setInterval(() => {
     loadHostessData(true);
-  }, 12000);
+  }, 10000);
 });
+
+// -------------------------------------------------------------
+// GESTION DU FLUX DES INVITÉS SANS BILLET
+// -------------------------------------------------------------
+const SansBilletState = {
+  gender: 'M',
+  ticketType: 'seul',
+  isEvangelized: 0
+};
+
+window.openSansBilletModal = () => {
+  const modal = document.getElementById('modal-sans-billet');
+  if (!modal) return;
+
+  const nameInput = document.getElementById('sb-name');
+  const partnerInput = document.getElementById('sb-partner-name');
+  const phoneInput = document.getElementById('sb-phone');
+
+  if (nameInput) nameInput.value = '';
+  if (partnerInput) partnerInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+
+  window.setSansBilletGender('M');
+  window.setSansBilletType('seul');
+  window.setSansBilletEvang(0);
+
+  // Remplir le select des tables
+  const select = document.getElementById('sb-table-select');
+  if (select) {
+    const tables = HostessState.tables || [];
+    if (tables.length > 0) {
+      select.innerHTML = tables.map(t => `<option value="${escapeHtml(t.table_code)}">Table ${escapeHtml(t.table_code)} (${t.guest_count || 0}/10)</option>`).join('');
+    } else {
+      select.innerHTML = '<option value="1">Table 1</option>';
+    }
+    // Si une table était sélectionnée par l'hôtesse, la présélectionner
+    if (HostessState.selectedTable) {
+      select.value = HostessState.selectedTable;
+    }
+  }
+
+  modal.style.display = 'flex';
+  modal.classList.add('active');
+
+  setTimeout(() => {
+    if (nameInput) nameInput.focus();
+  }, 80);
+};
+
+window.closeSansBilletModal = () => {
+  const modal = document.getElementById('modal-sans-billet');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+  }
+};
+
+window.setSansBilletGender = (g) => {
+  SansBilletState.gender = g;
+  document.getElementById('sb-gender-m')?.classList.toggle('active', g === 'M');
+  document.getElementById('sb-gender-f')?.classList.toggle('active', g === 'F');
+};
+
+window.setSansBilletType = (t) => {
+  SansBilletState.ticketType = t;
+  document.getElementById('sb-type-seul')?.classList.toggle('active', t === 'seul');
+  document.getElementById('sb-type-couple')?.classList.toggle('active', t === 'couple');
+  const coupleFields = document.getElementById('sb-couple-fields');
+  if (coupleFields) coupleFields.style.display = t === 'couple' ? 'block' : 'none';
+};
+
+window.setSansBilletEvang = (val) => {
+  SansBilletState.isEvangelized = val ? 1 : 0;
+  document.getElementById('sb-evang-no')?.classList.toggle('active', val === 0);
+  document.getElementById('sb-evang-yes')?.classList.toggle('active', val === 1);
+};
+
+window.submitSansBillet = async (event) => {
+  if (event) event.preventDefault();
+
+  const name = document.getElementById('sb-name')?.value.trim();
+  if (!name) {
+    showToast("Veuillez saisir le nom de l'invité", "⚠️");
+    return;
+  }
+
+  const tableNumber = document.getElementById('sb-table-select')?.value || '1';
+  const phone = document.getElementById('sb-phone')?.value.trim() || '0';
+  const partnerName = document.getElementById('sb-partner-name')?.value.trim() || '';
+  const coupleName = SansBilletState.ticketType === 'couple' ? (partnerName ? `couple ${name} et ${partnerName}` : `couple ${name}`) : '';
+
+  const submitBtn = document.getElementById('sb-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Enregistrement en cours...";
+  }
+
+  try {
+    const res = await fetch('/api/hostess/unregistered', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        gender: SansBilletState.gender,
+        ticket_type: SansBilletState.ticketType,
+        partner_name: partnerName,
+        couple_name: coupleName,
+        is_evangelized: SansBilletState.isEvangelized,
+        table_number: tableNumber,
+        phone,
+        hostess_name: HostessState.hostessName
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Erreur lors de l'enregistrement");
+    }
+
+    showToast(`✅ ${name} enregistré(e) sans billet (Table ${tableNumber}) !`, "success");
+    window.closeSansBilletModal();
+
+    // Actualiser instantanément la liste
+    await loadHostessData();
+
+    // Ouvrir directement la popup d'orientation pour accueillir l'invité
+    if (data.guest && data.guest.id) {
+      window.openOrientationPopup(data.guest.id);
+    }
+  } catch (err) {
+    showToast("Erreur: " + err.message, "⚠️");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "✅ Valider l'Entrée";
+    }
+  }
+};
+

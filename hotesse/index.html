@@ -787,13 +787,121 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+
+    /* Bannière Note Épinglée Régie */
+    .pinned-note-banner {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(180, 83, 9, 0.22));
+      border: 1.5px solid var(--gold-primary);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      margin: 8px 12px 2px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2);
+      animation: fadeIn 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .pinned-note-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+      padding-top: 2px;
+    }
+
+    .pinned-note-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pinned-note-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+
+    .pinned-note-badge {
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      background: var(--gold-gradient);
+      color: #1a1614;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .pinned-note-author {
+      font-size: 0.72rem;
+      color: var(--gold-primary);
+      font-weight: 700;
+    }
+
+    .pinned-note-text {
+      font-size: 0.88rem;
+      color: #ffffff;
+      font-weight: 600;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    /* Bouton Sans Billet dans la barre supérieure */
+    .btn-sans-billet-pill {
+      height: 42px;
+      padding: 0 14px;
+      background: linear-gradient(135deg, #b45309, #d97706);
+      border: 1.5px solid #f59e0b;
+      border-radius: var(--radius-full);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(180, 83, 9, 0.4);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-sans-billet-pill:active {
+      transform: scale(0.96);
+    }
+
+    /* Boutons bascule H/F, Seul/Couple, Évangélisé/Non */
+    .btn-toggle-choice {
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-toggle-choice.active {
+      background: rgba(212, 175, 55, 0.2);
+      border-color: var(--gold-primary);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+    }
   </style>
 </head>
 <body>
 
   <div class="app-viewport">
     
-    <!-- Barre supérieure compacte (Recherche + Icône Profil/Jauge) -->
+    <!-- Barre supérieure compacte (Recherche + Bouton Sans Billet + Icône Profil/Jauge) -->
     <header class="top-action-bar">
       <div class="search-box-wrapper">
         <span class="search-box-icon">🔍</span>
@@ -807,12 +915,29 @@
         <button type="button" id="search-clear" class="search-clear-btn">✕</button>
       </div>
 
+      <!-- Bouton Sans Billet (pour enregistrer les arrivées imprévues) -->
+      <button type="button" id="btn-open-sans-billet" class="btn-sans-billet-pill" onclick="window.openSansBilletModal()" title="Enregistrer un invité sans billet">
+        <span>🎫 Sans Billet</span>
+      </button>
+
       <button type="button" id="btn-open-profile-drawer" class="profile-gauge-btn" title="Voir les jauges d'émargement">
         <span>💁‍♀️</span>
         <span id="profile-btn-label">Hôtesse</span>
         <span id="profile-kpi-badge" class="live-kpi-badge">0</span>
       </button>
     </header>
+
+    <!-- Bandeau Note Épinglée par la Régie Admin -->
+    <div id="hostess-pinned-note-banner" class="pinned-note-banner" style="display: none;">
+      <div class="pinned-note-icon">📌</div>
+      <div class="pinned-note-body">
+        <div class="pinned-note-meta">
+          <span class="pinned-note-badge">NOTE DE LA RÉGIE</span>
+          <span id="pinned-note-author" class="pinned-note-author">Régie Admin</span>
+        </div>
+        <div id="pinned-note-text" class="pinned-note-text"></div>
+      </div>
+    </div>
 
     <!-- Accueil : Grille Exclusive des Boutons de Tables (Anti-Scrollade) -->
     <main class="tables-canvas">
@@ -939,6 +1064,169 @@
       <div class="modal-sheet-body" id="search-results-list">
         <!-- Rempli en JS -->
       </div>
+    </div>
+  </div>
+
+  <!-- MODALE SANS BILLET (Accueil Express & Orientation) -->
+  <div id="modal-sans-billet" class="modal-overlay" style="display: none;" onclick="if(event.target === this) window.closeSansBilletModal()">
+    <div class="popup-orientation-card" style="max-width: 500px; width: 94%; max-height: 92vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color-subtle); padding-bottom: 10px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.5rem;">🎫</span>
+          <div>
+            <h3 style="font-size: 1.1rem; color: #fff; font-weight: 900; margin: 0;">Accueil Invité Sans Billet</h3>
+            <p style="font-size: 0.74rem; color: var(--gold-primary); margin: 0;">Enregistrement express en direct</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="window.closeSansBilletModal()">✕</button>
+      </div>
+
+      <form id="form-sans-billet" onsubmit="window.submitSansBillet(event)" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- 1. Nom et Prénom -->
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--gold-primary); margin-bottom: 6px; text-transform: uppercase;">
+            Nom et Prénom *
+          </label>
+          <input 
+            type="text" 
+            id="sb-name" 
+            class="search-box-input" 
+            required 
+            placeholder="Ex : KOUOH Jonathan, M. Jean..." 
+            style="padding-left: 14px; height: 44px; font-size: 0.95rem;"
+          >
+        </div>
+
+        <!-- 2. Boutons Genre : H (Homme) / F (Femme) -->
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Genre
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button 
+              type="button" 
+              id="sb-gender-m" 
+              class="btn-toggle-choice active" 
+              onclick="window.setSansBilletGender('M')"
+            >
+              <span>👨</span> Homme (H)
+            </button>
+            <button 
+              type="button" 
+              id="sb-gender-f" 
+              class="btn-toggle-choice" 
+              onclick="window.setSansBilletGender('F')"
+            >
+              <span>👩</span> Femme (F)
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Boutons Statut : Seul / En Couple -->
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Formule
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button 
+              type="button" 
+              id="sb-type-seul" 
+              class="btn-toggle-choice active" 
+              onclick="window.setSansBilletType('seul')"
+            >
+              <span>👤</span> Seul(e)
+            </button>
+            <button 
+              type="button" 
+              id="sb-type-couple" 
+              class="btn-toggle-choice" 
+              onclick="window.setSansBilletType('couple')"
+            >
+              <span>💍</span> En Couple
+            </button>
+          </div>
+          <!-- Champ optionnel si couple -->
+          <div id="sb-couple-fields" style="display: none; margin-top: 10px;">
+            <input 
+              type="text" 
+              id="sb-partner-name" 
+              class="search-box-input" 
+              placeholder="Nom du conjoint(e) ou nom du couple..." 
+              style="padding-left: 14px; height: 40px; font-size: 0.85rem;"
+            >
+          </div>
+        </div>
+
+        <!-- 4. Boutons Évangélisation : Évangélisé ou Pas -->
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">
+            Statut Spirituel
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button 
+              type="button" 
+              id="sb-evang-no" 
+              class="btn-toggle-choice active" 
+              onclick="window.setSansBilletEvang(0)"
+            >
+              <span>⏳</span> Pas encore évangélisé
+            </button>
+            <button 
+              type="button" 
+              id="sb-evang-yes" 
+              class="btn-toggle-choice" 
+              onclick="window.setSansBilletEvang(1)"
+            >
+              <span>✝️</span> Évangélisé(e)
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. Table d'accueil & Téléphone -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="display: block; font-size: 0.76rem; font-weight: 800; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;">
+              Table attribuée
+            </label>
+            <select id="sb-table-select" class="search-box-input" style="padding-left: 12px; height: 42px; font-size: 0.88rem; cursor: pointer;">
+              <!-- Injecté en JS -->
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.76rem; font-weight: 800; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;">
+              Téléphone (optionnel)
+            </label>
+            <input 
+              type="tel" 
+              id="sb-phone" 
+              class="search-box-input" 
+              placeholder="Ex : 077..." 
+              style="padding-left: 12px; height: 42px; font-size: 0.88rem;"
+            >
+          </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button 
+            type="button" 
+            class="btn-close-popup" 
+            style="flex: 1; margin: 0; background: rgba(255,255,255,0.08); color: var(--text-muted);" 
+            onclick="window.closeSansBilletModal()"
+          >
+            Annuler
+          </button>
+          <button 
+            type="submit" 
+            id="sb-submit-btn" 
+            class="btn-checkin-validate" 
+            style="flex: 2; margin: 0; background: linear-gradient(135deg, #d4af37, #b45309); font-weight: 900;"
+          >
+            ✅ Valider l'Entrée
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

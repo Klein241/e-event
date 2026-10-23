@@ -13,6 +13,7 @@ import { handlePrayerRoutes } from "./routes/prayers.js";
 import { handleProjectorRoutes } from "./routes/projector.js";
 import { handleAdminRoutes } from "./routes/admin.js";
 import { handleHostessRoutes } from "./routes/hostess.js";
+import { handleSupervisorRoutes } from "./routes/supervisor.js";
 
 // Handler inline pour les routes publicitaires (annonces)
 async function handleAdsRoutes(pathname, request, env) {
@@ -87,12 +88,26 @@ export default {
       return Response.redirect(slashUrl.toString(), 301);
     }
 
+    // Normalisation des chemins /superviseur et /supervisueur
+    if (pathname === "/superviseur") {
+      const slashUrl = new URL(request.url);
+      slashUrl.pathname = "/superviseur/";
+      return Response.redirect(slashUrl.toString(), 301);
+    }
+    if (pathname === "/supervisueur" || pathname === "/supervisueur/") {
+      const slashUrl = new URL(request.url);
+      slashUrl.pathname = "/superviseur/";
+      return Response.redirect(slashUrl.toString(), 301);
+    }
+
     // 2. Routage API modulaire
     if (pathname.startsWith("/api/")) {
       try {
         let response = null;
 
-        if (pathname.startsWith("/api/admin")) {
+        if (pathname.startsWith("/api/supervisor") || pathname.startsWith("/api/shared") || pathname.startsWith("/api/admin/pinned-note") || pathname === "/api/hostess/unregistered") {
+          response = await handleSupervisorRoutes(pathname, request, env);
+        } else if (pathname.startsWith("/api/admin")) {
           response = await handleAdminRoutes(pathname, request, env);
         } else if (pathname.startsWith("/api/hostess")) {
           response = await handleHostessRoutes(pathname, request, env);

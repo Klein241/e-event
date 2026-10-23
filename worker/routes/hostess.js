@@ -61,6 +61,7 @@ export async function handleHostessRoutes(pathname, request, env) {
             couple_name,
             COALESCE(is_arrived, 0) as is_arrived,
             arrived_at,
+            COALESCE(is_evangelized, 0) as is_evangelized,
             created_at
           FROM guests
           ORDER BY name ASC

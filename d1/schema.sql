@@ -252,3 +252,44 @@ CREATE TABLE IF NOT EXISTS invitation_link_clicks (
 CREATE INDEX IF NOT EXISTS idx_clicks_ip ON invitation_link_clicks(ip_address);
 CREATE INDEX IF NOT EXISTS idx_clicks_date ON invitation_link_clicks(created_at);
 
+-- 16. Notes et Consignes Épinglées (Admin -> Hôtesses & Superviseur)
+CREATE TABLE IF NOT EXISTS pinned_notes (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL DEFAULT 'default',
+    content TEXT NOT NULL,
+    author TEXT DEFAULT 'Régie Admin',
+    target_role TEXT DEFAULT 'ALL',
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pinned_notes_active ON pinned_notes(event_id, is_active);
+
+-- 17. Fiches d'Évangélisation (Superviseur & Suivi Pastoral)
+CREATE TABLE IF NOT EXISTS evangelization_records (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL DEFAULT 'default',
+    guest_id TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    residence_location TEXT,
+    attends_church INTEGER DEFAULT 0,
+    church_name TEXT,
+    church_no_reason TEXT,
+    is_baptized INTEGER DEFAULT 0,
+    baptism_date TEXT,
+    baptism_no_reason TEXT,
+    last_church_attended TEXT,
+    phone TEXT,
+    profession TEXT,
+    spiritual_decision TEXT,
+    notes TEXT,
+    supervisor_name TEXT DEFAULT 'Superviseur',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_evang_guest ON evangelization_records(guest_id);
+CREATE INDEX IF NOT EXISTS idx_evang_event ON evangelization_records(event_id, created_at DESC);
+
+

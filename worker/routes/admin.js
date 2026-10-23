@@ -208,6 +208,9 @@ export async function handleAdminRoutes(pathname, request, env) {
           COALESCE(g.couple_name, '') as couple_name,
           COALESCE(g.is_arrived, 0) as is_arrived,
           g.arrived_at,
+          COALESCE(g.is_evangelized, 0) as is_evangelized,
+          g.evangelized_at,
+          g.evangelized_by,
           g.role,
           g.created_at,
           g.last_active,
@@ -239,8 +242,19 @@ export async function handleAdminRoutes(pathname, request, env) {
         if (prayersByGuest[p.guest_id].length < 10) prayersByGuest[p.guest_id].push(p);
       });
 
+      // Requête pour charger les fiches d'évangélisation
+      const { results: evangRecords } = await db.prepare(`
+        SELECT * FROM evangelization_records ORDER BY created_at DESC LIMIT 500
+      `).all().catch(() => ({ results: [] }));
+
+      const evangByGuest = {};
+      (evangRecords || []).forEach(r => {
+        if (!evangByGuest[r.guest_id]) evangByGuest[r.guest_id] = r;
+      });
+
       for (const guest of guests) {
         guest.prayers_history = prayersByGuest[guest.id] || [];
+        guest.evangelization_record = evangByGuest[guest.id] || null;
       }
 
       cachedAdminGuests = guests;

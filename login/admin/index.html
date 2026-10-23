@@ -186,6 +186,43 @@
         </div>
       </div>
 
+      <!-- Note Épinglée Régie en Direct (Visible chez Hôtesses et Superviseur) -->
+      <div class="admin-card" style="border: 2px solid #d4af37; background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(24, 21, 19, 0.95));">
+        <div class="admin-card-header">
+          <div>
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+              <span>📌</span> Note Épinglée Régie (Hôtesses & Superviseur)
+            </h3>
+            <p>Diffusez une consigne urgente ou directive affichée en direct et en temps réel en tête des écrans Hôtesses et Superviseur</p>
+          </div>
+          <span id="badge-pinned-note-status" class="status-pill" style="background: rgba(255, 255, 255, 0.1); color: var(--text-muted); font-weight: 800;">⚪ Aucune note active</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <textarea 
+            id="admin-pinned-note-input" 
+            class="admin-input" 
+            rows="3" 
+            placeholder="Ex: Merci d'orienter en priorité les invités sans billet vers les tables 8 et 9 pour l'entretien d'évangélisation avec le superviseur..." 
+            style="width: 100%; resize: vertical; font-size: 0.95rem; line-height: 1.45;"
+          ></textarea>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button type="button" id="btn-save-pinned-note" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 10px 20px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="window.adminSavePinnedNote()">
+                <span>📌</span> Épingler chez Hôtesses & Superviseur
+              </button>
+              <button type="button" id="btn-remove-pinned-note" class="btn-table-action" style="background: rgba(239, 68, 68, 0.15); border: 1.5px solid #ef4444; color: #f87171; font-weight: 700; padding: 10px 18px; border-radius: 999px; cursor: pointer;" onclick="window.adminRemovePinnedNote()">
+                <span>✕</span> Retirer la note
+              </button>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); font-style: italic;">
+              <span id="admin-pinned-note-last-updated">Synchronisation automatique D1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Commutateur Clé : Fonctionnalité Direct vs Remplacement par Programme -->
       <div class="admin-card" style="border: 2px solid var(--terracotta-accent);">
         <div class="admin-card-header">
@@ -739,6 +776,9 @@
             <a href="/hotesse/" target="_blank" class="btn-table-action" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;" title="Ouvrir l'Espace Hôtesse d'Accueil et d'Émargement">
               <span>💁‍♀️</span> Interface Hôtesses
             </a>
+            <a href="/superviseur/" target="_blank" class="btn-table-action" style="background: linear-gradient(135deg, #0f2b59, #0284c7); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;" title="Ouvrir l'Espace Superviseur & Fiches d'Évangélisation">
+              <span>✝️</span> Interface Superviseur
+            </a>
             <button type="button" class="btn-table-action" onclick="window.openCreateGuestModal()" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 7px 14px; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35); font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
               <span>➕</span> Créer un invité
             </button>
@@ -746,13 +786,19 @@
           </div>
         </div>
 
-        <!-- Les 2 Catégories Officielles d'Invités : En Salle vs Par Lien (+ Tous) -->
+        <!-- Les Catégories Officielles d'Invités : En Salle, Par Lien, Sans Billet, Évangélisés (+ Tous) -->
         <div style="display: flex; gap: 8px; margin: 12px 0 14px 0; flex-wrap: wrap; align-items: center;">
           <button type="button" id="subtab-guests-salle" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: var(--text-main); cursor: pointer;" onclick="window.setGuestSubTab('salle')">
             🏛️ Invités en salle (<span id="subtab-count-salle">0</span>)
           </button>
           <button type="button" id="subtab-guests-link" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: var(--text-main); cursor: pointer;" onclick="window.setGuestSubTab('link')">
             💌 Invités par lien (<span id="subtab-count-link">0</span>)
+          </button>
+          <button type="button" id="subtab-guests-nobillet" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: #fbbf24; cursor: pointer;" onclick="window.setGuestSubTab('nobillet')">
+            🏷️ Sans Billet (<span id="subtab-count-nobillet">0</span>)
+          </button>
+          <button type="button" id="subtab-guests-evangelized" class="btn-table-action subtab-guest-btn" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--bg-secondary); color: #34d399; cursor: pointer;" onclick="window.setGuestSubTab('evangelized')">
+            ✝️ Évangélisés (<span id="subtab-count-evangelized">0</span>)
           </button>
           <button type="button" id="subtab-guests-all" class="btn-table-action subtab-guest-btn active" style="font-weight: 800; padding: 8px 16px; border-radius: 999px; background: var(--terracotta-gradient); color: #fff; cursor: pointer;" onclick="window.setGuestSubTab('all')">
             👥 Tous les invités (<span id="subtab-count-all">0</span>)
