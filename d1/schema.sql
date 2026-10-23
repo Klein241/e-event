@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS guests (
     ticket_type TEXT DEFAULT 'seul', -- 'seul', 'couple'
     partner_name TEXT,
     couple_name TEXT,
+    is_arrived INTEGER DEFAULT 0,
+    arrived_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_active DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -48,6 +50,18 @@ CREATE TABLE IF NOT EXISTS event_tables (
     event_id TEXT NOT NULL DEFAULT 'default',
     table_code TEXT UNIQUE NOT NULL,
     capacity INTEGER DEFAULT 10,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2c. Hôtesses officielles & Liens d'accueil en salle
+CREATE TABLE IF NOT EXISTS hostesses (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL DEFAULT 'default',
+    name TEXT NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    phone TEXT,
+    assigned_tables TEXT DEFAULT 'ALL',
+    is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

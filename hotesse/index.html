@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Espace Hôtesse & Émargement Officiel | Jours de Rencontre</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0c0a09;
+      --bg-card: #181513;
+      --bg-card-hover: #221f1c;
+      --bg-secondary: #141210;
+      --border-color: rgba(212, 175, 55, 0.28);
+      --border-color-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f5f5f4;
+      --text-muted: #a8a29e;
+      --gold-primary: #d4af37;
+      --gold-gradient: linear-gradient(135deg, #f7d070, #d4af37, #9d7b1e);
+      --emerald-gradient: linear-gradient(135deg, #10b981, #059669);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden; /* Anti-scrollade strict */
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+    }
+
+    /* Conteneur Plein Écran Anti-Scrollade */
+    .app-viewport {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* Barre supérieure compacte */
+    .top-action-bar {
+      height: 60px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(20, 18, 16, 0.96);
+      border-bottom: 1px solid var(--border-color-subtle);
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    /* Barre de recherche intelligente instantanée */
+    .search-box-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-box-icon {
+      position: absolute;
+      left: 12px;
+      font-size: 1rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-box-input {
+      width: 100%;
+      height: 42px;
+      padding: 0 36px 0 36px;
+      background: var(--bg-secondary);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-full);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.2s ease;
+      user-select: text;
+    }
+
+    .search-box-input:focus {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
+      background: #0f0d0c;
+    }
+
+    .search-clear-btn {
+      position: absolute;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    /* Bouton profil / jauge épuré */
+    .profile-gauge-btn {
+      height: 42px;
+      padding: 0 12px;
+      background: rgba(212, 175, 55, 0.15);
+      border: 1.5px solid var(--gold-primary);
+      border-radius: var(--radius-full);
+      color: var(--gold-primary);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .profile-gauge-btn:active {
+      transform: scale(0.96);
+    }
+
+    .live-kpi-badge {
+      background: #10b981;
+      color: #fff;
+      padding: 2px 7px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 900;
+    }
+
+    /* Canevas Principal des Boutons (Accueil Anti-Scrollade) */
+    .tables-canvas {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto; /* Scroll intérieur fluide si petit écran */
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tables-canvas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 6px;
+    }
+
+    .tables-canvas-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .tables-canvas-counter {
+      font-size: 0.76rem;
+      color: var(--gold-primary);
+      font-weight: 700;
+    }
+
+    /* Grille des Boutons 3D Glossy (Style exact Image 2) */
+    .glossy-buttons-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (min-width: 480px) {
+      .glossy-buttons-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .glossy-buttons-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+    }
+
+    /* Le Bouton Pilule 3D Glossy Haute Précision */
+    .glossy-pill-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 8px 10px;
+      border-radius: 9999px;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: 0.92rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s ease, filter 0.12s ease;
+      overflow: hidden;
+      box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.45),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        inset 0 1px 1.5px rgba(255, 255, 255, 0.85),
+        inset 0 -2.5px 3.5px rgba(0, 0, 0, 0.45);
+      text-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Le reflet de verre convexe signature sur la moitié haute */
+    .glossy-pill-btn::before {
+      content: '';
+      position: absolute;
+      top: 1.5px;
+      left: 5px;
+      right: 5px;
+      height: 46%;
+      border-radius: 9999px 9999px 40px 40px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.25) 75%, rgba(255, 255, 255, 0.05) 100%);
+      pointer-events: none;
+    }
+
+    /* Petit halo d'ombre interne inférieur pour la profondeur 3D */
+    .glossy-pill-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 15%;
+      right: 15%;
+      height: 25%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at bottom, rgba(255, 255, 255, 0.35) 0%, transparent 75%);
+      pointer-events: none;
+    }
+
+    .glossy-pill-btn:active {
+      transform: scale(0.96);
+      filter: brightness(1.15);
+    }
+
+    .pill-counter {
+      font-size: 0.68rem;
+      opacity: 0.95;
+      font-weight: 700;
+      letter-spacing: 0px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      margin-top: 1px;
+    }
+
+    /* Surbrillance dorée avec halo 3D quand une table correspond à la recherche */
+    .glossy-pill-btn.search-matched {
+      box-shadow: 
+        0 0 0 2.5px var(--gold-primary),
+        0 6px 16px rgba(212, 175, 55, 0.55),
+        inset 0 1px 2px rgba(255, 255, 255, 0.95),
+        inset 0 -2.5px 3.5px rgba(0, 0, 0, 0.45);
+      transform: translateY(-2px);
+    }
+
+    /* Bandeau récapitulatif de recherche sur l'accueil */
+    .home-search-summary {
+      padding: 10px 14px;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.16) 0%, rgba(24, 21, 19, 0.95) 100%);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      animation: fadeIn 0.2s ease;
+      margin-bottom: 4px;
+    }
+
+    .home-search-summary-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .home-search-summary-btn {
+      background: var(--gold-gradient);
+      color: #171412;
+      border: none;
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(212, 175, 55, 0.35);
+      transition: transform 0.15s;
+    }
+
+    .home-search-summary-btn:active {
+      transform: scale(0.96);
+    }
+
+    .empty-search-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-muted);
+    }
+
+    .empty-search-state .btn-reset {
+      margin-top: 14px;
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-full);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.86rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .empty-search-state .btn-reset:hover {
+      background: var(--gold-gradient);
+      color: #171412;
+    }
+
+    /* Palette chromatique calquée sur le visuel de référence */
+    .g-red     { background: linear-gradient(180deg, #d31010 0%, #a80505 50%, #6d0000 100%); border-color: #4a0000; }
+    .g-orange  { background: linear-gradient(180deg, #f57c00 0%, #e65100 50%, #bf360c 100%); border-color: #8c2600; }
+    .g-yellow  { background: linear-gradient(180deg, #ffd600 0%, #fbc02d 50%, #f57f17 100%); border-color: #b26a00; color: #2e1700; text-shadow: 0 1px 0 rgba(255,255,255,0.6); }
+    .g-lime    { background: linear-gradient(180deg, #76ff03 0%, #64dd17 50%, #33691e 100%); border-color: #1b5e20; color: #143e0e; text-shadow: 0 1px 0 rgba(255,255,255,0.5); }
+    .g-green   { background: linear-gradient(180deg, #00c853 0%, #009624 50%, #004d40 100%); border-color: #003300; }
+    .g-cyan    { background: linear-gradient(180deg, #00b0ff 0%, #0091ea 50%, #01579b 100%); border-color: #003c8f; }
+    .g-blue    { background: linear-gradient(180deg, #2979ff 0%, #0d47a1 50%, #051b66 100%); border-color: #001040; }
+    .g-purple  { background: linear-gradient(180deg, #7c4dff 0%, #6200ea 50%, #311b92 100%); border-color: #1f085c; }
+    .g-magenta { background: linear-gradient(180deg, #e040fb 0%, #c51162 50%, #880e4f 100%); border-color: #500028; }
+    .g-pink    { background: linear-gradient(180deg, #ff4081 0%, #f50057 50%, #ad1457 100%); border-color: #6a0030; }
+    .g-black   { background: linear-gradient(180deg, #424242 0%, #212121 50%, #0a0a0a 100%); border-color: #000000; }
+    .g-silver  { background: linear-gradient(180deg, #f5f5f5 0%, #dcdcdc 50%, #9e9e9e 100%); border-color: #757575; color: #212121; text-shadow: 0 1px 0 rgba(255,255,255,0.8); }
+
+    /* ======================================================== */
+    /* MODALES & BOTTOM SHEETS                                  */
+    /* ======================================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      max-height: 90dvh;
+      background: #14110f;
+      border: 1.5px solid var(--border-color);
+      border-bottom: none;
+      border-radius: 26px 26px 0 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.8);
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-sheet-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border-color-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      background: #1a1714;
+    }
+
+    .modal-sheet-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Barre de recherche discrète et épurée dans la modale de table (non touffue) */
+    .table-modal-search-wrapper {
+      padding: 10px 16px;
+      background: #171412;
+      border-bottom: 1px solid var(--border-color-subtle);
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .table-modal-search-icon {
+      position: absolute;
+      left: 28px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .table-modal-search-input {
+      width: 100%;
+      height: 38px;
+      padding: 0 34px 0 36px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-full);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .table-modal-search-input:focus {
+      border-color: var(--gold-primary);
+      background: rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+    }
+
+    .table-modal-search-clear {
+      position: absolute;
+      right: 26px;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.7rem;
+    }
+
+    .modal-sheet-body {
+      padding: 16px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ======================================================== */
+    /* CARTES INVITÉS DANS LA MODALE TABLE (STYLE CAPTURES D'ÉCRAN) */
+    /* ======================================================== */
+    .guest-btn-card {
+      background: #1d1916;
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .guest-btn-card:active {
+      transform: scale(0.98);
+      background: #26211d;
+    }
+
+    .guest-btn-card.is-arrived {
+      border-color: rgba(16, 185, 129, 0.5);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, #1d1916 100%);
+    }
+
+    /* Nom en GRAND BLANC BOLD (Identique à ABIGAEL / ADA Milca) */
+    .guest-card-name {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+      line-height: 1.2;
+    }
+
+    /* Rangée des Badges Pilules (Table + Couple + Hôte) */
+    .guest-badges-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    /* Mini Pilule 3D Glossy Table */
+    .mini-glossy-table {
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Pilule Couple Stylisée (Foncée avec bordure rose, ex: couple ABIGAEL et Elisabeth) */
+    .pill-couple {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(236, 72, 153, 0.12);
+      border: 1.5px solid #ec4899;
+      color: #f472b6;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    /* Pilule Hôte Stylisée (Foncée avec bordure dorée, ex: Jeanne d'Arc) */
+    .pill-host {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(212, 175, 55, 0.12);
+      border: 1.5px solid #d4af37;
+      color: #f7d070;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .guest-card-status-indicator {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    /* ======================================================== */
+    /* POPUP D'ORIENTATION & VALIDATION EN SALLE                */
+    /* ======================================================== */
+    .popup-orientation-card {
+      background: #1a1614;
+      border: 2px solid var(--gold-primary);
+      border-radius: 24px;
+      padding: 22px 20px;
+      width: 100%;
+      max-width: 480px;
+      margin: auto;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 14px;
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .orientation-title {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .orientation-guest-name {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+    }
+
+    .orientation-table-badge {
+      padding: 10px 28px;
+      border-radius: var(--radius-full);
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+      margin: 4px 0;
+    }
+
+    .orientation-pills-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      align-items: center;
+    }
+
+    /* Gros Bouton d'Émargement */
+    .btn-big-checkin {
+      width: 100%;
+      height: 54px;
+      border-radius: var(--radius-md);
+      border: none;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-big-checkin.pending {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-big-checkin.pending:active {
+      transform: scale(0.97);
+    }
+
+    .btn-big-checkin.validated {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid #10b981;
+      color: #10b981;
+    }
+
+    .btn-cancel-checkin {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .btn-close-popup {
+      width: 100%;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Drawer Profil & Jauge d'Affluence */
+    .profile-drawer {
+      background: #181513;
+      border: 1.5px solid var(--border-color);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      max-width: 440px;
+      margin: auto;
+    }
+
+    .kpi-row-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color-subtle);
+    }
+
+    .kpi-lbl {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .kpi-val {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    /* Toast Notification */
+    .hostess-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1c1917;
+      border: 1.5px solid var(--gold-primary);
+      border-radius: var(--radius-full);
+      padding: 10px 22px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.88rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+
+    .hostess-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    
+    <!-- Barre supérieure compacte (Recherche + Icône Profil/Jauge) -->
+    <header class="top-action-bar">
+      <div class="search-box-wrapper">
+        <span class="search-box-icon">🔍</span>
+        <input 
+          type="text" 
+          id="hostess-search" 
+          class="search-box-input" 
+          placeholder="Rechercher nom, couple, table..." 
+          autocomplete="off"
+        >
+        <button type="button" id="search-clear" class="search-clear-btn">✕</button>
+      </div>
+
+      <button type="button" id="btn-open-profile-drawer" class="profile-gauge-btn" title="Voir les jauges d'émargement">
+        <span>💁‍♀️</span>
+        <span id="profile-btn-label">Hôtesse</span>
+        <span id="profile-kpi-badge" class="live-kpi-badge">0</span>
+      </button>
+    </header>
+
+    <!-- Accueil : Grille Exclusive des Boutons de Tables (Anti-Scrollade) -->
+    <main class="tables-canvas">
+      <div class="tables-canvas-header">
+        <div class="tables-canvas-title">🍽️ Tables Officielles</div>
+        <div class="tables-canvas-counter" id="tables-total-counter">Sélectionnez une table</div>
+      </div>
+
+      <!-- Bandeau récapitulatif de recherche rapide (affiché seulement si recherche active) -->
+      <div id="home-search-summary" class="home-search-summary" style="display: none;"></div>
+
+      <!-- Grille des Boutons 3D Capsule Glossy -->
+      <div class="glossy-buttons-grid" id="glossy-tables-container">
+        <!-- Rempli dynamiquement en JS -->
+      </div>
+    </main>
+
+  </div>
+
+  <!-- MODALE 1 : Liste des Invités de la Table Sélectionnée -->
+  <div id="modal-table-guests" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <div class="modal-sheet-title">
+          <span id="modal-table-badge" class="mini-glossy-table g-purple">TABLE A</span>
+          <span id="modal-table-stats" style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700;">(0 invités)</span>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="window.closeTableModal()">✕</button>
+      </div>
+
+      <!-- Barre de recherche interne à la table (non touffue) -->
+      <div class="table-modal-search-wrapper">
+        <span class="table-modal-search-icon">🔍</span>
+        <input 
+          type="text" 
+          id="table-modal-search-input" 
+          class="table-modal-search-input" 
+          placeholder="Filtrer dans cette table (nom, hôte)..." 
+          autocomplete="off"
+        >
+        <button type="button" id="table-modal-search-clear" class="table-modal-search-clear" onclick="window.clearTableModalSearch()">✕</button>
+      </div>
+      
+      <div class="modal-sheet-body" id="modal-table-guests-list">
+        <!-- Liste injectée en JS (Style ABIGAEL / ADA Milca) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE 2 : Popup d'Orientation & Émargement de l'Invité -->
+  <div id="modal-guest-orientation" class="modal-overlay">
+    <div class="popup-orientation-card">
+      <div class="orientation-title">🏛️ Orientation & Émargement en Salle</div>
+      
+      <div class="orientation-guest-name" id="orient-guest-name">ABIGAEL</div>
+      
+      <div id="orient-table-pill" class="orientation-table-badge g-purple">
+        TABLE A
+      </div>
+
+      <div class="orientation-pills-row">
+        <div id="orient-couple-pill" class="pill-couple" style="display: none;">
+          💍 couple ABIGAEL et Elisabeth
+        </div>
+        <div id="orient-host-pill" class="pill-host">
+          👑 Invité par : Jeanne d'Arc
+        </div>
+      </div>
+
+      <div id="orient-checkin-container" style="width: 100%;">
+        <!-- Bouton Valider l'entrée injecté en JS -->
+      </div>
+
+      <button type="button" class="btn-close-popup" onclick="window.closeOrientationPopup()">
+        ✖ Fermer / Invité Suivant
+      </button>
+    </div>
+  </div>
+
+  <!-- MODALE 3 : Drawer Profil & Jauges d'Affluence -->
+  <div id="modal-profile-drawer" class="modal-overlay">
+    <div class="profile-drawer">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; color: #fff; font-weight: 800;" id="drawer-hostess-title">👑 Espace Hôtesse</h3>
+        <button type="button" class="modal-close-btn" onclick="window.closeProfileDrawer()">✕</button>
+      </div>
+
+      <div class="kpi-row-item">
+        <span class="kpi-lbl">🟢 Entrés en salle</span>
+        <span class="kpi-val" id="drawer-kpi-arrived" style="color: #10b981;">0</span>
+      </div>
+
+      <div class="kpi-row-item">
+        <span class="kpi-lbl">⚪ Total Invités</span>
+        <span class="kpi-val" id="drawer-kpi-total">0</span>
+      </div>
+
+      <div class="kpi-row-item">
+        <span class="kpi-lbl">🟡 Taux d'Affluence</span>
+        <span class="kpi-val" id="drawer-kpi-rate" style="color: var(--gold-primary);">0%</span>
+      </div>
+
+      <div style="height: 8px; background: rgba(255,255,255,0.08); border-radius: var(--radius-full); overflow: hidden;">
+        <div id="drawer-kpi-progress" style="height: 100%; width: 0%; background: var(--emerald-gradient); transition: width 0.3s;"></div>
+      </div>
+
+      <button type="button" class="btn-close-popup" onclick="window.closeProfileDrawer()">
+        Fermer
+      </button>
+    </div>
+  </div>
+
+  <!-- MODALE 4 : Résultats de Recherche Intelligente Directe -->
+  <div id="modal-search-results" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-sheet-header">
+        <div class="modal-sheet-title">
+          <span>🔍 Résultats de recherche</span>
+          <span id="search-results-count" style="font-size: 0.82rem; color: var(--gold-primary); font-weight: 800;">(0)</span>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="window.closeSearchModal()">✕</button>
+      </div>
+      
+      <div class="modal-sheet-body" id="search-results-list">
+        <!-- Rempli en JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="hostess-toast" class="hostess-toast">
+    <span id="hostess-toast-icon">✅</span>
+    <span id="hostess-toast-text">Validé en salle</span>
+  </div>
+
+  <script type="module" src="/src/js/hotesse.js"></script>
+</body>
+</html>

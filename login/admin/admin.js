@@ -324,8 +324,10 @@ function loadCurrentTab() {
 function startLivePolling() {
   if (AdminState.pollingTimer) clearInterval(AdminState.pollingTimer);
   AdminState.pollingTimer = setInterval(() => {
-    loadCurrentTab();
-  }, 5000);
+    if (!document.hidden) {
+      loadCurrentTab();
+    }
+  }, 20000);
 }
 
 // -------------------------------------------------------------
@@ -1022,22 +1024,96 @@ window.setGuestViewMode = (mode) => {
   window.filterGuests();
 };
 
-// Normalisation canonique des hôtes pour éviter les faux doublons (ex: Micky vs micky vs Pasteur Micky)
+// Dictionnaire canonique des hôtes officiels avec titres honorifiques corrects
+const CANONICAL_HOST_NAMES = {
+  'georgette-kammoe': 'Dr GEORGETTE KAMMOE',
+  'jeanne-d-arc': "Jeanne d'Arc",
+  'micky': 'Pasteur Micky',
+  'nematchoue-emilie': 'Madame Nematchoue Émilie',
+  'emilienne': 'Ma Emilienne',
+  'tina': 'Maman Tina',
+  'charly': 'Pasteur Charly',
+  'rosie': 'Soeur Rosie',
+  'blaise': 'Frère Blaise',
+  'alex': 'Frère Alex',
+  'edith': 'Soeur Édith',
+  'lydie': 'Soeur Lydie'
+};
+
+// Normalisation canonique universelle des hôtes (fusionne casse, accents, apostrophes, fautes et titres)
 function getHostKey(rawHost) {
   if (!rawHost) return 'hote-non-specifie';
-  let clean = String(rawHost).trim().toLowerCase();
-  clean = clean.replace(/^(pasteur|m\.|mr|mme|dr|monsieur|madame)\s+/i, '').trim();
-  return clean || 'hote-non-specifie';
+  let str = String(rawHost).trim().toLowerCase();
+
+  // 1. Remplacer les caractères de remplacement UTF-8 cassés (ex: Jeanne dArc)
+  str = str.replace(/[\uFFFD]+/g, "'");
+
+  // 2. Normaliser toutes les formes d'apostrophes et de guillemets
+  str = str.replace(/[\u2018\u2019\u201A\u201B\u0060\u00B4']/g, "'");
+
+  // 3. Retirer les accents (NFD)
+  str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // 4. Retirer les préfixes et titres (docteur, dr, pasteur, etc.)
+  str = str.replace(/^(docteur|dr|pasteur|pst|monsieur|m\.|mr|madame|mme|mlle|soeur|sr|frere|fr|ma|maman|papa)\s+/i, '');
+  str = str.replace(/^(docteur|dr|pasteur|pst|monsieur|m\.|mr|madame|mme|mlle|soeur|sr|frere|fr|ma|maman|papa)\s+/i, '');
+
+  // 5. Nettoyer les caractères spéciaux et espaces
+  str = str.replace(/[^a-z0-9'\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // 6. Fusions sémantiques connues / fautes constatées
+  if (str.includes('kammoe') || str.includes('georgette') || str.includes('gorgette')) {
+    return 'georgette-kammoe';
+  }
+  if (str.includes('jeanne') || (str.includes('arc') && !str.includes('marcelle'))) {
+    return 'jeanne-d-arc';
+  }
+  if (str.includes('micky') || str.includes('miki')) {
+    return 'micky';
+  }
+  if (str.includes('nematchoue')) {
+    return 'nematchoue-emilie';
+  }
+  if (str.includes('emilienne')) {
+    return 'emilienne';
+  }
+  if (str.includes('emilie')) {
+    return 'nematchoue-emilie';
+  }
+  if (str.includes('tina')) {
+    return 'tina';
+  }
+  if (str.includes('charly') || str.includes('charli')) {
+    return 'charly';
+  }
+  if (str.includes('rosie') || str.includes('rozy')) {
+    return 'rosie';
+  }
+  if (str.includes('blaise')) {
+    return 'blaise';
+  }
+  if (str.includes('alex')) {
+    return 'alex';
+  }
+  if (str.includes('edith')) {
+    return 'edith';
+  }
+  if (str.includes('lydie')) {
+    return 'lydie';
+  }
+
+  return str.replace(/\s+/g, '-') || 'hote-non-specifie';
 }
 
 function getHostDisplayName(rawHost) {
   if (!rawHost) return 'Hôte non spécifié';
-  const trimmed = String(rawHost).trim();
-  if (!trimmed) return 'Hôte non spécifié';
-  if (trimmed === trimmed.toLowerCase()) {
-    return trimmed.replace(/\b\w/g, l => l.toUpperCase());
+  const key = getHostKey(rawHost);
+  if (CANONICAL_HOST_NAMES[key]) {
+    return CANONICAL_HOST_NAMES[key];
   }
-  return trimmed;
+  let trimmed = String(rawHost).trim().replace(/[\uFFFD]+/g, "'").replace(/[\u2018\u2019\u201A\u201B']/g, "'");
+  if (!trimmed) return 'Hôte non spécifié';
+  return trimmed.replace(/\b\w/g, l => l.toUpperCase());
 }
 
 function updateHostsDropdownAndDatalist() {
@@ -1251,23 +1327,451 @@ window.shareInvitationWhatsApp = () => {
   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 };
 
+function normalizeTableCode(val) {
+  if (!val) return '';
+  return String(val)
+    .toUpperCase()
+    .replace(/^TABLE\s*/i, '')
+    .replace(/[\u0022\u201C\u201D\u2033]/g, "''")
+    .replace(/[\u2018\u2019\u2032\u00B4`]/g, "'")
+    .trim();
+}
+
+window.filterByTable = (tableCode) => {
+  if (!tableCode || (AdminState.selectedTableFilter && normalizeTableCode(AdminState.selectedTableFilter) === normalizeTableCode(tableCode))) {
+    AdminState.selectedTableFilter = null;
+    showAdminToast("Affichage de toutes les tables", "info");
+  } else {
+    AdminState.selectedTableFilter = tableCode;
+    // Si l'onglet sélectionné est 'salle' (qui contient 0 invités), basculer automatiquement sur 'all'
+    if (currentGuestSubTab === 'salle') {
+      currentGuestSubTab = 'all';
+      document.querySelectorAll('.subtab-guest-btn').forEach(b => b.classList.remove('active'));
+      const allBtn = document.getElementById('subtab-guests-all');
+      if (allBtn) allBtn.classList.add('active');
+    }
+    showAdminToast(`Filtrage actif : Table ${tableCode}`, "success");
+  }
+  loadAdminTables();
+  window.filterGuests();
+
+  if (AdminState.selectedTableFilter) {
+    const grid = document.getElementById('admin-guests-grid') || document.getElementById('admin-tables-pills');
+    if (grid) {
+      grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+};
+
 async function loadAdminTables() {
   try {
     const res = await adminFetch('/admin/tables');
     const tables = Array.isArray(res) ? res : [];
+    AdminState.tables = tables;
     const countEl = document.getElementById('admin-tables-count');
     if (countEl) countEl.textContent = tables.length;
     const container = document.getElementById('admin-tables-pills');
     if (!container) return;
-    container.innerHTML = tables.map(t => `
-      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-        <span>🍽️ Table ${escapeHtml(t.table_code)}</span>
-        <span style="font-size: 0.7rem; color: var(--text-muted);">(${t.guest_count || 0})</span>
-        <button type="button" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 2px; font-weight: 800; font-size: 0.85rem;" title="Supprimer cette table" onclick="window.adminDeleteTable('${escapeHtml(t.table_code)}')">✕</button>
-      </div>
-    `).join('');
+
+    const pillsHtml = tables.map(t => {
+      const isSelected = AdminState.selectedTableFilter && (normalizeTableCode(AdminState.selectedTableFilter) === normalizeTableCode(t.table_code));
+      const bgStyle = isSelected
+        ? 'background: var(--terracotta-gradient); color: #fff; border: 1.5px solid #d4af37; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.45);'
+        : 'background: var(--bg-secondary); color: var(--text-main); border: 1px solid var(--border-color);';
+      
+      return `
+        <div data-table-filter="${escapeHtml(t.table_code)}" style="${bgStyle} border-radius: 999px; padding: 5px 12px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'" title="Cliquer pour afficher uniquement les invités de la Table ${escapeHtml(t.table_code)}">
+          <span>🍽️ Table ${escapeHtml(t.table_code)}</span>
+          <span style="font-size: 0.72rem; opacity: 0.85; font-weight: 800;">(${t.guest_count || 0})</span>
+          <button type="button" data-table-delete="${escapeHtml(t.table_code)}" style="background: none; border: none; color: ${isSelected ? '#fee2e2' : '#ef4444'}; cursor: pointer; padding: 0 2px; font-weight: 800; font-size: 0.85rem;" title="Supprimer cette table">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    const resetHtml = AdminState.selectedTableFilter ? `
+      <button type="button" id="btn-admin-reset-table-filter" class="btn-table-action" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.4); border-radius: 999px; padding: 4px 12px; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+        ✕ Afficher toutes les tables (Filtre actif : Table ${escapeHtml(AdminState.selectedTableFilter)})
+      </button>
+    ` : '';
+
+    container.innerHTML = pillsHtml + resetHtml;
+
+    if (!container.__hasTableListener) {
+      container.__hasTableListener = true;
+      container.addEventListener('click', (e) => {
+        const resetBtn = e.target.closest('#btn-admin-reset-table-filter');
+        if (resetBtn) {
+          window.filterByTable(null);
+          return;
+        }
+        const delBtn = e.target.closest('[data-table-delete]');
+        if (delBtn) {
+          e.stopPropagation();
+          const code = delBtn.getAttribute('data-table-delete');
+          if (code) window.adminDeleteTable(code);
+          return;
+        }
+        const filterItem = e.target.closest('[data-table-filter]');
+        if (filterItem) {
+          const code = filterItem.getAttribute('data-table-filter');
+          if (code) window.filterByTable(code);
+        }
+      });
+    }
   } catch(e) {}
 }
+
+// -------------------------------------------------------------
+// DÉPLACEMENT RAPIDE D'UN INVITÉ VERS UNE AUTRE TABLE (MENU DÉPLACER VERS)
+// -------------------------------------------------------------
+function getAvailableAdminTables() {
+  const tableCounts = {};
+  (AdminState.guests || []).forEach(g => {
+    const t = normalizeTableCode(g.table_number || '1');
+    tableCounts[t] = (tableCounts[t] || 0) + 1;
+  });
+
+  const set = new Set();
+  if (Array.isArray(AdminState.tables) && AdminState.tables.length > 0) {
+    AdminState.tables.forEach(t => {
+      const code = normalizeTableCode(t.table_code);
+      if (code) set.add(code);
+    });
+  }
+  Object.keys(tableCounts).forEach(t => set.add(t));
+
+  const list = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }));
+  return list.map(code => ({
+    code,
+    count: tableCounts[code] || 0
+  }));
+}
+
+window.openMoveGuestModal = (guestId) => {
+  const guest = AdminState.guests.find(g => String(g.id) === String(guestId));
+  if (!guest) return;
+
+  AdminState.activeMoveGuestId = guestId;
+
+  const modal = document.getElementById('modal-move-guest-table');
+  const nameEl = document.getElementById('move-modal-guest-name');
+  const curTableEl = document.getElementById('move-modal-current-table');
+  const searchInput = document.getElementById('move-modal-search-table');
+
+  const curTable = normalizeTableCode(guest.table_number || '1');
+
+  if (nameEl) nameEl.textContent = guest.name;
+  if (curTableEl) curTableEl.textContent = `Table ${curTable}`;
+  if (searchInput) searchInput.value = '';
+
+  renderMoveModalTablesGrid(curTable, '');
+
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
+};
+
+window.closeMoveGuestModal = () => {
+  const modal = document.getElementById('modal-move-guest-table');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+  AdminState.activeMoveGuestId = null;
+};
+
+window.filterMoveModalTables = (query) => {
+  const guest = AdminState.guests.find(g => String(g.id) === String(AdminState.activeMoveGuestId));
+  const curTable = guest ? normalizeTableCode(guest.table_number || '1') : '';
+  renderMoveModalTablesGrid(curTable, query);
+};
+
+function renderMoveModalTablesGrid(currentTable, filterQuery = '') {
+  const container = document.getElementById('move-modal-tables-grid');
+  if (!container) return;
+
+  const allTables = getAvailableAdminTables();
+  const q = (filterQuery || '').toUpperCase().trim();
+
+  const filtered = q
+    ? allTables.filter(t => t.code.toUpperCase().includes(q) || `TABLE ${t.code.toUpperCase()}`.includes(q))
+    : allTables;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="width: 100%; text-align: center; color: var(--text-muted); padding: 26px 10px;">
+        <span style="font-size: 1.8rem; display: block; margin-bottom: 6px;">🍽️</span>
+        <p>Aucune table ne correspond à « ${escapeHtml(filterQuery)} ».</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(t => {
+    const isCurrent = normalizeTableCode(t.code) === normalizeTableCode(currentTable);
+    const pillStyle = isCurrent
+      ? 'background: rgba(212, 175, 55, 0.25); border: 2px solid var(--accent-gold); color: #fff; box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);'
+      : 'background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-main);';
+
+    return `
+      <button 
+        type="button" 
+        class="btn-table-pill-choice"
+        onclick="window.confirmMoveGuestToTable('${AdminState.activeMoveGuestId}', '${escapeHtml(t.code)}')"
+        style="${pillStyle} border-radius: 999px; padding: 7px 14px; font-size: 0.85rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.15s ease;"
+        onmouseover="this.style.transform='scale(1.05)'"
+        onmouseout="this.style.transform='scale(1)'"
+        title="${isCurrent ? 'Table actuelle de l\'invité' : 'Cliquer pour déplacer directement vers la Table ' + t.code}"
+      >
+        <span>🍽️ Table ${escapeHtml(t.code)}</span>
+        <span style="font-size: 0.74rem; font-weight: 800; opacity: 0.9; color: var(--accent-gold);">(${t.count})</span>
+        ${isCurrent ? '<span style="color: #10b981; margin-left: 2px;">✓ Actuelle</span>' : ''}
+      </button>
+    `;
+  }).join('');
+}
+
+// -------------------------------------------------------------
+// MENU DÉROULANT FLOTTANT DÉPLACER VERS (ANCRÉ SOUS LE BOUTON)
+// -------------------------------------------------------------
+window.closeMoveGuestDropdown = () => {
+  const dropdown = document.getElementById('admin-guest-move-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+  AdminState.activeDropdownGuestId = null;
+};
+
+// Fermeture au clic à l'extérieur
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('admin-guest-move-dropdown');
+    if (dropdown && dropdown.style.display === 'block') {
+      if (!dropdown.contains(e.target) && !e.target.closest('[data-move-guest-trigger]')) {
+        window.closeMoveGuestDropdown();
+      }
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      window.closeMoveGuestDropdown();
+      window.closeMoveGuestModal();
+    }
+  });
+}
+
+window.openMoveGuestDropdown = (triggerEl, guestId, event) => {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  const guest = AdminState.guests.find(g => String(g.id) === String(guestId));
+  if (!guest) {
+    showAdminToast("Invité introuvable dans la liste", "error");
+    return;
+  }
+
+  const dropdown = document.getElementById('admin-guest-move-dropdown');
+  if (!dropdown) {
+    window.openMoveGuestModal(guestId);
+    return;
+  }
+
+  // Toggle : fermer si déjà ouvert sur le même invité
+  if (dropdown.style.display === 'block' && AdminState.activeDropdownGuestId === guestId) {
+    window.closeMoveGuestDropdown();
+    return;
+  }
+
+  AdminState.activeDropdownGuestId = guestId;
+
+  // Calcul du positionnement ancré précis
+  const rect = triggerEl.getBoundingClientRect();
+  const dropdownWidth = 290;
+  let left = rect.left;
+  if (left + dropdownWidth > window.innerWidth - 12) {
+    left = window.innerWidth - dropdownWidth - 12;
+  }
+  if (left < 10) left = 10;
+
+  let top = rect.bottom + 6;
+  const estimatedHeight = 330;
+  if (top + estimatedHeight > window.innerHeight && rect.top > estimatedHeight) {
+    top = Math.max(10, rect.top - estimatedHeight - 6);
+  }
+
+  dropdown.style.top = `${top}px`;
+  dropdown.style.left = `${left}px`;
+  dropdown.style.display = 'block';
+
+  renderMoveDropdownContent(guest, '');
+
+  setTimeout(() => {
+    const input = document.getElementById('move-dropdown-search');
+    if (input) input.focus();
+  }, 40);
+};
+
+window.filterMoveDropdownTables = (query) => {
+  const guest = AdminState.guests.find(g => String(g.id) === String(AdminState.activeDropdownGuestId));
+  if (!guest) return;
+  renderMoveDropdownTablesList(guest, query);
+};
+
+function renderMoveDropdownContent(guest, filterQuery = '') {
+  const dropdown = document.getElementById('admin-guest-move-dropdown');
+  if (!dropdown) return;
+
+  const curTable = normalizeTableCode(guest.table_number || '1');
+
+  dropdown.innerHTML = `
+    <div style="padding: 10px 14px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+      <div style="min-width: 0;">
+        <div style="font-size: 0.68rem; color: var(--terracotta-accent); text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">
+          Déplacer vers une table
+        </div>
+        <strong style="font-size: 0.92rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 220px;">
+          ${escapeHtml(guest.name)}
+        </strong>
+      </div>
+      <button type="button" onclick="event.stopPropagation(); window.closeMoveGuestDropdown()" style="background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; padding: 2px 6px; line-height: 1;">✕</button>
+    </div>
+
+    <div style="padding: 8px 12px 6px 12px; background: var(--bg-card);">
+      <div style="font-size: 0.74rem; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+        <span>Table actuelle : <strong style="color: var(--accent-gold);">Table ${curTable}</strong></span>
+        <span style="font-size: 0.7rem; opacity: 0.8; color: #10b981;">1 clic = déplacé</span>
+      </div>
+      <input 
+        type="text" 
+        id="move-dropdown-search" 
+        placeholder="🔍 Filtrer (ex: A, J, VIP)..." 
+        style="width: 100%; box-sizing: border-box; padding: 6px 10px; font-size: 0.8rem; border-radius: 10px; border: 1.5px solid var(--border-color); background: var(--bg-secondary); color: var(--text-main); outline: none;"
+        oninput="window.filterMoveDropdownTables(this.value)"
+        onclick="event.stopPropagation()"
+      >
+    </div>
+
+    <div id="move-dropdown-tables-list" style="max-height: 220px; overflow-y: auto; padding: 4px 10px 10px 10px; display: flex; flex-direction: column; gap: 4px; background: var(--bg-card);">
+      <!-- Injecté dynamiquement -->
+    </div>
+  `;
+
+  renderMoveDropdownTablesList(guest, filterQuery);
+}
+
+function renderMoveDropdownTablesList(guest, filterQuery = '') {
+  const container = document.getElementById('move-dropdown-tables-list');
+  if (!container) return;
+
+  const allTables = getAvailableAdminTables();
+  const q = (filterQuery || '').toUpperCase().trim();
+  const curTable = normalizeTableCode(guest.table_number || '1');
+
+  const filtered = q
+    ? allTables.filter(t => t.code.toUpperCase().includes(q) || `TABLE ${t.code.toUpperCase()}`.includes(q))
+    : allTables;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 16px 8px; font-size: 0.78rem;">
+        Aucune table ne correspond à « ${escapeHtml(filterQuery)} ».
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(t => {
+    const isCurrent = normalizeTableCode(t.code) === curTable;
+    const bgStyle = isCurrent
+      ? 'background: rgba(212, 175, 55, 0.18); border-color: var(--accent-gold);'
+      : 'background: var(--bg-secondary); border-color: var(--border-color);';
+
+    return `
+      <button 
+        type="button" 
+        class="move-dropdown-item-btn"
+        onclick="event.stopPropagation(); window.confirmMoveGuestToTable('${guest.id}', '${escapeHtml(t.code)}')"
+        style="display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 10px; border: 1px solid transparent; ${bgStyle} color: var(--text-main); cursor: pointer; text-align: left; transition: all 0.12s ease; width: 100%; box-sizing: border-box;"
+        onmouseover="this.style.background='rgba(212, 175, 55, 0.28)'; this.style.borderColor='var(--accent-gold)';"
+        onmouseout="this.style.background='${isCurrent ? 'rgba(212, 175, 55, 0.18)' : 'var(--bg-secondary)'}'; this.style.borderColor='${isCurrent ? 'var(--accent-gold)' : 'var(--border-color)'}';"
+      >
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.85rem;">🍽️</span>
+          <strong style="font-size: 0.84rem; color: var(--text-main);">Table ${escapeHtml(t.code)}</strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.74rem; font-weight: 800; color: var(--accent-gold);">(${t.count})</span>
+          ${isCurrent ? '<span style="font-size: 0.7rem; color: #10b981; font-weight: 800;">✓ Actuelle</span>' : ''}
+        </div>
+      </button>
+    `;
+  }).join('');
+}
+
+window.confirmMoveGuestToTable = async (guestId, targetTable) => {
+  const guest = AdminState.guests.find(g => String(g.id) === String(guestId));
+  if (!guest) return;
+
+  const oldTable = normalizeTableCode(guest.table_number || '1');
+  const newTable = normalizeTableCode(targetTable);
+
+  if (oldTable === newTable) {
+    showAdminToast(`L'invité(e) ${guest.name} est déjà assigné(e) à la Table ${newTable}`, "info");
+    window.closeMoveGuestDropdown();
+    window.closeMoveGuestModal();
+    return;
+  }
+
+  // 1. Mise à jour optimiste locale immédiate
+  guest.table_number = newTable;
+
+  // 2. Mise à jour visuelle sur la carte existante
+  const card = document.querySelector(`[data-guest-card-id="${guestId}"]`);
+  if (card) {
+    const badge = card.querySelector('.guest-table-badge');
+    if (badge) badge.textContent = `Table ${newTable} ▾`;
+  }
+
+  // Si la vue CRM est ouverte pour cet invité, la rafraîchir en temps réel
+  const crmModal = document.getElementById('modal-guest-crm');
+  if (crmModal && crmModal.style.display === 'flex' && currentCrmGuestId === guestId) {
+    window.openGuestCRM(guestId);
+  }
+
+  // 3. Si un filtre de table était actif, réappliquer le filtrage
+  if (AdminState.selectedTableFilter) {
+    window.filterGuests();
+  }
+
+  // 4. Fermer le dropdown et la modale
+  window.closeMoveGuestDropdown();
+  window.closeMoveGuestModal();
+
+  // 5. Toast positif avec animation
+  showAdminToast(`✅ ${guest.name} a été déplacé(e) vers la Table ${newTable} !`, "success");
+
+  // 6. Actualiser les compteurs officiels des tables de l'en-tête (Image 1)
+  loadAdminTables();
+
+  // 7. Envoi réseau asynchrone à Cloudflare D1
+  try {
+    const res = await adminFetch(`/admin/guests/${encodeURIComponent(guestId)}/table`, {
+      method: 'PATCH',
+      body: JSON.stringify({ table_number: newTable })
+    });
+    if (!res || !res.success) {
+      // Fallback
+      await adminFetch(`/admin/guests/${encodeURIComponent(guestId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...guest, table_number: newTable })
+      });
+    }
+  } catch(err) {
+    console.warn("Erreur mise à jour table:", err);
+  }
+};
 
 window.adminAddTable = async () => {
   const input = document.getElementById('admin-new-table-input');
@@ -1300,6 +1804,197 @@ window.adminDeleteTable = async (code) => {
   }
 };
 
+// -------------------------------------------------------------
+// GESTION DES HÔTESSES & ÉMARGEMENT EN SALLE
+// -------------------------------------------------------------
+window.copyHostessGeneralLink = () => {
+  const url = `${getCanonicalOrigin()}/hotesse/`;
+  navigator.clipboard.writeText(url).then(() => {
+    showAdminToast("Lien général des hôtesses copié !", "success");
+  }).catch(() => {
+    const input = document.getElementById('admin-hostess-general-link');
+    if (input) {
+      input.select();
+      document.execCommand('copy');
+      showAdminToast("Lien copié !", "success");
+    }
+  });
+};
+
+window.shareHostessGeneralWhatsApp = () => {
+  const url = `${getCanonicalOrigin()}/hotesse/`;
+  const text =
+    `*ESPACE ACCUEIL & ÉMARGEMENT OFFICIEL - DÎNER DE GALA 2026*\n\n` +
+    `💁‍♀️ Chère hôtesse d'accueil,\n\n` +
+    `Voici le lien officiel pour accéder au registre des invités, filtrer les tables et valider les entrées en temps réel dans la salle :\n\n` +
+    `🔗 *Lien d'émargement :*\n${url}\n\n` +
+    `Bon accueil et excellente soirée royale !`;
+  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+};
+
+window.copyHostessPersonalLink = (code) => {
+  const url = `${getCanonicalOrigin()}/hotesse/?h=${encodeURIComponent(code)}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showAdminToast(`Lien personnalisé copié pour ${code} !`, "success");
+  });
+};
+
+window.shareHostessWhatsApp = (name, code, phone) => {
+  const url = `${getCanonicalOrigin()}/hotesse/?h=${encodeURIComponent(code)}`;
+  const text =
+    `*ESPACE HÔTESSE PERSONNALISÉ - DÎNER DE GALA 2026*\n\n` +
+    `Bonjour ${name},\n\n` +
+    `Voici votre lien d'accès exclusif pour assurer l'accueil et l'émargement des invités à l'entrée :\n\n` +
+    `🔗 *Votre lien d'accueil :*\n${url}\n\n` +
+    `Cliquez sur ce lien dès votre arrivée en salle. Bon service ! ✨`;
+
+  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+  const waUrl = cleanPhone 
+    ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`
+    : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(waUrl, '_blank');
+};
+
+window.adminAddHostess = async () => {
+  const nameInput = document.getElementById('admin-hostess-name-input');
+  const phoneInput = document.getElementById('admin-hostess-phone-input');
+  const tablesInput = document.getElementById('admin-hostess-tables-input');
+
+  const name = (nameInput?.value || '').trim();
+  const phone = (phoneInput?.value || '').trim();
+  const assigned_tables = (tablesInput?.value || 'Toutes').trim();
+
+  if (!name) {
+    showAdminToast("Veuillez saisir le nom de l'hôtesse", "warning");
+    return;
+  }
+
+  try {
+    await adminFetch('/admin/hostesses', {
+      method: 'POST',
+      body: JSON.stringify({ name, phone, assigned_tables })
+    });
+    if (nameInput) nameInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    showAdminToast(`Hôtesse ${name} enregistrée avec succès !`, "success");
+    loadAdminHostesses();
+  } catch(e) {
+    showAdminToast("Erreur ajout hôtesse : " + e.message, "error");
+  }
+};
+
+window.adminDeleteHostess = async (id, name) => {
+  if (!confirm(`Supprimer l'hôtesse ${name || ''} ?`)) return;
+  try {
+    await adminFetch(`/admin/hostesses/${id}`, { method: 'DELETE' });
+    showAdminToast("Hôtesse supprimée", "info");
+    loadAdminHostesses();
+  } catch(e) {
+    showAdminToast("Erreur suppression hôtesse : " + e.message, "error");
+  }
+};
+
+async function loadAdminHostesses() {
+  try {
+    const hostesses = await adminFetch('/admin/hostesses');
+    const container = document.getElementById('admin-hostesses-list');
+    
+    // Mettre à jour l'input du lien général
+    const genInput = document.getElementById('admin-hostess-general-link');
+    if (genInput) genInput.value = `${getCanonicalOrigin()}/hotesse/`;
+
+    // Mettre à jour les KPIs d'émargement
+    const guests = AdminState.guests || [];
+    const total = guests.length;
+    const arrived = guests.filter(g => Number(g.is_arrived) === 1).length;
+    const rate = total > 0 ? Math.round((arrived / total) * 100) : 0;
+
+    const elArr = document.getElementById('admin-hostess-kpi-arrived');
+    const elTot = document.getElementById('admin-hostess-kpi-total');
+    const elRate = document.getElementById('admin-hostess-kpi-rate');
+    if (elArr) elArr.textContent = arrived;
+    if (elTot) elTot.textContent = total;
+    if (elRate) elRate.textContent = `(${rate}%)`;
+
+    if (!container) return;
+
+    if (!hostesses || hostesses.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed var(--border-color); text-align: center; color: var(--text-muted); font-size: 0.82rem;">
+          Aucune hôtesse personnalisée définie pour l'instant. Vous pouvez utiliser le <strong>Lien Général</strong> ci-dessus ou en ajouter une ci-contre.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = hostesses.map(h => {
+      const code = h.code || h.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const personalUrl = `${getCanonicalOrigin()}/hotesse/?h=${encodeURIComponent(code)}`;
+
+      return `
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">👑</span>
+              <div>
+                <strong style="font-size: 0.95rem; color: #fff;">${escapeHtml(h.name)}</strong>
+                <div style="font-size: 0.72rem; color: var(--accent-gold);">Tables : ${escapeHtml(h.assigned_tables || 'Toutes')}</div>
+              </div>
+            </div>
+            <button type="button" data-hostess-delete-id="${escapeHtml(h.id)}" data-hostess-delete-name="${escapeHtml(h.name)}" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.9rem;" title="Supprimer">🗑️</button>
+          </div>
+
+          <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 6px;">
+            ${escapeHtml(personalUrl)}
+          </div>
+
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px;">
+            <button type="button" class="btn-table-action" data-hostess-copy-code="${escapeHtml(code)}" style="font-size: 0.74rem; padding: 4px 10px; background: var(--terracotta-gradient); color: #fff; font-weight: 700; border-radius: 8px;">
+              📋 Copier
+            </button>
+            <button type="button" class="btn-table-action" data-hostess-share-name="${escapeHtml(h.name)}" data-hostess-share-code="${escapeHtml(code)}" data-hostess-share-phone="${escapeHtml(h.phone || '')}" style="font-size: 0.74rem; padding: 4px 10px; background: #25D366; color: #fff; font-weight: 700; border-radius: 8px;">
+              💬 WhatsApp
+            </button>
+            <a href="${personalUrl}" target="_blank" class="btn-table-action" style="font-size: 0.74rem; padding: 4px 10px; background: var(--bg-secondary); color: var(--text-main); font-weight: 700; border-radius: 8px; text-decoration: none;">
+              👁️ Ouvrir
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (!container.__hasHostessListener) {
+      container.__hasHostessListener = true;
+      container.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('[data-hostess-delete-id]');
+        if (delBtn) {
+          const id = delBtn.getAttribute('data-hostess-delete-id');
+          const name = delBtn.getAttribute('data-hostess-delete-name');
+          if (id) window.adminDeleteHostess(id, name);
+          return;
+        }
+        const copyBtn = e.target.closest('[data-hostess-copy-code]');
+        if (copyBtn) {
+          const code = copyBtn.getAttribute('data-hostess-copy-code');
+          if (code) window.copyHostessPersonalLink(code);
+          return;
+        }
+        const shareBtn = e.target.closest('[data-hostess-share-name]');
+        if (shareBtn) {
+          const name = shareBtn.getAttribute('data-hostess-share-name');
+          const code = shareBtn.getAttribute('data-hostess-share-code');
+          const phone = shareBtn.getAttribute('data-hostess-share-phone');
+          if (code) window.shareHostessWhatsApp(name, code, phone);
+          return;
+        }
+      });
+    }
+  } catch(e) {
+    console.warn("Erreur chargement hôtesses admin:", e);
+  }
+}
+window.loadAdminHostesses = loadAdminHostesses;
+
 async function loadInvitationStats() {
   try {
     const res = await adminFetch('/admin/invitation-stats');
@@ -1327,6 +2022,7 @@ async function loadGuests() {
     window.filterGuests();
     loadAdminTables();
     loadInvitationStats();
+    loadAdminHostesses();
   } catch (err) {
     console.error("Erreur chargement invités admin:", err);
     showAdminToast("Impossible de charger les invités : " + err.message, "error");
@@ -1427,7 +2123,7 @@ function renderGroupedByHostView(guests, container) {
                         <strong style="font-size: 0.92rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                           ${escapeHtml(g.name)}
                         </strong>
-                        <span class="status-pill status-ended" style="font-size: 0.68rem; font-weight: 800; padding: 1px 6px;">Table ${escapeHtml(g.table_number || '1')}</span>
+                        <span class="status-pill status-ended guest-table-badge" data-move-guest-trigger="true" data-guest-id="${escapeHtml(g.id)}" onclick="event.stopPropagation(); window.openMoveGuestDropdown(this, this.getAttribute('data-guest-id'), event)" style="font-size: 0.68rem; font-weight: 800; padding: 1px 6px; cursor: pointer;" title="Cliquer pour dérouler les tables et déplacer">Table ${escapeHtml(g.table_number || '1')} ▾</span>
                       </div>
                       ${coupleHtml}
                       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
@@ -1545,7 +2241,7 @@ function renderGuests(guests) {
       : '';
 
     return `
-      <div class="guest-crm-card-item" onclick="window.openGuestCRM('${g.id}')" title="Cliquer pour voir la fiche complète">
+      <div class="guest-crm-card-item" data-guest-card-id="${escapeHtml(g.id)}" onclick="window.openGuestCRM('${g.id}')" title="Cliquer pour voir la fiche complète">
         <div style="display: flex; gap: 12px; align-items: center;">
           ${photoHtml}
           <div style="flex: 1; min-width: 0;">
@@ -1553,7 +2249,7 @@ function renderGuests(guests) {
               <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${escapeHtml(g.name)}
               </h4>
-              <span class="status-pill status-ended" style="font-size: 0.72rem; font-weight: 800;">Table ${escapeHtml(g.table_number || '1')}</span>
+              <span class="status-pill status-ended guest-table-badge" data-move-guest-trigger="true" data-guest-id="${escapeHtml(g.id)}" onclick="event.stopPropagation(); window.openMoveGuestDropdown(this, this.getAttribute('data-guest-id'), event)" style="font-size: 0.72rem; font-weight: 800; cursor: pointer; transition: transform 0.15s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" title="Cliquer pour dérouler les tables et déplacer l'invité">Table ${escapeHtml(g.table_number || '1')} ▾</span>
             </div>
             <div style="font-size: 0.8rem; color: var(--terracotta-accent); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
               ${professionText}
@@ -1568,16 +2264,21 @@ function renderGuests(guests) {
           <div>${phoneText}</div>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color); gap: 8px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
             ${sourceBadge}
             ${coupleBadge}
             ${prayersBadge}
             ${churchBadge}
           </div>
-          <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-size: 0.74rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;">
-            Fiche CRM ➔
-          </button>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button type="button" class="btn-table-action" data-move-guest-trigger="true" data-guest-id="${escapeHtml(g.id)}" onclick="event.stopPropagation(); window.openMoveGuestDropdown(this, this.getAttribute('data-guest-id'), event)" style="background: rgba(212, 175, 55, 0.16); border: 1.5px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='rgba(212,175,55,0.3)'" onmouseout="this.style.background='rgba(212,175,55,0.16)'" title="Dérouler les tables pour déplacer cet invité">
+              <span>🔄 Déplacer vers ▾</span>
+            </button>
+            <button type="button" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-size: 0.74rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;">
+              Fiche CRM ➔
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1597,6 +2298,14 @@ window.filterGuests = (query) => {
     list = list.filter(g => g.registration_source !== 'link');
   } else if (currentGuestSubTab === 'link') {
     list = list.filter(g => g.registration_source === 'link');
+  }
+
+  // 1.5. Filtrage par Table sélectionnée (au clic sur une table)
+  if (AdminState.selectedTableFilter) {
+    const sel = normalizeTableCode(AdminState.selectedTableFilter);
+    list = list.filter(g => {
+      return normalizeTableCode(g.table_number) === sel;
+    });
   }
 
   // 2. Filtrage par Hôte sélectionné (normalisation canonique insensible à la casse et aux préfixes)
@@ -1663,7 +2372,7 @@ window.openGuestCRM = (guestId) => {
       <div style="flex: 1;">
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">${escapeHtml(guest.name)}</h2>
-          <span class="status-pill status-ended" style="font-weight: 800;">Table ${escapeHtml(guest.table_number || '1')}</span>
+          <span class="status-pill status-ended" data-move-guest-trigger="true" data-guest-id="${escapeHtml(guest.id)}" onclick="window.openMoveGuestDropdown(this, this.getAttribute('data-guest-id'), event)" style="font-weight: 800; cursor: pointer;" title="Cliquer pour dérouler les tables et déplacer">Table ${escapeHtml(guest.table_number || '1')} ▾</span>
           <span class="status-pill status-active" style="font-weight: 800;">🏆 ${guest.points || 0} pts</span>
         </div>
         <div style="font-size: 0.84rem; color: var(--terracotta-accent); font-weight: 700; margin-top: 4px;">
@@ -1816,6 +2525,9 @@ window.openGuestCRM = (guestId) => {
     <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
       <button type="button" class="btn-table-action danger" onclick="window.deleteGuest('${guest.id}'); window.closeGuestCRM();">
         🗑️ Retirer cet invité
+      </button>
+      <button type="button" class="btn-table-action" data-move-guest-trigger="true" data-guest-id="${escapeHtml(guest.id)}" style="background: rgba(212, 175, 55, 0.18); border: 1.5px solid var(--accent-gold); color: var(--accent-gold); font-weight: 800; padding: 10px 16px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="window.openMoveGuestDropdown(this, this.getAttribute('data-guest-id'), event)">
+        🔄 Déplacer vers une table ▾
       </button>
       <button type="button" class="btn-table-action" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; padding: 10px 18px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;" onclick="window.openEditGuestModal('${guest.id}')">
         ✏️ Modifier Coordonnées & Table
@@ -2749,6 +3461,408 @@ window.exportGuestsReceptionSheet = (filterMode = 'current') => {
   } catch (err) {
     console.error("Erreur génération fiche d'accueil:", err);
     showAdminToast("Erreur lors de la génération de la fiche d'accueil : " + err.message, "error");
+  }
+};
+
+// -------------------------------------------------------------
+// FICHE HÔTESSE OFFICIELLE (GROUPÉE PAR TABLE DE 10 PLACES)
+// Rapproche les invités d'une même table physique (A, A', B...)
+// avec l'hôte parrain affiché sous le nom de l'invité
+// -------------------------------------------------------------
+window.exportGuestsHostessSheet = (filterMode = 'current') => {
+  try {
+    let mode = filterMode;
+    if (mode === 'current') {
+      mode = (typeof currentGuestSubTab !== 'undefined' && currentGuestSubTab) ? currentGuestSubTab : 'all';
+    }
+
+    let guests = AdminState.guests || [];
+    if (mode === 'link') {
+      guests = guests.filter(g => g.registration_source === 'link');
+    } else if (mode === 'salle') {
+      guests = guests.filter(g => g.registration_source !== 'link');
+    }
+
+    // Filtrer impérativement les résidus sans hôte
+    guests = guests.filter(g => {
+      const h = (g.invited_by || '').trim();
+      return h && h.toLowerCase() !== 'hôte non spécifié' && h.toLowerCase() !== 'hote non specifie';
+    });
+
+    // Si une table spécifique est actuellement filtrée au clic
+    if (AdminState.selectedTableFilter) {
+      const sel = AdminState.selectedTableFilter.toUpperCase();
+      guests = guests.filter(g => (g.table_number || '').toUpperCase().replace(/^TABLE\s*/i, '').trim() === sel);
+    }
+
+    if (guests.length === 0) {
+      alert("Aucun invité trouvé pour générer la Fiche Hôtesse avec ces critères.");
+      return;
+    }
+
+    // Regrouper STRICTEMENT PAR TABLE (Table A, Table A', Table B, etc.)
+    const tableMap = {};
+    guests.forEach(g => {
+      const rawTable = (g.table_number || 'A').toUpperCase().replace(/^TABLE\s*/i, '').trim() || 'A';
+      if (!tableMap[rawTable]) {
+        tableMap[rawTable] = [];
+      }
+      tableMap[rawTable].push(g);
+    });
+
+    // Trier les tables par ordre alphabétique / numérique naturel (A, A', A'', B, D, E...)
+    const sortedTableKeys = Object.keys(tableMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    // Découper en blocs physiques de 10 places par table
+    const blocks = [];
+    sortedTableKeys.forEach(tKey => {
+      const items = tableMap[tKey];
+      for (let i = 0; i < items.length; i += 10) {
+        blocks.push({
+          table: i === 0 ? tKey : `${tKey} (suite)`,
+          items: items.slice(i, i + 10)
+        });
+      }
+    });
+
+    // 3 tables par page A4
+    const BLOCKS_PER_PAGE = 3;
+    const pages = [];
+    for (let i = 0; i < blocks.length; i += BLOCKS_PER_PAGE) {
+      pages.push(blocks.slice(i, i + BLOCKS_PER_PAGE));
+    }
+
+    // Rendu HTML des blocs
+    const pagesHtml = pages.map((pageBlocks, pageIndex) => {
+      const blocksHtml = pageBlocks.map(block => {
+        let rowsHtml = '';
+        for (let rowIdx = 1; rowIdx <= 10; rowIdx++) {
+          const guest = block.items[rowIdx - 1];
+          let guestHtml = '';
+
+          if (guest) {
+            let nameTitle = '';
+            if (guest.ticket_type === 'couple') {
+              let rawCouple = (guest.couple_name || guest.name || '').trim();
+              rawCouple = rawCouple.replace(/^couple\s+/i, '').trim();
+              let cName = `Couple ${rawCouple}`;
+              let details = '';
+              if (guest.name && guest.partner_name) {
+                const cleanP1 = (guest.name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
+                const cleanP2 = (guest.partner_name || '').replace(/^(m\.|mme|mr)\s+/i, '').trim();
+                details = ` (${cleanP1} & ${cleanP2})`;
+              }
+              nameTitle = `<strong>${escapeHtml(cName)}</strong>${escapeHtml(details)}`;
+            } else {
+              let cleanN = (guest.name || '').trim();
+              cleanN = cleanN.replace(/^(m\.|mme|mr|madame|monsieur)\s+/i, '').trim();
+              const prefix = guest.gender === 'F' ? 'Mme ' : 'M. ';
+              nameTitle = `${prefix}<strong>${escapeHtml(cleanN)}</strong>`;
+            }
+
+            const rawRole = (guest.role || guest.rank || '').trim();
+            if (rawRole && !/^(invite|invitée de marque|invitee de marque)$/i.test(rawRole)) {
+              nameTitle += ` <span style="font-size: 9px; font-weight: 700; color: #7d773c; margin-left: 4px;">[${escapeHtml(rawRole)}]</span>`;
+            }
+
+            const hostDisplay = getHostDisplayName(guest.invited_by);
+            const phoneDisplay = guest.phone ? `<span style="color: #475569; font-size: 9px; font-weight: 600; margin-left: 6px;">📞 ${escapeHtml(guest.phone)}</span>` : '';
+
+            guestHtml = `
+              <div style="font-size: 11px; line-height: 1.25; color: #0f172a;">${nameTitle}</div>
+              <div style="margin-top: 2px; font-size: 9px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+                <span style="font-weight: 800; color: #854d0e; font-size: 8.5px; letter-spacing: 0.3px;">INVITÉ PAR :</span>
+                <span style="background: #fef08a; color: #713f12; font-weight: 800; padding: 1px 6px; border-radius: 4px; border: 1px solid #fde047; font-size: 9px;">${escapeHtml(hostDisplay)}</span>
+                ${phoneDisplay}
+              </div>
+            `;
+          }
+
+          if (rowIdx === 1) {
+            rowsHtml += `
+              <tr>
+                <td class="col-num">${rowIdx}</td>
+                <td class="col-name">${guestHtml}</td>
+                <td rowspan="10" class="col-table">
+                  <div class="table-name-text">TABLE ${escapeHtml(block.table)}</div>
+                </td>
+              </tr>
+            `;
+          } else {
+            rowsHtml += `
+              <tr>
+                <td class="col-num">${rowIdx}</td>
+                <td class="col-name">${guestHtml}</td>
+              </tr>
+            `;
+          }
+        }
+
+        return `
+          <div class="block-wrapper">
+            <table class="block-table">
+              <thead>
+                <tr class="header-band-row">
+                  <th colspan="3" class="header-band"></th>
+                </tr>
+                <tr class="header-labels-row">
+                  <th class="th-num">N°</th>
+                  <th class="th-name">Nom de l'invité & Hôte parrain</th>
+                  <th class="th-table-blank">TABLE</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="sheet-page">
+          <div class="sheet-main-content">
+            ${blocksHtml}
+          </div>
+          <div class="sheet-vertical-banner">
+            <div class="vertical-title">LISTE DES INVITES</div>
+          </div>
+          <div style="position: absolute; bottom: 2mm; left: 8mm; right: 40mm; font-size: 8.5px; color: #64748b; display: flex; justify-content: space-between;">
+            <span>2ème Édition Dîner de Gala 2026 • Fiche Hôtesse Officielle (Par Table)</span>
+            <span><strong>Page ${pageIndex + 1} / ${pages.length}</strong></span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fiche Hôtesse Officielle - Liste des Invités (${pages.length} page${pages.length > 1 ? 's' : ''})</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 4mm 6mm;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #f1f5f9;
+      color: #111;
+      height: auto !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .top-action-bar {
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .btn-print {
+      background: linear-gradient(135deg, #b45309, #d97706);
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 13px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .btn-close {
+      background: #334155;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 8px;
+      font-size: 13px;
+    }
+
+    .sheet-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 10px auto;
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      display: flex;
+      position: relative;
+      box-sizing: border-box;
+      page-break-after: always;
+      break-after: page;
+      overflow: hidden;
+    }
+
+    .sheet-main-content {
+      flex: 1;
+      padding: 5mm 4mm 8mm 5mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 5mm;
+    }
+
+    .block-wrapper {
+      margin-bottom: 0;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .block-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 1.5px solid #222;
+    }
+
+    .header-band {
+      background-color: #7d773c !important;
+      height: 12px;
+      border: 1.5px solid #222;
+    }
+    .header-labels-row th {
+      border: 1.5px solid #222;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 4px;
+      text-align: center;
+      background-color: #fff;
+      color: #1c130d;
+    }
+    .th-num { width: 5.5%; }
+    .th-name { width: 74.5%; text-align: left !important; padding-left: 8px !important; }
+    .th-table-blank { width: 20%; background: #ded9c8 !important; border: 1.5px solid #222; font-size: 10.5px; }
+
+    .block-table td {
+      border: 1.5px solid #222;
+      height: 24px;
+      padding: 2px 6px;
+      font-size: 11px;
+      vertical-align: middle;
+    }
+
+    .col-num {
+      text-align: center;
+      font-weight: 800;
+      font-size: 11px;
+      color: #222;
+      background: #fafafa;
+    }
+
+    .col-name {
+      text-align: left;
+      padding-left: 8px !important;
+    }
+
+    .col-table {
+      text-align: center;
+      vertical-align: middle;
+      background: #ded9c8 !important;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      color: #111;
+    }
+    .table-name-text {
+      font-family: Arial, Helvetica, sans-serif;
+      font-weight: 800;
+    }
+
+    .sheet-vertical-banner {
+      width: 36mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border-left: 2px solid #222;
+      padding: 8px 0;
+    }
+    .vertical-title {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      font-family: Impact, "Arial Black", sans-serif;
+      font-weight: 900;
+      font-size: 26px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #f97316 0%, #facc15 50%, #ea580c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 2px rgba(234, 88, 12, 0.25));
+      user-select: none;
+    }
+
+    @media print {
+      html, body {
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .top-action-bar { display: none !important; }
+      .sheet-page {
+        margin: 0 auto !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-action-bar">
+    <div>
+      <span style="font-size: 16px; font-weight: 800; color: #f59e0b;">📑 Fiche Hôtesse Officielle (Par Table) • Dîner de Gala 2026</span>
+      <span style="font-size: 12px; margin-left: 12px; opacity: 0.85;">(${blocks.length} table(s) • 10 places par table • ${pages.length} page(s) à imprimer)</span>
+    </div>
+    <div>
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimer la Fiche Hôtesse (PDF)</button>
+      <button class="btn-close" onclick="window.close()">✖ Fermer</button>
+    </div>
+  </div>
+
+  ${pagesHtml}
+</body>
+</html>`;
+
+    try {
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, '_blank', 'width=1150,height=960');
+      if (!printWindow) {
+        alert("Veuillez autoriser les fenêtres pop-up de votre navigateur pour afficher la fiche hôtesse.");
+      }
+    } catch (e) {
+      const printWindow = window.open('', '_blank', 'width=1150,height=960');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(fullHtml);
+        printWindow.document.close();
+      } else {
+        alert("Veuillez autoriser les fenêtres pop-up pour afficher la fiche hôtesse.");
+      }
+    }
+  } catch (err) {
+    console.error("Erreur génération fiche hôtesse:", err);
+    showAdminToast("Erreur lors de la génération de la fiche hôtesse : " + err.message, "error");
   }
 };
 

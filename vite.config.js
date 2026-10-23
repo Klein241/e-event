@@ -12,7 +12,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         gala: resolve(__dirname, 'dinedegala2026/index.html'),
-        admin: resolve(__dirname, 'login/admin/index.html')
+        admin: resolve(__dirname, 'login/admin/index.html'),
+        hotesse: resolve(__dirname, 'hotesse/index.html')
       }
     }
   },

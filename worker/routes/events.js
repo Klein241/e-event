@@ -4,6 +4,7 @@
 
 import { jsonResponse, errorResponse } from "../utils/response.js";
 import { getMockEvent, getMockGuest } from "../utils/mocks.js";
+import { FALLBACK_GUESTS } from "../cached_guests.js";
 
 export function buildPersonalizedGuestTicketId(name, coupleName, ticketType) {
   let target = (ticketType === 'couple' && coupleName) ? coupleName : (name || 'invite');
@@ -301,6 +302,17 @@ export async function handleEventRoutes(pathname, request, env) {
       role: role,
       token: `token-${guestId}`
     };
+
+    try {
+      if (Array.isArray(FALLBACK_GUESTS)) {
+        FALLBACK_GUESTS.unshift({
+          ...guestObj,
+          created_at: new Date().toISOString(),
+          is_arrived: 0,
+          arrived_at: null
+        });
+      }
+    } catch(e) {}
 
     return jsonResponse({
       success: true,

@@ -12,6 +12,7 @@ import { handleNetworkingRoutes } from "./routes/networking.js";
 import { handlePrayerRoutes } from "./routes/prayers.js";
 import { handleProjectorRoutes } from "./routes/projector.js";
 import { handleAdminRoutes } from "./routes/admin.js";
+import { handleHostessRoutes } from "./routes/hostess.js";
 
 // Handler inline pour les routes publicitaires (annonces)
 async function handleAdsRoutes(pathname, request, env) {
@@ -79,6 +80,13 @@ export default {
       return Response.redirect(slashUrl.toString(), 301);
     }
 
+    // Normalisation du chemin /hotesse sans slash
+    if (pathname === "/hotesse") {
+      const slashUrl = new URL(request.url);
+      slashUrl.pathname = "/hotesse/";
+      return Response.redirect(slashUrl.toString(), 301);
+    }
+
     // 2. Routage API modulaire
     if (pathname.startsWith("/api/")) {
       try {
@@ -86,6 +94,8 @@ export default {
 
         if (pathname.startsWith("/api/admin")) {
           response = await handleAdminRoutes(pathname, request, env);
+        } else if (pathname.startsWith("/api/hostess")) {
+          response = await handleHostessRoutes(pathname, request, env);
         } else if (pathname.startsWith("/api/push")) {
           response = await handlePushRoutes(pathname, request, env);
         } else if (pathname.startsWith("/api/chat")) {
