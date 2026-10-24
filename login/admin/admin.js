@@ -46,6 +46,52 @@ export function getCanonicalTicketUrl(guest) {
 }
 window.getCanonicalTicketUrl = getCanonicalTicketUrl;
 
+export function isCoupleGuest(g) {
+  if (!g) return false;
+  const t = String(g.ticket_type || '').toLowerCase().trim();
+  if (t === 'couple') return true;
+  if (t === 'seul') return false;
+  if (g.couple_name && String(g.couple_name).trim().length > 0) return true;
+  if (g.partner_name && String(g.partner_name).trim().length > 0) return true;
+  return false;
+}
+window.isCoupleGuest = isCoupleGuest;
+
+export function getGuestPersonCount(g) {
+  return isCoupleGuest(g) ? 2 : 1;
+}
+window.getGuestPersonCount = getGuestPersonCount;
+
+export function computeGuestsStats(guestList) {
+  const list = Array.isArray(guestList) ? guestList : [];
+  let totalPersons = 0;
+  let couples = 0;
+  let solos = 0;
+  let arrivedPersons = 0;
+  let arrivedTickets = 0;
+
+  for (const g of list) {
+    const isC = isCoupleGuest(g);
+    const p = isC ? 2 : 1;
+    totalPersons += p;
+    if (isC) couples++; else solos++;
+    if (Number(g.is_arrived) === 1) {
+      arrivedTickets++;
+      arrivedPersons += p;
+    }
+  }
+
+  return {
+    totalTickets: list.length,
+    totalPersons,
+    couples,
+    solos,
+    arrivedTickets,
+    arrivedPersons
+  };
+}
+window.computeGuestsStats = computeGuestsStats;
+
 // État de l'administrateur
 const AdminState = {
   token: null,
@@ -473,8 +519,25 @@ function getPublicPrayerCount(realCount = 0) {
 function renderOverview(data) {
   const { stats, event, active_quiz } = data;
 
-  // Mise à jour des compteurs KPIs
-  document.getElementById('kpi-guests-count').textContent = stats.guests_count || 0;
+  // Mise à jour des compteurs KPIs (Calcul fidèle personnes réelles vs billets)
+  const guestsStats = computeGuestsStats(AdminState.guests || []);
+  const realPersons = (stats.persons_count !== undefined && stats.persons_count !== null) ? stats.persons_count : (stats.guests_count || guestsStats.totalPersons || 0);
+  const realTickets = (stats.tickets_count !== undefined && stats.tickets_count !== null) ? stats.tickets_count : (guestsStats.totalTickets || 0);
+  const realCouples = (stats.couples_count !== undefined && stats.couples_count !== null) ? stats.couples_count : (guestsStats.couples || 0);
+  const realSolos = (stats.solos_count !== undefined && stats.solos_count !== null) ? stats.solos_count : (guestsStats.solos || 0);
+
+  const elGuests = document.getElementById('kpi-guests-count');
+  if (elGuests) elGuests.textContent = realPersons;
+
+  const elTickets = document.getElementById('kpi-tickets-count');
+  if (elTickets) elTickets.textContent = realTickets;
+
+  const elCouples = document.getElementById('kpi-couples-count');
+  if (elCouples) elCouples.textContent = realCouples;
+
+  const elSolos = document.getElementById('kpi-solos-count');
+  if (elSolos) elSolos.textContent = realSolos;
+
   document.getElementById('kpi-tables-count').textContent = stats.tables_count || 0;
   document.getElementById('kpi-chat-count').textContent = stats.chat_count || 0;
   
@@ -2255,11 +2318,43 @@ async function loadInvitationStats() {
     const elClicks = document.getElementById('admin-stats-total-clicks');
     const elUniq = document.getElementById('admin-stats-unique-visitors');
     const elReg = document.getElementById('admin-stats-link-registrations');
+    const elTickets = document.getElementById('admin-stats-link-tickets');
+    const elPersons = document.getElementById('admin-stats-link-persons');
+    const elPersonsSub = document.getElementById('admin-stats-link-persons-sub');
+    const elDetails = document.getElementById('admin-stats-link-details');
     const elRate = document.getElementById('admin-stats-conversion-rate');
+
+    // Récupérer les stats calculées à partir de la liste locale des invités si présente pour une cohérence instantanée
+    const linkGuests = (AdminState.guests || []).filter(g => g.registration_source === 'link');
+    const localLinkStats = linkGuests.length > 0 ? computeGuestsStats(linkGuests) : null;
+    const allGuests = AdminState.guests || [];
+    const localAllStats = allGuests.length > 0 ? computeGuestsStats(allGuests) : null;
+
+    // Données 100% dynamiques : calcul local prioritaire si les invités sont déjà chargés, sinon retour API D1
+    const linkTickets = localLinkStats ? localLinkStats.totalTickets : (d.link_tickets ?? d.link_registrations ?? 0);
+    const linkCouples = localLinkStats ? localLinkStats.couples : (d.link_couples ?? 0);
+    const linkSolos = localLinkStats ? localLinkStats.solos : (d.link_solos ?? Math.max(0, linkTickets - linkCouples));
+    const linkPersons = localLinkStats ? localLinkStats.totalPersons : (d.link_persons ?? ((linkCouples * 2) + linkSolos));
+
+    const allTickets = localAllStats ? localAllStats.totalTickets : (d.all_tickets ?? linkTickets);
+    const allCouples = localAllStats ? localAllStats.couples : (d.all_couples ?? linkCouples);
+    const allSolos = localAllStats ? localAllStats.solos : (d.all_solos ?? linkSolos);
+    const allPersons = localAllStats ? localAllStats.totalPersons : (d.all_persons ?? ((allCouples * 2) + allSolos));
 
     if (elClicks) elClicks.textContent = d.total_clicks ?? 0;
     if (elUniq) elUniq.textContent = d.unique_visitors ?? 0;
-    if (elReg) elReg.textContent = d.link_registrations ?? 0;
+
+    // 1) Billets générés par le lien (ex: 180 billets : 63 couples • 117 seuls)
+    if (elReg) elReg.textContent = linkTickets;
+    const elLinkBadge = document.getElementById('admin-stats-link-badge');
+    if (elLinkBadge) elLinkBadge.textContent = `${linkTickets} Billets`;
+    if (elDetails) elDetails.textContent = `${linkTickets} billet(s) (${linkCouples} couples • ${linkSolos} seuls)`;
+
+    // 2) Nombre exact de personnes physiques (ex: 243 pers. par le lien, 246 pers. soirée complète)
+    if (elPersons) elPersons.textContent = `${linkPersons} pers.`;
+    if (elPersonsSub) elPersonsSub.textContent = `Total soirée : ${allPersons} pers. (${allTickets} billets)`;
+
+    if (elTickets) elTickets.textContent = linkTickets;
     if (elRate) elRate.textContent = (d.conversion_rate ?? 0) + '%';
   } catch (e) {
     console.warn("Erreur chargement stats invitation:", e);
@@ -2331,6 +2426,7 @@ function renderGroupedByHostView(guests, container) {
           tablesCount[t] = (tablesCount[t] || 0) + 1;
         });
         const tablesSummary = Object.keys(tablesCount).map(t => `Table ${t} (${tablesCount[t]})`).join(' • ');
+        const hostStats = computeGuestsStats(list);
 
         return `
           <div class="admin-card" style="padding: 18px; border: 1.5px solid rgba(212, 175, 55, 0.4); border-radius: 20px; background: var(--bg-card); box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
@@ -2347,7 +2443,7 @@ function renderGroupedByHostView(guests, container) {
                 </div>
               </div>
               <span class="status-pill status-active" style="background: rgba(212, 175, 55, 0.18); color: #b45309; border: 1.5px solid rgba(212, 175, 55, 0.5); font-weight: 800; font-size: 0.85rem; padding: 4px 12px;">
-                ${list.length} invité${list.length > 1 ? 's' : ''}
+                👥 ${hostStats.totalPersons} pers. (${hostStats.totalTickets} billet${hostStats.totalTickets > 1 ? 's' : ''})
               </span>
             </div>
 
@@ -2364,8 +2460,9 @@ function renderGroupedByHostView(guests, container) {
                   ? `<span class="status-pill status-active" style="font-size: 0.68rem; padding: 1px 6px; background: rgba(212, 175, 55, 0.15); color: #b45309; font-weight: 800;">💌 Par lien</span>`
                   : `<span class="status-pill status-active" style="font-size: 0.68rem; padding: 1px 6px; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 800;">🏛️ En salle</span>`;
 
-                const coupleHtml = g.ticket_type === 'couple' && g.couple_name
-                  ? `<div style="font-size: 0.74rem; color: #db2777; font-weight: 700; margin-top: 1px;">💍 ${escapeHtml(g.couple_name)}</div>`
+                const isC = isCoupleGuest(g);
+                const coupleHtml = isC
+                  ? `<div style="font-size: 0.74rem; color: #db2777; font-weight: 700; margin-top: 1px;">💍 ${escapeHtml(g.couple_name || 'Billet Couple')} ${g.partner_name ? '(' + escapeHtml(g.partner_name) + ')' : ''} • 2 pers.</div>`
                   : '';
 
                 return `
@@ -2398,14 +2495,25 @@ function renderGroupedByHostView(guests, container) {
 function renderGuests(guests) {
   const container = document.getElementById('admin-guests-grid');
   const countBadge = document.getElementById('admin-guests-count');
-  if (countBadge) countBadge.textContent = `${guests ? guests.length : 0} invité(s)`;
 
-  // Mettre à jour les compteurs des catégories officielles (+ Sans Billet, Évangélisés, Tous)
-  const allCount = (AdminState.guests || []).length;
-  const salleCount = (AdminState.guests || []).filter(g => g.registration_source !== 'link' && g.registration_source !== 'sans_billet').length;
-  const linkCount = (AdminState.guests || []).filter(g => g.registration_source === 'link').length;
-  const noBilletCount = (AdminState.guests || []).filter(g => g.registration_source === 'sans_billet').length;
-  const evangelizedCount = (AdminState.guests || []).filter(g => Number(g.is_evangelized) === 1).length;
+  const allGuests = AdminState.guests || [];
+  const allStats = computeGuestsStats(allGuests);
+  const currentStats = computeGuestsStats(guests || []);
+
+  if (countBadge) {
+    countBadge.innerHTML = `<strong>${currentStats.totalPersons}</strong> personne(s) • <span style="opacity: 0.85;">${currentStats.totalTickets} billet(s) (${currentStats.couples} couples, ${currentStats.solos} seuls)</span>`;
+  }
+
+  // Mettre à jour les compteurs des catégories officielles (+ Sans Billet, Évangélisés, Tous) avec calcul exact
+  const salleList = allGuests.filter(g => g.registration_source !== 'link' && g.registration_source !== 'sans_billet');
+  const linkList = allGuests.filter(g => g.registration_source === 'link');
+  const noBilletList = allGuests.filter(g => g.registration_source === 'sans_billet');
+  const evangelizedList = allGuests.filter(g => Number(g.is_evangelized) === 1);
+
+  const salleStats = computeGuestsStats(salleList);
+  const linkStats = computeGuestsStats(linkList);
+  const noBilletStats = computeGuestsStats(noBilletList);
+  const evangelizedStats = computeGuestsStats(evangelizedList);
 
   const countAllEl = document.getElementById('subtab-count-all');
   const countSalleEl = document.getElementById('subtab-count-salle');
@@ -2413,11 +2521,11 @@ function renderGuests(guests) {
   const countNoBilletEl = document.getElementById('subtab-count-nobillet');
   const countEvangelizedEl = document.getElementById('subtab-count-evangelized');
 
-  if (countAllEl) countAllEl.textContent = allCount;
-  if (countSalleEl) countSalleEl.textContent = salleCount;
-  if (countLinkEl) countLinkEl.textContent = linkCount;
-  if (countNoBilletEl) countNoBilletEl.textContent = noBilletCount;
-  if (countEvangelizedEl) countEvangelizedEl.textContent = evangelizedCount;
+  if (countAllEl) countAllEl.textContent = `${allStats.totalPersons} pers. (${allStats.totalTickets} billets)`;
+  if (countSalleEl) countSalleEl.textContent = `${salleStats.totalPersons} pers. (${salleStats.totalTickets} billets)`;
+  if (countLinkEl) countLinkEl.textContent = `${linkStats.totalPersons} pers. (${linkStats.totalTickets} billets)`;
+  if (countNoBilletEl) countNoBilletEl.textContent = `${noBilletStats.totalPersons} pers. (${noBilletStats.totalTickets} billets)`;
+  if (countEvangelizedEl) countEvangelizedEl.textContent = `${evangelizedStats.totalPersons} pers.`;
 
   // Initialiser l'URL du lien d'invitation avec le domaine officiel
   const canonicalInviteUrl = `${getCanonicalOrigin()}/dinedegala2026/?invite=gala2026`;

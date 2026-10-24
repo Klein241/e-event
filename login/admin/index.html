@@ -135,10 +135,15 @@
       <div class="kpi-grid">
         <div class="kpi-card terracotta">
           <div class="kpi-header">
-            <span class="kpi-label">Invités</span>
+            <span class="kpi-label">Personnes Réelles</span>
             <div class="kpi-icon-box">👥</div>
           </div>
           <div class="kpi-value" id="kpi-guests-count">0</div>
+          <div style="font-size: 0.72rem; margin-top: 4px; font-weight: 700; color: var(--text-muted); display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
+            <span>Billets : <strong id="kpi-tickets-count" style="color: var(--accent-gold);">0</strong></span>
+            <span>Couples (x2) : <strong id="kpi-couples-count" style="color: #ec4899;">0</strong></span>
+            <span>Seuls : <strong id="kpi-solos-count" style="color: #38bdf8;">0</strong></span>
+          </div>
         </div>
 
         <div class="kpi-card sage">
@@ -748,23 +753,52 @@
           </button>
         </div>
 
-        <!-- Statistiques réelles des clics & conversions -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(212, 175, 55, 0.35);">
+        <!-- Statistiques réelles des clics & conversions (Détection fidèle Couples = 2 pers, Seuls = 1 pers) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(212, 175, 55, 0.35);">
+          <!-- 1. Clics totaux -->
           <div style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 12px; padding: 10px 14px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">🔗 Clics totaux</div>
-            <div id="admin-stats-total-clicks" style="font-size: 1.25rem; font-weight: 800; color: var(--accent-gold); margin-top: 2px;">0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">🔗 Clics totaux</div>
+            <div id="admin-stats-total-clicks" style="font-size: 1.35rem; font-weight: 800; color: var(--accent-gold); margin-top: 2px;">0</div>
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">Ouvertures du lien</div>
           </div>
+
+          <!-- 2. Appareils uniques -->
           <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 10px 14px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">📱 Appareils (IPs uniques)</div>
-            <div id="admin-stats-unique-visitors" style="font-size: 1.25rem; font-weight: 800; color: #3b82f6; margin-top: 2px;">0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">📱 Appareils (IPs uniques)</div>
+            <div id="admin-stats-unique-visitors" style="font-size: 1.35rem; font-weight: 800; color: #3b82f6; margin-top: 2px;">0</div>
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">Visiteurs distincts</div>
           </div>
-          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 10px 14px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">💌 Inscrits par le lien</div>
-            <div id="admin-stats-link-registrations" style="font-size: 1.25rem; font-weight: 800; color: #10b981; margin-top: 2px;">0</div>
+
+          <!-- 3. Billets générés par le lien (Calcul 100% dynamique) -->
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.45); border-radius: 12px; padding: 10px 14px; position: relative;">
+            <div style="font-size: 0.72rem; color: #10b981; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between;">
+              <span>💌 Inscrits par le lien</span>
+              <span id="admin-stats-link-badge" style="font-size: 0.65rem; background: rgba(16, 185, 129, 0.2); padding: 1px 6px; border-radius: 4px;">Billets</span>
+            </div>
+            <div id="admin-stats-link-registrations" style="font-size: 1.45rem; font-weight: 900; color: #10b981; margin-top: 2px;">0</div>
+            <div id="admin-stats-link-details" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; font-weight: 600;">
+              Chargement...
+            </div>
           </div>
+
+          <!-- 4. Nombre exact de personnes physiques (Calcul 100% dynamique) -->
+          <div style="background: rgba(236, 72, 153, 0.08); border: 1.5px solid rgba(236, 72, 153, 0.45); border-radius: 12px; padding: 10px 14px; position: relative;">
+            <div style="font-size: 0.72rem; color: #ec4899; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between;">
+              <span>👥 Nombre de Personnes</span>
+              <span style="font-size: 0.65rem; background: rgba(236, 72, 153, 0.2); padding: 1px 6px; border-radius: 4px;">Physiques</span>
+            </div>
+            <div id="admin-stats-link-persons" style="font-size: 1.45rem; font-weight: 900; color: #f472b6; margin-top: 2px;">0 pers.</div>
+            <div id="admin-stats-link-persons-sub" style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px; font-weight: 600;">
+              Chargement...
+            </div>
+            <span id="admin-stats-link-tickets" style="display: none;">0</span>
+          </div>
+
+          <!-- 5. Taux de conversion -->
           <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 10px 14px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">📈 Taux de conversion</div>
-            <div id="admin-stats-conversion-rate" style="font-size: 1.25rem; font-weight: 800; color: #f59e0b; margin-top: 2px;">0%</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">📈 Taux de conversion</div>
+            <div id="admin-stats-conversion-rate" style="font-size: 1.35rem; font-weight: 800; color: #f59e0b; margin-top: 2px;">0%</div>
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">Billets / Visiteurs uniques</div>
           </div>
         </div>
       </div>

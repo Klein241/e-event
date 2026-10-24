@@ -227,26 +227,49 @@ async function loadPinnedNote() {
   }
 }
 
+function isCoupleGuest(g) {
+  if (!g) return false;
+  const t = String(g.ticket_type || '').toLowerCase().trim();
+  if (t === 'couple') return true;
+  if (t === 'seul') return false;
+  if (g.couple_name && String(g.couple_name).trim().length > 0) return true;
+  if (g.partner_name && String(g.partner_name).trim().length > 0) return true;
+  return false;
+}
+
 // Mise à jour des jauges et badges
 function updateStatsAndGauges() {
-  const guests = HostessState.guests;
-  const total = guests.length;
-  const arrived = guests.filter(g => Number(g.is_arrived) === 1).length;
-  const rate = total > 0 ? Math.round((arrived / total) * 100) : 0;
+  const guests = HostessState.guests || [];
+  let totalPersons = 0;
+  let arrivedPersons = 0;
+  let totalTickets = guests.length;
+  let arrivedTickets = 0;
+
+  for (const g of guests) {
+    const isC = isCoupleGuest(g);
+    const p = isC ? 2 : 1;
+    totalPersons += p;
+    if (Number(g.is_arrived) === 1) {
+      arrivedTickets++;
+      arrivedPersons += p;
+    }
+  }
+
+  const rate = totalPersons > 0 ? Math.round((arrivedPersons / totalPersons) * 100) : 0;
 
   const badgeEl = document.getElementById('profile-kpi-badge');
-  if (badgeEl) badgeEl.textContent = `${arrived}/${total}`;
+  if (badgeEl) badgeEl.textContent = `${arrivedPersons}/${totalPersons}`;
 
   const counterEl = document.getElementById('tables-total-counter');
-  if (counterEl) counterEl.textContent = `${arrived} validé${arrived > 1 ? 's' : ''} sur ${total} invités (${rate}%)`;
+  if (counterEl) counterEl.textContent = `${arrivedPersons} personne${arrivedPersons > 1 ? 's' : ''} sur ${totalPersons} (${rate}%) • ${arrivedTickets}/${totalTickets} billets`;
 
   const drawerArr = document.getElementById('drawer-kpi-arrived');
   const drawerTot = document.getElementById('drawer-kpi-total');
   const drawerRate = document.getElementById('drawer-kpi-rate');
   const drawerProg = document.getElementById('drawer-kpi-progress');
 
-  if (drawerArr) drawerArr.textContent = arrived;
-  if (drawerTot) drawerTot.textContent = total;
+  if (drawerArr) drawerArr.textContent = arrivedPersons;
+  if (drawerTot) drawerTot.textContent = totalPersons;
   if (drawerRate) drawerRate.textContent = `${rate}%`;
   if (drawerProg) drawerProg.style.width = `${rate}%`;
 }

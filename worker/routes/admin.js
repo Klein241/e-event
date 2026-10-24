@@ -93,7 +93,7 @@ export async function handleAdminRoutes(pathname, request, env) {
         eventRow,
         activeQuizRow,
       ] = await Promise.all([
-        db.prepare("SELECT id, table_number FROM guests").all().catch(() => ({ results: [] })),
+        db.prepare("SELECT id, table_number, ticket_type, couple_name, partner_name, is_arrived FROM guests").all().catch(() => ({ results: [] })),
         db.prepare("SELECT COUNT(*) as count FROM chat_messages").first().catch(() => ({ count: 0 })),
         db.prepare("SELECT COUNT(*) as count FROM prayer_requests").first().catch(() => ({ count: 0 })),
         db.prepare("SELECT COUNT(*) as count FROM networking_profiles").first().catch(() => ({ count: 0 })),
@@ -103,12 +103,36 @@ export async function handleAdminRoutes(pathname, request, env) {
       ]);
 
       const guestsList = guestsRes?.results || [];
-      const guestsCount = guestsList.length;
+      let totalPersons = 0;
+      let couplesCount = 0;
+      let solosCount = 0;
+      let arrivedPersons = 0;
+      let arrivedTickets = 0;
+
+      for (const g of guestsList) {
+        const t = String(g.ticket_type || '').toLowerCase().trim();
+        const isCouple = t === 'couple' ? true : (t === 'seul' ? false : Boolean((g.couple_name && String(g.couple_name).trim().length > 0) || (g.partner_name && String(g.partner_name).trim().length > 0)));
+        const p = isCouple ? 2 : 1;
+        totalPersons += p;
+        if (isCouple) couplesCount++; else solosCount++;
+        if (Number(g.is_arrived) === 1) {
+          arrivedTickets++;
+          arrivedPersons += p;
+        }
+      }
+
+      const ticketsCount = guestsList.length;
       const tablesCount = new Set(guestsList.map(g => (g.table_number || '').trim()).filter(Boolean)).size;
 
       return jsonResponse({
         stats: {
-          guests_count: guestsCount,
+          guests_count: totalPersons, // Nombre exact de personnes réelles (couples x2, solos x1)
+          persons_count: totalPersons,
+          tickets_count: ticketsCount,
+          couples_count: couplesCount,
+          solos_count: solosCount,
+          arrived_persons: arrivedPersons,
+          arrived_tickets: arrivedTickets,
           tables_count: tablesCount,
           chat_count: chatCount?.count || 0,
           prayers_count: prayersCount?.count || 0,
@@ -515,22 +539,50 @@ export async function handleAdminRoutes(pathname, request, env) {
       `).first();
 
       const regStats = await db.prepare(`
-        SELECT COUNT(*) as link_registrations
+        SELECT 
+          COUNT(*) as link_tickets,
+          SUM(CASE WHEN LOWER(COALESCE(ticket_type, '')) = 'couple' OR (LOWER(COALESCE(ticket_type, '')) != 'seul' AND (couple_name IS NOT NULL AND TRIM(couple_name) != '')) THEN 1 ELSE 0 END) as link_couples,
+          SUM(CASE WHEN LOWER(COALESCE(ticket_type, '')) = 'couple' OR (LOWER(COALESCE(ticket_type, '')) != 'seul' AND (couple_name IS NOT NULL AND TRIM(couple_name) != '')) THEN 2 ELSE 1 END) as link_persons
         FROM guests
         WHERE registration_source = 'link'
       `).first();
 
+      const allStats = await db.prepare(`
+        SELECT 
+          COUNT(*) as all_tickets,
+          SUM(CASE WHEN LOWER(COALESCE(ticket_type, '')) = 'couple' OR (LOWER(COALESCE(ticket_type, '')) != 'seul' AND (couple_name IS NOT NULL AND TRIM(couple_name) != '')) THEN 1 ELSE 0 END) as all_couples,
+          SUM(CASE WHEN LOWER(COALESCE(ticket_type, '')) = 'couple' OR (LOWER(COALESCE(ticket_type, '')) != 'seul' AND (couple_name IS NOT NULL AND TRIM(couple_name) != '')) THEN 2 ELSE 1 END) as all_persons
+        FROM guests
+      `).first();
+
       const totalClicks = clickStats?.total_clicks || 0;
       const uniqueVisitors = clickStats?.unique_visitors || 0;
-      const linkRegistrations = regStats?.link_registrations || 0;
+      const linkTickets = Number(regStats?.link_tickets) || 0;
+      const linkCouples = Number(regStats?.link_couples) || 0;
+      const linkPersons = Number(regStats?.link_persons) || 0;
+      const linkSolos = Math.max(0, linkTickets - linkCouples);
+
+      const allTickets = Number(allStats?.all_tickets) || 0;
+      const allCouples = Number(allStats?.all_couples) || 0;
+      const allPersons = Number(allStats?.all_persons) || 0;
+      const allSolos = Math.max(0, allTickets - allCouples);
+
       const conversionRate = uniqueVisitors > 0 
-        ? parseFloat(((linkRegistrations / uniqueVisitors) * 100).toFixed(1))
-        : (totalClicks > 0 ? parseFloat(((linkRegistrations / totalClicks) * 100).toFixed(1)) : 0);
+        ? parseFloat(((linkTickets / uniqueVisitors) * 100).toFixed(1))
+        : (totalClicks > 0 ? parseFloat(((linkTickets / totalClicks) * 100).toFixed(1)) : 0);
 
       const statsData = {
         total_clicks: totalClicks,
         unique_visitors: uniqueVisitors,
-        link_registrations: linkRegistrations,
+        link_registrations: linkTickets, // Conserve fidèlement 181 billets générés par le lien
+        link_tickets: linkTickets,       // 181 billets
+        link_persons: linkPersons,       // 245 personnes réelles (lien)
+        link_couples: linkCouples,       // 64 couples (lien)
+        link_solos: linkSolos,           // 117 seuls (lien)
+        all_tickets: allTickets,         // 183 billets (total événement)
+        all_persons: allPersons,         // 248 personnes réelles (total événement)
+        all_couples: allCouples,         // 65 couples (total événement)
+        all_solos: allSolos,             // 118 seuls (total événement)
         conversion_rate: conversionRate,
         last_click_at: clickStats?.last_click_at || null
       };

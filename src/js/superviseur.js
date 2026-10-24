@@ -59,6 +59,20 @@ async function loadPinnedNote() {
   }
 }
 
+function isCoupleGuest(g) {
+  if (!g) return false;
+  const t = String(g.ticket_type || '').toLowerCase().trim();
+  if (t === 'couple') return true;
+  if (t === 'seul') return false;
+  if (g.couple_name && String(g.couple_name).trim().length > 0) return true;
+  if (g.partner_name && String(g.partner_name).trim().length > 0) return true;
+  return false;
+}
+
+function countPersons(list) {
+  return (list || []).reduce((acc, g) => acc + (isCoupleGuest(g) ? 2 : 1), 0);
+}
+
 // -------------------------------------------------------------
 // 2. CHARGEMENT DES INVITÉS & STATS
 // -------------------------------------------------------------
@@ -78,11 +92,17 @@ async function loadSupervisorGuests(showSpinner = false) {
     const data = await res.json();
 
     allGuests = data.guests || [];
-    const stats = data.stats || {
-      total: allGuests.length,
-      sans_billet: allGuests.filter(g => g.registration_source === 'sans_billet').length,
-      evangelized: allGuests.filter(g => Number(g.is_evangelized) === 1).length,
-      pending: allGuests.filter(g => Number(g.is_evangelized) !== 1).length
+    const sansBilletList = allGuests.filter(g => g.registration_source === 'sans_billet');
+    const evangelizedList = allGuests.filter(g => Number(g.is_evangelized) === 1);
+    const pendingList = allGuests.filter(g => Number(g.is_evangelized) !== 1);
+
+    const stats = {
+      total: countPersons(allGuests),
+      total_tickets: allGuests.length,
+      sans_billet: countPersons(sansBilletList),
+      sans_billet_tickets: sansBilletList.length,
+      evangelized: countPersons(evangelizedList),
+      pending: countPersons(pendingList)
     };
 
     updateStatsDisplay(stats);
