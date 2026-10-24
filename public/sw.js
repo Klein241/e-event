@@ -1,5 +1,5 @@
 // Service Worker - Compagnon de Cérémonie PWA & Web Push
-const CACHE_NAME = 'compagnon-v2.1.0';
+const CACHE_NAME = 'compagnon-v2.2.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -59,29 +59,43 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 1. Navigation HTML : Rendu instantané 0ms depuis le cache, synchronisation silencieuse en arrière-plan (Stale-While-Revalidate)
+  // 1. Navigation HTML :
+  // IMPORTANT : Ne PAS servir le /index.html grand public aux portails d'administration, hôtesses et superviseur !
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
-    event.respondWith(
-      caches.match('/index.html').then((cachedIndex) => {
-        const fetchPromise = fetch(event.request)
+    const isSpecialPortal = url.pathname.startsWith('/login') ||
+                            url.pathname.startsWith('/hotesse') ||
+                            url.pathname.startsWith('/superviseur') ||
+                            url.pathname.startsWith('/supervisueur') ||
+                            url.pathname.startsWith('/projecteur');
+
+    if (isSpecialPortal) {
+      // Pour les portails régie/hôtesses/superviseur : réseau direct en priorité avec fallback cache
+      event.respondWith(
+        fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               const copy = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
             }
             return networkResponse;
           })
-          .catch(() => cachedIndex);
+          .catch(() => caches.match(event.request))
+      );
+      return;
+    }
 
-        // Si la page HTML est en cache, retour immédiat en 0ms !
-        if (cachedIndex) {
-          fetchPromise.catch(() => {});
-          return cachedIndex;
-        }
-
-        // Sinon premier chargement, attendre le réseau
-        return fetchPromise;
-      })
+    // Pour l'application invités (dinedegala2026 ou racine)
+    const targetFallback = url.pathname.startsWith('/dinedegala2026') ? '/dinedegala2026/index.html' : '/index.html';
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match(targetFallback)))
     );
     return;
   }
@@ -117,14 +131,16 @@ self.addEventListener('push', (event) => {
       try {
         payload = event.data.json();
       } catch (e) {
-        payload = { title: "Compagnon de Cérémonie", body: event.data.text() };
+        try {
+          payload = { title: "Compagnon de Cérémonie", body: event.data.text() };
+        } catch (_) {}
       }
     }
 
-    // Si le push n'a pas de charge utile chiffrée, on va chercher la dernière notification active
+    // Si le push n'a pas de charge utile chiffrée (tickle push), on va chercher la dernière notification active
     if (!payload || !payload.title) {
       try {
-        const response = await fetch('/api/push/latest');
+        const response = await fetch('/api/push/latest', { cache: 'no-store' });
         if (response.ok) {
           payload = await response.json();
         }
@@ -139,11 +155,11 @@ self.addEventListener('push', (event) => {
       icon: (payload && payload.icon) || '/icon.svg',
       badge: (payload && payload.badge) || '/favicon.svg',
       vibrate: [200, 100, 200, 100, 300],
-      tag: (payload && payload.tag) || 'gala-alert',
+      tag: (payload && payload.tag) || ('gala-alert-' + Date.now()),
       renotify: true,
       requireInteraction: false,
       data: {
-        url: (payload && payload.url) || '/'
+        url: (payload && payload.url) || '/dinedegala2026/'
       },
       actions: [
         { action: 'open', title: '✨ Découvrir' },
@@ -163,21 +179,23 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const rawUrl = (event.notification.data && event.notification.data.url) || '/dinedegala2026/';
+  const targetUrl = new URL(rawUrl, self.location.origin).href;
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Si une fenêtre est déjà ouverte, lui donner le focus
-      for (const client of windowClients) {
-        if (client.url.includes(self.origin) && 'focus' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
+  event.waitUntil((async () => {
+    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // Si une fenêtre sur le même domaine est déjà ouverte, lui donner le focus
+    for (const client of windowClients) {
+      if (client.url && client.url.includes(self.location.origin) && 'focus' in client) {
+        if ('navigate' in client) {
+          await client.navigate(targetUrl).catch(() => {});
         }
+        return client.focus();
       }
-      // Sinon ouvrir une nouvelle fenêtre
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
-  );
+    }
+    // Sinon ouvrir une nouvelle fenêtre vers l'URL cible
+    if (clients.openWindow) {
+      return clients.openWindow(targetUrl);
+    }
+  })());
 });

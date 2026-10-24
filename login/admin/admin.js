@@ -556,11 +556,147 @@ window.saveEventDetails = async (e) => {
 // -------------------------------------------------------------
 // 2. RÉGIE PUSH & DIFFUSION D'ALERTES
 // -------------------------------------------------------------
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+window.refreshPushSubscribersCount = async () => {
+  const badge = document.getElementById('badge-push-live-subscribers');
+  const kpiCount = document.getElementById('kpi-push-count');
+  try {
+    const res = await adminFetch('/push/subscribers-count');
+    const total = res.total !== undefined ? res.total : 0;
+    if (kpiCount) kpiCount.textContent = total;
+    if (badge) {
+      if (total === 0) {
+        badge.className = 'status-pill status-ended';
+        badge.innerHTML = '⚠️ 0 appareil abonné (ouvrez un billet invité pour tester)';
+      } else {
+        badge.className = 'status-pill status-active';
+        badge.innerHTML = `🟢 ${total} appareil${total > 1 ? 's' : ''} abonné${total > 1 ? 's' : ''}`;
+      }
+    }
+    return total;
+  } catch (err) {
+    if (badge) badge.textContent = 'Compteur hors-ligne';
+    return 0;
+  }
+};
+
+window.subscribeAdminToPush = async () => {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showAdminToast("Les notifications Push ne sont pas supportées sur ce navigateur", "error");
+    return null;
+  }
+
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      showAdminToast("Autorisation de notification refusée par votre navigateur", "error");
+      return null;
+    }
+
+    const keyRes = await fetch('/api/push/vapid-public-key').then(r => r.json());
+    if (!keyRes || !keyRes.publicKey) {
+      throw new Error("Impossible de récupérer la clé VAPID depuis le serveur");
+    }
+
+    let reg = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (!reg) {
+      reg = await navigator.serviceWorker.register('/sw.js');
+    }
+    await navigator.serviceWorker.ready;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const appKey = urlBase64ToUint8Array(keyRes.publicKey);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appKey,
+      });
+    }
+
+    await adminFetch('/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({
+        subscription: sub.toJSON(),
+        guest_id: 'admin-regie'
+      })
+    });
+
+    showAdminToast("✅ Cet appareil est désormais abonné aux alertes push !", "success");
+    window.refreshPushSubscribersCount();
+    return sub;
+  } catch (err) {
+    showAdminToast("Erreur d'abonnement push : " + err.message, "error");
+    return null;
+  }
+};
+
+window.testAdminPush = async () => {
+  const btn = document.getElementById('btn-admin-test-push');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Test en cours...';
+  }
+
+  try {
+    let sub = null;
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const reg = await navigator.serviceWorker.ready.catch(() => null);
+      if (reg) {
+        sub = await reg.pushManager.getSubscription();
+      }
+    }
+
+    if (!sub) {
+      showAdminToast("Abonnement préalable de cet appareil...", "info");
+      sub = await window.subscribeAdminToPush();
+      if (!sub) {
+        throw new Error("Impossible d'activer les notifications sur cet appareil.");
+      }
+    }
+
+    const subJson = sub.toJSON();
+    const testRes = await adminFetch('/push/test', {
+      method: 'POST',
+      body: JSON.stringify({
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys?.p256dh,
+        auth: subJson.keys?.auth,
+        admin_pin: AdminState.pin
+      })
+    });
+
+    if (testRes.success) {
+      showAdminToast("🎉 Notification de test reçue avec succès sur votre appareil !", "success");
+    } else {
+      showAdminToast("⚠️ Résultat test : " + (testRes.message || testRes.status), "info");
+    }
+    loadPushHistory();
+  } catch (err) {
+    showAdminToast("Erreur test push : " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🧪</span> Tester la notification sur cet écran';
+    }
+  }
+};
+
 window.sendCustomBroadcast = async (e) => {
   e.preventDefault();
   const title = document.getElementById('push-title').value.trim();
   const body = document.getElementById('push-body').value.trim();
-  const url = document.getElementById('push-url').value.trim() || '/';
+  const url = document.getElementById('push-url').value.trim() || '/dinedegala2026/';
   const tag = document.getElementById('push-tag').value || 'gala-alert';
 
   if (!title || !body) {
@@ -580,29 +716,36 @@ window.sendCustomBroadcast = async (e) => {
       body: JSON.stringify({ title, body, url, tag, admin_pin: AdminState.pin }),
     });
 
-    showAdminToast(`📢 Alerte diffusée avec succès ! (${res.recipients_count || 0} appareils)`, "success");
+    if (res.recipients_count > 0) {
+      showAdminToast(`📢 Alerte diffusée avec succès ! Reçue par ${res.recipients_count} appareil(s) actif(s).`, "success");
+    } else {
+      showAdminToast(`📢 Alerte enregistrée dans le journal. (0 appareil n'était connecté actuellement)`, "info");
+    }
+
     document.getElementById('broadcast-admin-form').reset();
     loadPushHistory();
+    window.refreshPushSubscribersCount();
   } catch (err) {
     showAdminToast(err.message, "error");
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "🚀 Envoyer la notification push générale";
+      btn.textContent = "🚀 Diffuser la notification push maintenant";
     }
   }
 };
 
-window.sendPushPreset = (title, body, url = '/') => {
+window.sendPushPreset = (title, body, url = '/dinedegala2026/') => {
   document.getElementById('push-title').value = title;
   document.getElementById('push-body').value = body;
   document.getElementById('push-url').value = url;
   document.getElementById('broadcast-admin-form').scrollIntoView({ behavior: 'smooth' });
-  showAdminToast("Modèle chargé dans le formulaire. Cliquez sur Envoyer pour diffuser.", "info");
+  showAdminToast("Modèle chargé dans le diffuseur. Cliquez sur Diffuser pour envoyer.", "info");
 };
 
 async function loadPushHistory() {
   try {
+    window.refreshPushSubscribersCount();
     const history = await adminFetch('/push/history');
     const container = document.getElementById('push-history-list');
     if (!container) return;
@@ -619,7 +762,7 @@ async function loadPushHistory() {
           <p style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0;">${escapeHtml(item.body)}</p>
         </div>
         <div style="text-align: right; flex-shrink: 0;">
-          <span class="status-pill status-ended">${item.recipient_count || 0} récepteurs</span>
+          <span class="status-pill status-ended">${item.recipient_count || 0} récepteur(s)</span>
           <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 4px;">${new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
         </div>
       </div>

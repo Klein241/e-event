@@ -336,6 +336,39 @@
          ONGLET 2 : RÉGIE PUSH (WEB PUSH BROADCAST)
          ------------------------------------------------------------- -->
     <section id="tab-push" class="admin-tab-content">
+      <!-- Indicateur d'Abonnés Réseau & Test en direct -->
+      <div class="admin-card" style="border: 2px solid var(--accent-gold); background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(24, 21, 19, 0.95));">
+        <div class="admin-card-header">
+          <div>
+            <h3 style="display: flex; align-items: center; gap: 8px;">
+              <span>📲</span> État du Réseau Push & Appareils Abonnés
+            </h3>
+            <p>Vérifiez en temps réel le nombre de téléphones connectés et effectuez un test instantané</p>
+          </div>
+          <span id="badge-push-live-subscribers" class="status-pill status-active" style="font-size: 0.85rem; font-weight: 800;">
+            ⏳ Vérification...
+          </span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
+            Chaque invité qui ouvre son billet d'invitation et autorise les alertes est immédiatement répertorié dans le réseau régie. Vous pouvez tester la réception en direct sur cet écran ou sur votre téléphone portable de régie :
+          </p>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button type="button" id="btn-admin-test-push" class="btn-table-action" style="background: var(--terracotta-gradient); color: #fff; font-weight: 800; padding: 10px 18px; border-radius: 999px; cursor: pointer;" onclick="window.testAdminPush()">
+              <span>🧪</span> Tester la notification sur cet écran
+            </button>
+            <button type="button" id="btn-admin-sub-push" class="btn-table-action" style="background: rgba(212, 175, 55, 0.2); border: 1.5px solid var(--accent-gold); color: var(--accent-gold); font-weight: 700; padding: 10px 18px; border-radius: 999px; cursor: pointer;" onclick="window.subscribeAdminToPush()">
+              <span>🔔</span> S'abonner aux alertes sur ce terminal
+            </button>
+            <button type="button" class="btn-table-action" style="background: var(--bg-secondary); color: var(--text-main); padding: 10px 14px; border-radius: 999px; cursor: pointer;" onclick="window.refreshPushSubscribersCount()" title="Actualiser le compteur">
+              <span>🔄</span> Actualiser
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="admin-card">
         <div class="admin-card-header">
           <h3>📢 Diffuseur de Notifications Web Push</h3>

@@ -408,7 +408,8 @@ export const Api = {
     return await request('/push/broadcast', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${pin}`
+        'Authorization': `Bearer ${pin}`,
+        'X-Admin-PIN': pin
       },
       body: JSON.stringify({ title, body, url, tag, admin_pin: pin })
     });

@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPwaInstall();
 
   // 9. Initialiser les notifications Web Push et la Régie Broadcast
+  PushManagerService.syncExistingSubscription();
   PushManagerService.renderPushPrompt('push-prompt-container');
   setupBroadcastModal();
 
