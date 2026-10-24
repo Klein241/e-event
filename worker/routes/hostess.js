@@ -6,6 +6,7 @@
 import { jsonResponse, errorResponse } from "../utils/response.js";
 import { invalidateAdminCache } from "./admin.js";
 import { FALLBACK_GUESTS } from "../cached_guests.js";
+import { sendWebPush } from "../utils/webpush.js";
 
 let cachedHostessData = null;
 let cachedHostessDataTime = 0;
@@ -184,6 +185,29 @@ export async function handleHostessRoutes(pathname, request, env) {
             last_active = CURRENT_TIMESTAMP
           WHERE id = ?
         `).bind(isArrived, isArrived, guestId).run();
+
+        // Envoi de la notification en direct aux superviseurs si validation d'arrivée
+        if (isArrived === 1) {
+          const guestRow = await db.prepare("SELECT name, table_number FROM guests WHERE id = ?").bind(guestId).first().catch(() => null);
+          const guestName = guestRow?.name || "Un invité";
+          const tableCode = guestRow?.table_number ? `Table ${guestRow.table_number}` : "Régie";
+
+          const { results: subs } = await db.prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions").all().catch(() => ({ results: [] }));
+          if (subs && subs.length > 0) {
+            const pushPayload = {
+              title: "🟢 Invité en salle !",
+              body: `${guestName} (${tableCode}) vient d'être validé(e) en salle par ${hostessName}.`,
+              url: "/superviseur/",
+              tag: `arrived-${guestId}`,
+              icon: "/icon.svg",
+              badge: "/favicon.svg",
+              timestamp: Date.now()
+            };
+            for (const sub of subs) {
+              sendWebPush(sub, pushPayload, env).catch(() => {});
+            }
+          }
+        }
       } catch (err) {
         console.warn("Avertissement enregistrement émargement D1 (fallback mémoire):", err.message);
       }

@@ -2582,8 +2582,14 @@ function renderGuests(guests) {
     const isLink = g.registration_source === 'link';
     const isSansBillet = g.registration_source === 'sans_billet';
     const isEvangelized = Number(g.is_evangelized) === 1;
+    const isArrived = Number(g.is_arrived) === 1;
+    const supervisorSigner = g.evangelized_by || (g.evangelization_record && g.evangelization_record.supervisor_name) || '';
 
-    let sourceBadge = `<span class="status-pill status-active" title="Invité en salle (QR code scanné)" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">🏛️ En salle</span>`;
+    const arrivedBadge = isArrived
+      ? `<span class="status-pill status-active" title="Validé en salle par l'accueil" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.22); color: #10b981; border: 1.5px solid #10b981; font-weight: 800; box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);">🟢 DÉJÀ EN SALLE</span>`
+      : `<span class="status-pill" title="En attente de validation accueil" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3);">⏳ En attente</span>`;
+
+    let sourceBadge = `<span class="status-pill" title="Billet standard" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.4); font-weight: 800;">🎟️ Standard</span>`;
     if (isLink) {
       sourceBadge = `<span class="status-pill status-active" title="Inscrit par lien ou créé par l'admin" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(212, 175, 55, 0.2); color: #b45309; border: 1px solid rgba(212, 175, 55, 0.5); font-weight: 800;">💌 Par lien</span>`;
     } else if (isSansBillet) {
@@ -2591,7 +2597,7 @@ function renderGuests(guests) {
     }
 
     const evangelizedBadge = isEvangelized
-      ? `<span class="status-pill status-active" title="Évangélisé - Fiche renseignée" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-weight: 800;">✝️ Évangélisé</span>`
+      ? `<span class="status-pill status-active" title="Évangélisé - Fiche renseignée ${supervisorSigner ? 'par ' + escapeHtml(supervisorSigner) : ''}" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-weight: 800;">✝️ Évangélisé</span>`
       : '';
 
     const coupleBadge = g.ticket_type === 'couple'
@@ -2613,6 +2619,12 @@ function renderGuests(guests) {
     const hostHtml = g.invited_by
       ? `<div style="font-size: 0.8rem; color: #b45309; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
            <span>👑</span> ${isSansBillet ? 'Accueil par' : 'Invité par'} : <strong>${escapeHtml(g.invited_by)}</strong>
+         </div>`
+      : '';
+
+    const signerHtml = (isEvangelized && supervisorSigner)
+      ? `<div style="font-size: 0.78rem; color: #38bdf8; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+           <span>✍️</span> Fiche signée par : <strong>${escapeHtml(supervisorSigner)}</strong>
          </div>`
       : '';
 
@@ -2638,6 +2650,7 @@ function renderGuests(guests) {
             </div>
             ${coupleInfoHtml}
             ${hostHtml}
+            ${signerHtml}
           </div>
         </div>
 
@@ -2648,6 +2661,7 @@ function renderGuests(guests) {
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border-color); gap: 8px; flex-wrap: wrap;">
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            ${arrivedBadge}
             ${sourceBadge}
             ${evangelizedBadge}
             ${coupleBadge}
@@ -2761,6 +2775,9 @@ window.openGuestCRM = (guestId) => {
           <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">${escapeHtml(guest.name)}</h2>
           <span class="status-pill status-ended" data-move-guest-trigger="true" data-guest-id="${escapeHtml(guest.id)}" onclick="window.openMoveGuestDropdown(this, this.getAttribute('data-guest-id'), event)" style="font-weight: 800; cursor: pointer;" title="Cliquer pour dérouler les tables et déplacer">Table ${escapeHtml(guest.table_number || '1')} ▾</span>
           <span class="status-pill status-active" style="font-weight: 800;">🏆 ${guest.points || 0} pts</span>
+          <span class="status-pill ${Number(guest.is_arrived) === 1 ? 'status-active' : ''}" style="font-weight: 800; ${Number(guest.is_arrived) === 1 ? 'background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1.5px solid #10b981;' : 'background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3);'}">
+            ${Number(guest.is_arrived) === 1 ? '🟢 DÉJÀ EN SALLE' : '⏳ EN ATTENTE ACCUEIL'}
+          </span>
         </div>
         <div style="font-size: 0.84rem; color: var(--terracotta-accent); font-weight: 700; margin-top: 4px;">
           ${guest.profession ? escapeHtml(guest.profession) : 'Profession non spécifiée'}
@@ -2883,8 +2900,8 @@ window.openGuestCRM = (guestId) => {
           </div>
 
           <div style="background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 8px;">
-            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">Superviseur référent :</span>
-            <strong style="color: #fde047;">${escapeHtml(guest.evangelization_record.supervisor_name || 'Superviseur Régie')}</strong>
+            <span style="color: #94a3b8; font-size: 0.74rem; display: block;">✍️ Fiche signée par :</span>
+            <strong style="color: #38bdf8; font-size: 0.95rem;">${escapeHtml(guest.evangelization_record.supervisor_name || guest.evangelized_by || 'Superviseur')}</strong>
           </div>
         </div>
 
@@ -2902,7 +2919,7 @@ window.openGuestCRM = (guestId) => {
     ` : (Number(guest.is_evangelized) === 1 ? `
       <!-- Marqué évangélisé sans fiche encore soumise -->
       <div style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 14px; padding: 12px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
-        <span style="color: #34d399; font-weight: 700; font-size: 0.88rem;">✝️ Invité marqué comme évangélisé par l'accueil ou le superviseur</span>
+        <span style="color: #34d399; font-weight: 700; font-size: 0.88rem;">✝️ Invité marqué comme évangélisé ${guest.evangelized_by ? '(Signé par : ' + escapeHtml(guest.evangelized_by) + ')' : ''}</span>
         <span class="status-pill status-active" style="font-size: 0.72rem;">Fiche en cours</span>
       </div>
     ` : '')}

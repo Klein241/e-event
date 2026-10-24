@@ -8,6 +8,11 @@ let searchQuery = '';
 let currentGuestId = null;
 let pollTimer = null;
 
+// Détection temps réel des arrivées en salle
+const knownArrivedGuestIds = new Set();
+let isInitialArrivalLoaded = false;
+const newlyArrivedGuestIds = new Set();
+
 // Éléments DOM
 const guestsListEl = document.getElementById('supervisor-guests-list');
 const searchInputEl = document.getElementById('supervisor-search');
@@ -37,6 +42,141 @@ function showToast(message, duration = 3500) {
   setTimeout(() => {
     toastEl.classList.remove('show');
   }, duration);
+}
+
+// -------------------------------------------------------------
+// GESTION DE L'IDENTITÉ DU SUPERVISEUR
+// -------------------------------------------------------------
+function getSupervisorName() {
+  return localStorage.getItem('supervisor_name') || '';
+}
+
+function updateSupervisorIdentityUI() {
+  const currentName = getSupervisorName();
+  const displayEl = document.getElementById('current-supervisor-name-display');
+  if (displayEl) {
+    displayEl.textContent = currentName ? currentName : 'Définir mon nom';
+  }
+}
+
+window.promptChangeSupervisorName = function() {
+  const current = getSupervisorName();
+  const input = prompt("Entrez votre nom / signature de Superviseur (ex: Pasteur Paul, Diacre Thomas, Superviseur Marc) :", current);
+  if (input !== null) {
+    const trimmed = input.trim();
+    if (trimmed) {
+      localStorage.setItem('supervisor_name', trimmed);
+      updateSupervisorIdentityUI();
+      showToast(`👤 Identité superviseur : ${trimmed}`);
+    }
+  }
+};
+
+// -------------------------------------------------------------
+// ALERTE SONORE D'ARRIVÉE (SYNTHÈSE WEB AUDIO API)
+// -------------------------------------------------------------
+function playArrivalSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    
+    // Note 1 (Mi / E5 - 659.25Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.3, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.35);
+
+    // Note 2 (Sol# / G#5 - 830.61Hz)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(830.61, now + 0.15);
+    gain2.gain.setValueAtTime(0.35, now + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.15);
+    osc2.stop(now + 0.65);
+  } catch (e) {
+    console.debug("Lecture audio non disponible:", e);
+  }
+}
+
+// -------------------------------------------------------------
+// AUTORISATION DES NOTIFICATIONS NAVIGATEUR
+// -------------------------------------------------------------
+window.requestSupervisorNotifications = async function() {
+  if (!("Notification" in window)) {
+    alert("Les notifications de bureau ne sont pas supportées par ce navigateur.");
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  const icon = document.getElementById('notif-bell-icon');
+  if (perm === 'granted') {
+    if (icon) icon.textContent = '🔔 Alertes (ON)';
+    showToast("✅ Notifications d'arrivée en salle activées !");
+    playArrivalSound();
+  } else {
+    if (icon) icon.textContent = '🔕 Alertes (Bloquées)';
+    showToast("⚠️ Notifications refusées dans les paramètres du navigateur.");
+  }
+};
+
+// -------------------------------------------------------------
+// DÉTECTION EN DIRECT DES ARRIVÉES EN SALLE PAR LES HÔTESSES
+// -------------------------------------------------------------
+function checkNewArrivals(guests) {
+  const currentArrived = (guests || []).filter(g => Number(g.is_arrived) === 1);
+
+  if (!isInitialArrivalLoaded) {
+    currentArrived.forEach(g => knownArrivedGuestIds.add(g.id));
+    isInitialArrivalLoaded = true;
+    return;
+  }
+
+  const freshArrivals = [];
+  currentArrived.forEach(g => {
+    if (!knownArrivedGuestIds.has(g.id)) {
+      freshArrivals.push(g);
+      knownArrivedGuestIds.add(g.id);
+      newlyArrivedGuestIds.add(g.id);
+    }
+  });
+
+  if (freshArrivals.length > 0) {
+    // Alerte Sonore
+    playArrivalSound();
+
+    // Vibreur mobile
+    if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+
+    // Bannière d'alerte visuelle à l'écran
+    const banner = document.getElementById('live-arrival-banner');
+    const bannerText = document.getElementById('live-arrival-banner-text');
+    if (banner && bannerText) {
+      const names = freshArrivals.map(g => `${g.name} (${g.table_number ? 'Table ' + g.table_number : 'En salle'})`).join(', ');
+      bannerText.textContent = `${names} vient d'entrer en salle !`;
+      banner.style.display = 'flex';
+    }
+
+    // Notification OS native si autorisée
+    if (window.Notification && Notification.permission === 'granted') {
+      freshArrivals.forEach(g => {
+        new Notification("🟢 Invité en salle !", {
+          body: `${g.name} (${g.table_number ? 'Table ' + g.table_number : 'En salle'}) vient d'être validé(e) par l'accueil !`,
+          icon: "/icon.svg"
+        });
+      });
+    }
+
+    showToast(`🟢 ${freshArrivals.length} invité(s) viennent d'entrer en salle !`, 5000);
+  }
 }
 
 // -------------------------------------------------------------
@@ -92,6 +232,11 @@ async function loadSupervisorGuests(showSpinner = false) {
     const data = await res.json();
 
     allGuests = data.guests || [];
+
+    // Détection temps réel des arrivées
+    checkNewArrivals(allGuests);
+
+    const arrivedList = allGuests.filter(g => Number(g.is_arrived) === 1);
     const sansBilletList = allGuests.filter(g => g.registration_source === 'sans_billet');
     const evangelizedList = allGuests.filter(g => Number(g.is_evangelized) === 1);
     const pendingList = allGuests.filter(g => Number(g.is_evangelized) !== 1);
@@ -99,6 +244,8 @@ async function loadSupervisorGuests(showSpinner = false) {
     const stats = {
       total: countPersons(allGuests),
       total_tickets: allGuests.length,
+      arrived: countPersons(arrivedList),
+      arrived_tickets: arrivedList.length,
       sans_billet: countPersons(sansBilletList),
       sans_billet_tickets: sansBilletList.length,
       evangelized: countPersons(evangelizedList),
@@ -125,21 +272,25 @@ async function loadSupervisorGuests(showSpinner = false) {
 // -------------------------------------------------------------
 function updateStatsDisplay(stats) {
   const kpiSansBillet = document.getElementById('kpi-sans-billet');
+  const kpiArrived = document.getElementById('kpi-arrived');
   const kpiEvangelized = document.getElementById('kpi-evangelized');
   const kpiPending = document.getElementById('kpi-pending');
   const kpiTotal = document.getElementById('kpi-total');
 
   if (kpiSansBillet) kpiSansBillet.textContent = stats.sans_billet ?? 0;
+  if (kpiArrived) kpiArrived.textContent = stats.arrived ?? 0;
   if (kpiEvangelized) kpiEvangelized.textContent = stats.evangelized ?? 0;
   if (kpiPending) kpiPending.textContent = stats.pending ?? 0;
   if (kpiTotal) kpiTotal.textContent = stats.total ?? 0;
 
   const countTabAll = document.getElementById('count-tab-all');
+  const countTabArrived = document.getElementById('count-tab-arrived');
   const countTabNoBillet = document.getElementById('count-tab-nobillet');
   const countTabPending = document.getElementById('count-tab-pending');
   const countTabEvangelized = document.getElementById('count-tab-evangelized');
 
   if (countTabAll) countTabAll.textContent = stats.total ?? 0;
+  if (countTabArrived) countTabArrived.textContent = stats.arrived ?? 0;
   if (countTabNoBillet) countTabNoBillet.textContent = stats.sans_billet ?? 0;
   if (countTabPending) countTabPending.textContent = stats.pending ?? 0;
   if (countTabEvangelized) countTabEvangelized.textContent = stats.evangelized ?? 0;
@@ -152,10 +303,12 @@ function getFilteredGuests() {
   const q = searchQuery.toLowerCase().trim();
 
   return allGuests.filter(guest => {
-    // 1. Filtre par onglet
     const isSansBillet = guest.registration_source === 'sans_billet';
     const isEvang = Number(guest.is_evangelized) === 1;
+    const isArrived = Number(guest.is_arrived) === 1;
 
+    // 1. Filtre par onglet
+    if (activeFilter === 'arrived' && !isArrived) return false;
     if (activeFilter === 'nobillet' && !isSansBillet) return false;
     if (activeFilter === 'evangelized' && !isEvang) return false;
     if (activeFilter === 'pending' && isEvang) return false;
@@ -167,8 +320,9 @@ function getFilteredGuests() {
       const table = `table ${guest.table_number || ''}`.toLowerCase();
       const partner = (guest.partner_name || '').toLowerCase();
       const church = (guest.church_name || '').toLowerCase();
+      const sup = (guest.evangelized_by || guest.supervisor_name || '').toLowerCase();
 
-      return name.includes(q) || phone.includes(q) || table.includes(q) || partner.includes(q) || church.includes(q);
+      return name.includes(q) || phone.includes(q) || table.includes(q) || partner.includes(q) || church.includes(q) || sup.includes(q);
     }
 
     return true;
@@ -192,6 +346,9 @@ function renderGuests() {
   guestsListEl.innerHTML = filtered.map(g => {
     const isSansBillet = g.registration_source === 'sans_billet';
     const isEvang = Number(g.is_evangelized) === 1;
+    const isArrived = Number(g.is_arrived) === 1;
+    const isJustArrived = newlyArrivedGuestIds.has(g.id);
+
     const gender = (g.gender || 'M').toUpperCase();
     const genderLabel = gender === 'F' ? 'Femme' : 'Homme';
     const genderPillClass = gender === 'F' ? 'gender-f' : 'gender-m';
@@ -199,18 +356,31 @@ function renderGuests() {
 
     const formulaLabel = (g.ticket_type === 'couple' || g.couple_name) ? '👥 En Couple' : '👤 Seul';
     const tableName = g.table_number ? `Table ${g.table_number}` : 'Table Régie';
-    const arrivalTime = g.arrived_at ? new Date(g.arrived_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : (g.is_arrived ? 'Présent' : 'Non émargé');
+    const arrivalTime = g.arrived_at ? new Date(g.arrived_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : (isArrived ? 'Présent' : 'Non émargé');
+
+    // Badge En Salle officiel
+    const arrivedBadge = isArrived
+      ? `<span class="badge-tag-arrived" title="L'invité a été validé à l'accueil">🟢 DÉJÀ EN SALLE</span>`
+      : `<span class="badge-tag-waiting" title="Pas encore validé à l'accueil">⏳ En attente accueil</span>`;
+
+    // Signature du superviseur si évangélisé
+    const supervisorSigner = g.evangelized_by || g.supervisor_name || '';
 
     return `
-      <div class="guest-card ${isSansBillet ? 'is-sans-billet' : ''} ${isEvang ? 'is-evangelized' : ''}" data-id="${g.id}">
+      <div class="guest-card ${isSansBillet ? 'is-sans-billet' : ''} ${isEvang ? 'is-evangelized' : ''} ${isArrived ? 'is-arrived' : ''} ${isJustArrived ? 'card-just-arrived' : ''}" data-id="${g.id}">
         <div>
           <div class="guest-card-header">
-            <h3 class="guest-name">${escapeHtml(g.name)}</h3>
-            ${isSansBillet ? '<span class="badge-tag-nobillet">🏷️ SANS BILLET</span>' : ''}
-            ${isEvang ? '<span class="badge-evangelized">✝️ Évangélisé(e)</span>' : ''}
+            <div>
+              <h3 class="guest-name">${escapeHtml(g.name)}</h3>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
+                ${arrivedBadge}
+                ${isSansBillet ? '<span class="badge-tag-nobillet">🏷️ SANS BILLET</span>' : ''}
+                ${isEvang ? '<span class="badge-evangelized">✝️ Évangélisé(e)</span>' : ''}
+              </div>
+            </div>
           </div>
 
-          <div class="guest-meta-rows" style="margin-top: 8px;">
+          <div class="guest-meta-rows" style="margin-top: 10px;">
             <div class="guest-meta-pill-row">
               <span class="meta-pill ${genderPillClass}">${genderIcon} ${genderLabel}</span>
               <span class="meta-pill">${formulaLabel}</span>
@@ -218,12 +388,18 @@ function renderGuests() {
             </div>
 
             <div style="margin-top: 4px; display: flex; justify-content: space-between; font-size: 0.74rem;">
-              <span>🕒 Arrivée : <strong>${arrivalTime}</strong></span>
+              <span>🕒 Émargement : <strong>${arrivalTime}</strong></span>
               ${g.phone && g.phone !== '0' ? `<span>📞 ${escapeHtml(g.phone)}</span>` : ''}
             </div>
 
             ${g.partner_name ? `<div style="font-size: 0.74rem; color: #cbd5e1;">Conjoint(e) : <em>${escapeHtml(g.partner_name)}</em></div>` : ''}
             ${g.spiritual_decision ? `<div style="font-size: 0.74rem; color: #34d399; font-weight: 600;">✨ Suivi : ${escapeHtml(g.spiritual_decision)}</div>` : ''}
+            
+            ${supervisorSigner ? `
+              <div style="margin-top: 6px; padding: 4px 8px; background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; border-radius: 4px; font-size: 0.74rem; color: #bae6fd;">
+                ✍️ Fiche signée par : <strong style="color: #ffffff;">${escapeHtml(supervisorSigner)}</strong>
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -252,7 +428,7 @@ function escapeHtml(str) {
 }
 
 // -------------------------------------------------------------
-// 5. GESTION DU FORMULAIRE D'ÉVANGÉLISATION (Image Officielle)
+// 5. GESTION DU FORMULAIRE D'ÉVANGÉLISATION AVEC SIGNATURE OBLIGATOIRE
 // -------------------------------------------------------------
 window.openEvangelizationForm = async function(guestId) {
   currentGuestId = guestId;
@@ -267,12 +443,19 @@ window.openEvangelizationForm = async function(guestId) {
   const sheetPhone = document.getElementById('sheet-phone');
   const sheetResidence = document.getElementById('sheet-residence');
   const sheetProfession = document.getElementById('sheet-profession');
+  const sheetSupervisorName = document.getElementById('sheet-supervisor-name');
 
   if (sheetGuestId) sheetGuestId.value = guest.id;
   if (sheetFullName) sheetFullName.value = guest.name || '';
   if (sheetPhone) sheetPhone.value = (guest.phone && guest.phone !== '0') ? guest.phone : '';
   if (sheetResidence) sheetResidence.value = guest.residence_location || '';
   if (sheetProfession) sheetProfession.value = guest.profession || '';
+
+  // Préremplir la signature avec le nom mémorisé du superviseur ou l'auteur précédent
+  const defaultSupervisor = guest.evangelized_by || guest.supervisor_name || getSupervisorName();
+  if (sheetSupervisorName) {
+    sheetSupervisorName.value = defaultSupervisor;
+  }
 
   // Chargement de l'enregistrement existant si présent
   try {
@@ -285,6 +468,7 @@ window.openEvangelizationForm = async function(guestId) {
         if (sheetResidence) sheetResidence.value = r.residence_location || '';
         if (sheetPhone) sheetPhone.value = r.phone || '';
         if (sheetProfession) sheetProfession.value = r.profession || '';
+        if (sheetSupervisorName && r.supervisor_name) sheetSupervisorName.value = r.supervisor_name;
 
         // Église
         const attendsRadio = document.querySelectorAll('input[name="attends_church_radio"]');
@@ -355,6 +539,22 @@ if (formEvang) {
     const lastChurch = document.getElementById('sheet-last-church')?.value?.trim();
     const decision = document.getElementById('sheet-spiritual-decision')?.value;
     const notes = document.getElementById('sheet-notes')?.value?.trim();
+    const supervisorName = document.getElementById('sheet-supervisor-name')?.value?.trim();
+
+    // 1. Validation de la signature obligatoire du superviseur
+    if (!supervisorName) {
+      alert("⚠️ Signature obligatoire : Veuillez indiquer votre Nom et Prénom de superviseur pour signer et valider cette fiche.");
+      const supInput = document.getElementById('sheet-supervisor-name');
+      if (supInput) {
+        supInput.focus();
+        supInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Sauvegarder dans le localStorage pour les prochaines fiches
+    localStorage.setItem('supervisor_name', supervisorName);
+    updateSupervisorIdentityUI();
 
     // Radio église
     const churchRadioVal = document.querySelector('input[name="attends_church_radio"]:checked')?.value;
@@ -394,7 +594,7 @@ if (formEvang) {
         profession: profession,
         spiritual_decision: decision,
         notes: notes,
-        supervisor_name: 'Superviseur Régie'
+        supervisor_name: supervisorName
       };
 
       const res = await fetch('/api/supervisor/evangelization', {
@@ -408,13 +608,15 @@ if (formEvang) {
         throw new Error(result.error || 'Erreur lors de l\'enregistrement');
       }
 
-      showToast(`✅ Fiche d'évangélisation transmise à la Régie pour ${fullName} !`);
+      showToast(`✅ Fiche signée par ${supervisorName} et transmise à l'Admin pour ${fullName} !`);
       closeEvangelizationModal();
 
       // Mise à jour locale immédiate
       const targetGuest = allGuests.find(g => g.id === guestId);
       if (targetGuest) {
         targetGuest.is_evangelized = 1;
+        targetGuest.evangelized_by = supervisorName;
+        targetGuest.supervisor_name = supervisorName;
         targetGuest.spiritual_decision = decision;
         targetGuest.church_name = churchName;
       }
@@ -475,15 +677,16 @@ if (btnRefresh) {
 }
 
 // -------------------------------------------------------------
-// 7. INITIALISATION ET BOUCLE TEMPS RÉEL (12s)
+// 7. INITIALISATION ET BOUCLE TEMPS RÉEL (4s)
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  updateSupervisorIdentityUI();
   loadPinnedNote();
   loadSupervisorGuests(true);
 
-  // Rafraîchissement automatique des notes et invités toutes les 12 secondes
+  // Boucle de rafraîchissement temps réel rapide (4 secondes)
   pollTimer = setInterval(() => {
     loadPinnedNote();
     loadSupervisorGuests(false);
-  }, 12000);
+  }, 4000);
 });

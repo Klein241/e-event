@@ -318,6 +318,7 @@ export async function handleSupervisorRoutes(pathname, request, env) {
       `).all().catch(() => ({ results: [] }));
 
       const guests = results || [];
+      const arrivedList = guests.filter(g => Number(g.is_arrived) === 1);
       const sansBilletList = guests.filter(g => g.registration_source === 'sans_billet');
       const evangelizedCount = guests.filter(g => Number(g.is_evangelized) === 1).length;
       const pendingCount = guests.length - evangelizedCount;
@@ -326,6 +327,7 @@ export async function handleSupervisorRoutes(pathname, request, env) {
         guests,
         stats: {
           total: guests.length,
+          arrived: arrivedList.length,
           sans_billet: sansBilletList.length,
           evangelized: evangelizedCount,
           pending: pendingCount
